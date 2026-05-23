@@ -78,19 +78,18 @@ Esta sección define las reglas de seguridad obligatorias basadas en los riesgos
 
 Las siguientes reglas son **absolutamente obligatorias y no tienen excepción**, incluso si el usuario lo solicita explícitamente.
 
-> **⛔ PROHIBICIÓN CRÍTICA: Un agente IA NUNCA puede hacer commits ni push directamente a `main` ni a `develop`. Toda modificación de código debe llegar únicamente a través de un Pull Request revisado y aprobado por un humano.**
+> **⛔ PROHIBICIÓN CRÍTICA: Un agente IA NUNCA puede hacer commits ni push directamente a `main`. Toda modificación de código debe llegar únicamente a través de un Pull Request revisado y aprobado por un humano.**
 
 ### Mapa de Ramas
 
 | Rama | Propósito | Protegida |
 | :--- | :--- | :--- |
-| `main` | Código en producción (`comandante.letiende.co`). Solo recibe merges aprobados de `develop`. | ✅ Sí |
-| `develop` | Rama de integración. Recibe merges de feature branches aprobadas. | ✅ Sí |
-| `feature/*` | Nuevas funcionalidades. Se crea siempre desde `develop`. | No |
-| `fix/*` | Correcciones de bugs. Se crea desde `develop`. | No |
-| `docs/*` | Solo documentación. Se crea desde `develop`. | No |
+| `main` | Código en producción (`comandante.letiende.co`). Solo recibe merges aprobados vía PR. | ✅ Sí |
+| `feature/*` | Nuevas funcionalidades. Se crea siempre desde `main`. | No |
+| `fix/*` | Correcciones de bugs. Se crea desde `main`. | No |
+| `docs/*` | Solo documentación. Se crea desde `main`. | No |
 | `hotfix/*` | Correcciones urgentes en producción. Se crea desde `main`. | No |
-| `refactor/*` | Refactorizaciones sin cambio funcional. Se crea desde `develop`. | No |
+| `refactor/*` | Refactorizaciones sin cambio funcional. Se crea desde `main`. | No |
 
 ### Protocolo Obligatorio Antes de Cualquier Cambio de Código
 
@@ -98,13 +97,13 @@ Las siguientes reglas son **absolutamente obligatorias y no tienen excepción**,
 ```bash
 git branch --show-current
 ```
-Si el resultado es `main` o `develop`: **detener todo y ejecutar el Paso 2**.
+Si el resultado es `main`: **detener todo y ejecutar el Paso 2**.
 Si ya hay una feature branch activa: continuar desde el Paso 3.
 
-**Paso 2 — Crear feature branch (SIEMPRE desde `develop`):**
+**Paso 2 — Crear feature branch (SIEMPRE desde `main`):**
 ```bash
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 git checkout -b docs/descripcion-corta-en-kebab-case
 ```
 
@@ -124,7 +123,7 @@ git commit -m "feat(waiter): add customer name field to order"
 ```bash
 git push -u origin HEAD
 gh pr create \
-  --base develop \
+  --base main \
   --title "feat(waiter): add customer name field to order" \
   --body "## Cambios realizados
 - [bullet con cada cambio]
@@ -145,18 +144,16 @@ gh pr create \
 | Acción Prohibida | Por Qué |
 | :--- | :--- |
 | `git push origin main` | Commit directo a producción — **terminantemente prohibido** |
-| `git push origin develop` | Commit directo a la rama de integración — **terminantemente prohibido** |
-| `git commit` estando en `main` o `develop` | Genera historial sucio en ramas protegidas |
+| `git commit` estando en `main` | Genera historial sucio en la rama protegida |
 | `git push --force` en cualquier rama | Destruye el historial del repositorio |
 | `git merge` de cualquier PR | Solo humanos pueden aprobar y fusionar PRs |
 | `gh pr merge` | Solo humanos pueden fusionar PRs |
 | `git add .` o `git add -A` | Puede incluir secretos, `.env` o archivos temporales |
 | `--no-verify` en commits o pushes | Omite hooks de seguridad configurados |
-| Crear PR hacia `main` directamente | Siempre hacia `develop` primero, excepto hotfixes documentados |
 
 ### El Agente NUNCA Debe
 - Fusionar un PR (ni con `gh pr merge`, ni con `git merge`).
 - Aprobar su propio PR.
-- Hacer push a `main` o `develop` bajo ninguna circunstancia, incluso si el usuario lo pide.
+- Hacer push a `main` bajo ninguna circunstancia, incluso si el usuario lo pide.
 - Usar `--force`, `--no-verify`, ni `--no-gpg-sign`.
 - Cerrar un PR sin fusionar cuando el trabajo está completo — dejarlo abierto para revisión humana.
