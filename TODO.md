@@ -13,55 +13,39 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 2)
+## 2. Tareas Activas (WIP: 1)
 
-### Tarea 4: [FEATURE] Autenticación con Google Sign-In, Lista Blanca y Guardia de Rutas
-*   **Origen:** PRD §5.1 (Inicio de sesión), §8.2 (Seguridad) & MEMORY.md ADR-004 — Sin autenticación no puede activarse ningún módulo funcional.
+### Tarea 6: [FEATURE] Módulo del Mesero — Toma de Pedidos
+*   **Origen:** PRD §5.1 (Módulo del Mesero) — Función central del sistema; sin toma de pedidos el flujo de trabajo completo (mesero → barista → cobro) no puede operar.
 *   **Archivos a Crear/Modificar:**
-    *   `[NEW]` `src/app/core/auth/auth.service.ts` — Servicio que encapsula `signInWithPopup` (Google), `signOut` y la verificación de lista blanca en Firestore.
-    *   `[NEW]` `src/app/core/auth/auth.guard.ts` — Guardia funcional de Angular que redirige a `/login` si el usuario no está autenticado o no está en la lista blanca.
-    *   `[NEW]` `src/app/features/login/login.component.ts` — Página de inicio de sesión con botón "Ingresar con Google".
-    *   `[MOD]` `src/app/app.routes.ts` — Rutas protegidas por `authGuard`; ruta `/login` pública; redirección raíz a `/login`.
+    *   `[NEW]` `src/app/core/models/order.model.ts` — Interface `Order` con campos `id`, `tableNumber`, `items` (array de `OrderItem`), `status`, `waiterId`, `createdAt`, `updatedAt`.
+    *   `[NEW]` `src/app/core/models/order-item.model.ts` — Interface `OrderItem` con campos `productId`, `productName`, `quantity`, `unitPrice`, `tipAmount`.
+    *   `[NEW]` `src/app/core/db/order.service.ts` — Servicio para crear y listar pedidos del turno activo usando Signals + Firestore.
+    *   `[MOD]` `src/app/features/waiter/waiter.component.ts` — Vista móvil: catálogo de productos activos, carrito de pedido, confirmación de envío.
 *   **Qué hacer:**
-    1.  Crear `AuthService` con métodos `signInWithGoogle()`, `signOut()` (con limpieza de Signal), `isAuthenticated` (Signal<boolean>) y `currentUser` (Signal<User | null>).
-    2.  En `signInWithGoogle()`, tras el login exitoso, verificar que el email del usuario existe como documento en la colección `/users` de Firestore. Si no existe, invocar `signOut()` y lanzar un error claro.
-    3.  Crear `authGuard` que use `AuthService.isAuthenticated` para proteger rutas.
-    4.  Crear componente `LoginComponent` con el botón de Google y manejo de errores visible para el usuario (correo no autorizado, fallo de red).
-    5.  Configurar las rutas en `app.routes.ts` con carga diferida (`loadComponent`) para las vistas de cada rol.
+    1.  Definir los modelos `Order` y `OrderItem`.
+    2.  Implementar `OrderService` con `createOrder()` y `pendingOrders` (Signal con onSnapshot filtrado por status `pending`/`preparing`).
+    3.  Construir la vista del mesero: lista de productos activos por categoría, botón "Agregar al pedido", resumen del carrito y botón "Enviar pedido".
+    4.  Al enviar el pedido, escribir en `/orders` con status `pending` y los datos del mesero autenticado.
 *   **Definición de Done (Checklist):**
-    - `[ ]` Un usuario no autenticado es redirigido a `/login` al intentar acceder a cualquier ruta protegida.
-    - `[ ]` Un usuario autenticado cuyo email NO está en la colección `/users` de Firestore es desconectado y ve el mensaje de error.
-    - `[ ]` Al cerrar sesión, `signOut(auth)` se invoca, el Signal `isAuthenticated` pasa a `false` y el usuario es redirigido a `/login`.
-    - `[ ]` `npm run build` compila sin errores.
-
----
-
-### Tarea 5: [FEATURE] Módulo del Administrador — ABM de Productos y Gestión de Usuarios
-*   **Origen:** PRD §5.3 (Módulo de Administración) — Prerequisito para que el sistema tenga datos con los que operar; sin catálogo de productos el mesero no puede tomar pedidos.
-*   **Archivos a Crear/Modificar:**
-    *   `[NEW]` `src/app/core/models/product.model.ts` — Interface `Product` con campos `id`, `name`, `basePrice`, `tipAmount`, `totalPrice`, `category`, `isActive`.
-    *   `[NEW]` `src/app/core/models/user.model.ts` — Interface `AppUser` con campos `uid`, `email`, `displayName`, `role`, `createdAt`.
-    *   `[NEW]` `src/app/core/db/product.service.ts` — CRUD de productos sobre la colección `/products` usando Signals + Firestore.
-    *   `[NEW]` `src/app/core/db/user.service.ts` — CRUD de usuarios sobre la colección `/users` usando Signals + Firestore.
-    *   `[NEW]` `src/app/features/admin/admin.component.ts` — Vista de escritorio del administrador con tabs: Productos y Usuarios.
-    *   `[NEW]` `src/app/features/admin/products/product-form.component.ts` — Formulario reactivo para crear/editar producto.
-    *   `[NEW]` `src/app/features/admin/users/user-list.component.ts` — Lista de usuarios con selector de rol dinámico.
-*   **Qué hacer:**
-    1.  Definir las interfaces `Product` y `AppUser` en `core/models/`.
-    2.  Implementar `ProductService` con `getProducts()` (onSnapshot → Signal), `addProduct()`, `updateProduct()`, `archiveProduct()`. Desuscribirse del listener al destruir el servicio.
-    3.  Implementar `UserService` con `getUsers()` (onSnapshot → Signal), `createUser()`, `updateUserRole()`.
-    4.  Construir la vista de admin con `IonTabs` para navegar entre Productos y Usuarios.
-    5.  El formulario de producto debe calcular automáticamente `totalPrice = basePrice + tipAmount` en tiempo real.
-    6.  El selector de rol de usuario debe invocar `UserService.updateUserRole()` directamente (sin formulario intermedio).
-*   **Definición de Done (Checklist):**
-    - `[ ]` El administrador puede crear, editar y archivar un producto desde la interfaz.
-    - `[ ]` El administrador puede cambiar el rol de un usuario (waiter, barista, admin).
-    - `[ ]` Los listeners de Firestore se desuscriben al destruir los componentes (sin memory leaks).
+    - `[ ]` El mesero puede seleccionar productos del catálogo y ver el total automático.
+    - `[ ]` Al confirmar, el pedido aparece en Firestore con status `pending`.
+    - `[ ]` Los listeners de Firestore se desuscriben al destruir el componente.
     - `[ ]` `npm run build` compila sin errores.
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 5: [FEATURE] Módulo del Administrador — ABM de Productos y Gestión de Usuarios
+*   **Completada:** 2026-05-23
+*   **PR:** `feature/admin-abm`
+*   **Resultado:** `Product` y `AppUser` models creados. `ProductService` y `UserService` implementados con Signals + `onSnapshot` y cleanup con `DestroyRef`. Vista admin con `IonTabs` (Products / Users). `ProductsComponent` con lista, botón editar y archivar, y formulario reactivo inline. `totalPrice = computed(() => basePrice + tipAmount)` calculado en tiempo real via `toSignal`. `UserListComponent` con selector de rol por inline `ionChange` y formulario de alta de usuarios. `AuthService` actualizado para buscar usuario por email (no UID) en Firestore. `firestore.rules` actualizado: `userRole()` usa `request.auth.token.email`. Build verde: 1.25 MB inicial (sin warnings, budget 1.5 MB), chunks lazy separados por componente.
+
+### ✅ Tarea 4: [FEATURE] Autenticación con Google Sign-In, Lista Blanca y Guardia de Rutas
+*   **Completada:** 2026-05-23
+*   **PR:** `feature/auth-google-signin`
+*   **Resultado:** `AuthService` con `signInWithGoogle()` (verifica existencia en `/users/{email}`), `signOut()` (limpia Signals antes de redirigir a `/login`), y `currentUser`/`isAuthenticated` como Signals. `authGuard` funcional que redirige a `/login` si no autenticado. `LoginComponent` con Ionic UI, manejo de estado loading/error con Signals. Rutas lazy con `loadComponent`. Build verde sin errores.
 
 ### ✅ Tarea 3: [FEATURE] Integración de Ionic Framework 8.x y Tailwind CSS 4.x
 *   **Completada:** 2026-05-23
@@ -88,3 +72,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-23 | Tarea 1 completada. Angular 21.2.x + Firebase SDK integrado. Build verde. | Tarea 2 (firestore.rules) pasa a ser la única tarea activa. Se evaluará la siguiente tarea atómica al completarla. |
 | 2026-05-23 | Tarea 2 completada. Reglas de Firestore validadas en emulador. Sin brechas de seguridad OWASP pendientes en el stack base. | Tareas 3 (Ionic + Tailwind) y 4 (Auth + lista blanca) redactadas. |
 | 2026-05-23 | Tarea 3 completada. Ionic 8.x + Tailwind 4.x integrados. Build limpio sin warnings. Gap principal: sin autenticación ni catálogo de datos el sistema no puede operar. | Tarea 4 (Auth Google + lista blanca — entrada al sistema) y Tarea 5 (Admin: ABM de productos y usuarios — datos necesarios para operar) son las dos tareas más desbloqueadoras. |
+| 2026-05-23 | Tareas 4 y 5 completadas. Autenticación operativa, ABM de productos y usuarios funcional. Próximo gap crítico: sin módulo del mesero el flujo de pedidos no puede iniciarse. | Tarea 6 (Módulo del Mesero — toma de pedidos) es la única tarea activa. WIP bajó a 1 al cerrar ambas tareas simultáneamente. |

@@ -27,7 +27,7 @@ export class AuthService implements OnDestroy {
     const provider = new GoogleAuthProvider();
     const credential = await signInWithPopup(this.auth, provider);
 
-    const userRef = doc(this.firestore, 'users', credential.user.uid);
+    const userRef = doc(this.firestore, 'users', credential.user.email!);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {

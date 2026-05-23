@@ -1,22 +1,24 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { IonIcon, IonLabel, IonTabBar, IonTabButton, IonTabs } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent],
+  imports: [IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <ion-page>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Administrador</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
-        <p>Módulo del administrador — próximamente.</p>
-      </ion-content>
-    </ion-page>
+    <ion-tabs>
+      <ion-tab-bar slot="bottom">
+        <ion-tab-button tab="products">
+          <ion-icon name="cube-outline" />
+          <ion-label>Productos</ion-label>
+        </ion-tab-button>
+        <ion-tab-button tab="users">
+          <ion-icon name="people-outline" />
+          <ion-label>Usuarios</ion-label>
+        </ion-tab-button>
+      </ion-tab-bar>
+    </ion-tabs>
   `,
 })
 export class AdminComponent {}

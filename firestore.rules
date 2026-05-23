@@ -15,11 +15,11 @@ service cloud.firestore {
     }
 
     // Retorna el rol del usuario autenticado, o false si no existe su documento.
-    // Usar short-circuit: false && ... => false; true && ... => valor del rol.
+    // El documento usa el email como ID (no el UID), igual que UserService.createUser().
     function userRole() {
       return isAuthenticated()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+          && exists(/databases/$(database)/documents/users/$(request.auth.token.email))
+          && get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role;
     }
 
     function isAdmin() {
