@@ -1,69 +1,88 @@
-# Comandante — Sistema de Gestión de Pedidos de Le Tiende
+# Comandante — Sistema de Gestión de Pedidos para Le Tiende
 
-**Comandante** es la solución de toma rápida de pedidos, cálculo contable de propinas y cola digital de preparación en barra diseñada a medida para el centro cultural, librería y café bar **Le Tiende** (Bogotá, Colombia).
+**Comandante** es una solución web de toma rápida de pedidos, cálculo contable de propinas y cola digital de preparación en barra, diseñada a medida para el centro cultural, librería y café bar **Le Tiende** (Bogotá, Colombia).
 
-El sistema está optimizado para eventos masivos en el teatro de Le Tiende, permitiendo una transición fluida al modelo de atención tipo "discoteca" (cobro y preparación inmediata).
-
----
-
-## 🚀 Características Clave
-
--   📱 **Mobile-First para Meseros:** Interfaz táctil ultraligera para dispositivos móviles que permite la selección ágil de productos y la asignación de palabras clave (nombre del cliente) para cada comanda.
--   💸 **Cálculo de Propina Fija y Cobro Discriminado:** Visualización en letras grandes de los valores separados de consumo (gravado) y propina (exenta de impuestos) para facilitar el ingreso manual en el datáfono.
--   ⚡ **Sincronización en Tiempo Real:** Envío instantáneo de comandas a la barra una vez consolidadas para iniciar la preparación antes de confirmar el pago.
--   ☕ **Cola de Comandas para Baristas:** Vista cronológica para tabletas que muestra los pedidos en preparación, identificados por mesero y palabra clave, controlando la entrega y el estado del pago.
--   📊 **Consolidado POS para Administradores:** Generador de resúmenes de ventas diarias estructurados para el asentamiento contable manual en el sistema POS del establecimiento.
--   🛡️ **Acceso Restringido y Roles Dinámicos:** Autenticación con Google Sign-In mediante lista blanca de Gmail. El administrador asigna y rota dinámicamente los roles (*Mesero*, *Barista*, *Administrador*) de los colaboradores al inicio de cada jornada.
+El sistema opera con **costo de infraestructura cero** sobre el plan gratuito de Firebase y fue diseñado y orquestado íntegramente mediante agentes de IA especializados.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Funcionalidades
 
--   **Frontend:** [Angular 21.2.x](https://angular.dev) (Signals, Standalone Components, Router)
--   **Componentes de UI Móvil:** [Ionic Framework (Angular) 8.x](https://ionicframework.com/docs)
--   **Estilos:** [Tailwind CSS 4.x](https://tailwindcss.com)
--   **Base de Datos / Tiempo Real:** [Cloud Firestore](https://firebase.google.com/docs/firestore) (Firebase SDK v10+)
--   **Autenticación:** [Firebase Authentication](https://firebase.google.com/docs/auth) (Google Sign-In)
--   **Alojamiento / Despliegue:** [Firebase Hosting](https://firebase.google.com/docs/hosting) (Plan Spark - Capa 100% gratuita)
+### Para Meseros — Mobile First
+Interfaz táctil ultraligera optimizada para celular. Permite seleccionar productos del catálogo, asignar una palabra clave al cliente y consolidar la comanda con un solo gesto. Diseñada para operar en condiciones de eventos masivos con iluminación baja y alta demanda.
+
+### Cálculo de Propina y Cobro Discriminado
+El sistema calcula y muestra en pantalla completa los montos separados de **consumo gravado** y **propina voluntaria** (exenta de IVA), facilitando el ingreso manual en datáfonos sin integración de API. Elimina errores humanos en el cobro y reduce fricciones contables.
+
+### Sincronización en Tiempo Real
+Las comandas consolidadas se transmiten instantáneamente a la barra vía Cloud Firestore. La preparación inicia antes de confirmar el pago — crítico en eventos tipo "discoteca" donde el flujo de caja es continuo.
+
+### Cola de Comandas para Baristas — Tablet
+Vista cronológica de pedidos en preparación, identificados por mesero y palabra clave. El barista controla la entrega y el estado del pago desde una pantalla dedicada sin depender de papel ni de comunicación verbal.
+
+### Consolidado POS para Administradores — Desktop
+Generador de resúmenes de ventas diarias estructurados para el asentamiento contable manual en el sistema POS del establecimiento. Exportable al cierre de cada jornada.
+
+### Roles Dinámicos por Jornada
+Autenticación con Google Sign-In mediante lista blanca de cuentas autorizadas. El administrador asigna y rota los roles (*Mesero*, *Barista*, *Administrador*) al inicio de cada turno sin tocar código ni configuración.
 
 ---
 
-## 📖 Documentación Especializada
+## Arquitectura de Costo Cero
 
-Para comprender la arquitectura y los detalles del proyecto, consulta los siguientes documentos en la raíz del repositorio:
+El sistema corre íntegramente sobre el **plan Spark (gratuito) de Firebase**, sin servidor propio, sin instancias activas y sin costo mensual recurrente.
 
-*   📄 **[PRD.md (Requerimientos de Producto)](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/PRD.md):** Visión del producto, casos de uso, perfiles de usuario, objetivos comerciales e histórico de requerimientos.
-*   📄 **[tech-specs.md (Especificaciones Técnicas)](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/tech-specs.md):** Diagrama de arquitectura, estructura de base de datos Firestore, configuración de dominio en AWS Route 53 e integración de seguridad.
-*   📄 **[CLAUDE.md (Instrucciones permanentes de IA)](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/CLAUDE.md):** Comandos frecuentes, estándares de código, guías de seguridad OWASP y flujo de Git obligatorio.
-*   📄 **[MEMORY.md (Memoria del proyecto)](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/MEMORY.md):** Registro de Decisiones de Arquitectura (ADRs), checklists de features y dependencias.
-*   📄 **[TODO.md (Planificación JIT)](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/TODO.md):** Motor Just-In-Time con las siguientes dos tareas atómicas de desarrollo.
+| Servicio | Plan | Costo mensual |
+| :--- | :--- | :--- |
+| Firebase Hosting | Spark | $0 |
+| Cloud Firestore | Spark — 50 K lecturas / día | $0 |
+| Firebase Authentication | Spark — 10 K verificaciones / mes | $0 |
+| Dominio (`comandante.letiende.co`) | DNS en AWS Route 53 | ~$0.50 USD |
+
+**Por qué esta elección es una decisión de arquitectura, no solo de presupuesto:**
+
+- **Sin gestión de infraestructura.** No hay servidores, contenedores ni pipelines de deployment complejos. Firebase Hosting distribuye la SPA desde CDN global automáticamente.
+- **Escalabilidad reactiva.** Firestore escala con el tráfico; en días sin eventos el costo es literalmente cero — no hay recursos "idle" pagando.
+- **Seguridad en el perímetro correcto.** Las Firestore Security Rules son el único control de acceso real. Los guards de Angular son solo UX. Esto elimina la superficie de ataque de un backend intermedio.
+- **Cuota diaria como techo de gasto.** La cuota gratuita (50 K lecturas/día) actúa como circuit breaker natural contra explosiones de consumo.
 
 ---
 
-## 💻 Desarrollo Local
+## Stack Tecnológico
 
-### Requisitos Previos
-1.  Node.js (versión 20 o superior recomendada).
-2.  Angular CLI instalado de forma global (`npm install -g @angular/cli`).
+| Capa | Tecnología |
+| :--- | :--- |
+| Framework Frontend | Angular 21.2.x — Standalone Components, Signals, Router |
+| UI Mobile | Ionic Framework (Angular) 8.x |
+| Estilos | Tailwind CSS 4.x |
+| Base de Datos / Tiempo Real | Cloud Firestore (Firebase SDK v10+) |
+| Autenticación | Firebase Authentication — Google Sign-In |
+| Hosting / CDN | Firebase Hosting |
+| DNS | AWS Route 53 |
 
-### Instalación y Ejecución
-1.  Clonar el repositorio.
-2.  Instalar dependencias:
-    ```bash
-    npm install
-    ```
-3.  Iniciar el servidor de desarrollo local:
-    ```bash
-    npm run start
-    ```
-4.  Abrir en el navegador `http://localhost:4200`.
+---
 
-### Despliegue
--   Para desplegar en el ambiente de Staging:
-    ```bash
-    npm run deploy:stage
-    ```
--   Para desplegar en Producción (`https://comandante.letiende.co`):
-    ```bash
-    npm run deploy:prod
-    ```
+## Orquestación con IA
+
+Comandante no fue construido con IA como asistente de autocompletado — fue **orquestado** con agentes especializados como método principal de producción.
+
+El flujo de trabajo utilizó **Claude Code** con equipos de agentes en paralelo para:
+
+- **Análisis de requisitos** con entrevistas estructuradas al operador del negocio.
+- **Diseño de arquitectura** con validación iterativa contra restricciones de costo y operación.
+- **Especificación técnica** (`PRD.md`, `tech-specs.md`) generada y mantenida por agentes documentadores.
+- **Implementación** delegada a agentes ejecutores con verificación por agentes revisores independientes.
+- **Git flow** aplicado automáticamente — los agentes tienen prohibido hacer push a ramas protegidas.
+
+Este repositorio es evidencia de que un arquitecto de soluciones con metodología *AI-first* puede diseñar, especificar y construir un sistema de producción completo, con restricciones reales de costo y seguridad, en una fracción del tiempo convencional.
+
+---
+
+## Documentación del Proyecto
+
+| Documento | Contenido |
+| :--- | :--- |
+| [`PRD.md`](./PRD.md) | Visión del producto, perfiles de usuario, casos de uso y objetivos comerciales |
+| [`tech-specs.md`](./tech-specs.md) | Arquitectura Firestore, configuración DNS, reglas de seguridad |
+| [`CLAUDE.md`](./CLAUDE.md) | Instrucciones permanentes para agentes IA: código, seguridad y git flow |
+| [`TODO.md`](./TODO.md) | Backlog JIT — las dos próximas tareas atómicas de desarrollo |
