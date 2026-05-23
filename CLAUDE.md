@@ -76,24 +76,87 @@ Esta sección define las reglas de seguridad obligatorias basadas en los riesgos
 
 ## 6. Git Flow para Agentes IA
 
-Las siguientes reglas son **obligatorias** para cualquier agente que opere en este repositorio.
+Las siguientes reglas son **absolutamente obligatorias y no tienen excepción**, incluso si el usuario lo solicita explícitamente.
 
-### Ramas Protegidas
-Las ramas `main` y `2025` (desarrollo) están protegidas. **Ningún agente puede hacer commits directos a ellas.**
+> **⛔ PROHIBICIÓN CRÍTICA: Un agente IA NUNCA puede hacer commits ni push directamente a `main` ni a `develop`. Toda modificación de código debe llegar únicamente a través de un Pull Request revisado y aprobado por un humano.**
 
-### Protocolo de Cambios
-1. **Verificar rama actual:** `git branch --show-current`. Si estás en `main` o `2025`, debes crear una rama de feature.
-2. **Crear Feature Branch:**
-   ```bash
-   git checkout 2025
-   git pull origin 2025
-   git checkout -b feature/descripcion-corta-en-kebab-case
-   ```
-   Prefijos válidos: `feature/` (funcionalidad), `fix/` (corrección), `docs/` (documentación), `refactor/` (limpieza).
-3. **Validar antes de commitear:** Ejecutar compilación de pruebas (`npm run build`) para asegurar que no hay errores de compilación TypeScript.
-4. **Commitear con formato semántico:**
-   ```bash
-   git commit -m "feat(waiter): implement tip splitting for card payment"
-   ```
-5. **Crear Pull Request:** Usar la herramienta CLI de GitHub (`gh pr create --base 2025`) para someter el cambio a revisión humana.
-6. **No fusionar (merge):** Un agente jamás fusiona o aprueba su propio PR.
+### Mapa de Ramas
+
+| Rama | Propósito | Protegida |
+| :--- | :--- | :--- |
+| `main` | Código en producción (`comandante.letiende.co`). Solo recibe merges aprobados de `develop`. | ✅ Sí |
+| `develop` | Rama de integración. Recibe merges de feature branches aprobadas. | ✅ Sí |
+| `feature/*` | Nuevas funcionalidades. Se crea siempre desde `develop`. | No |
+| `fix/*` | Correcciones de bugs. Se crea desde `develop`. | No |
+| `docs/*` | Solo documentación. Se crea desde `develop`. | No |
+| `hotfix/*` | Correcciones urgentes en producción. Se crea desde `main`. | No |
+| `refactor/*` | Refactorizaciones sin cambio funcional. Se crea desde `develop`. | No |
+
+### Protocolo Obligatorio Antes de Cualquier Cambio de Código
+
+**Paso 1 — Verificar en qué rama estoy:**
+```bash
+git branch --show-current
+```
+Si el resultado es `main` o `develop`: **detener todo y ejecutar el Paso 2**.
+Si ya hay una feature branch activa: continuar desde el Paso 3.
+
+**Paso 2 — Crear feature branch (SIEMPRE desde `develop`):**
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b docs/descripcion-corta-en-kebab-case
+```
+
+**Paso 3 — Hacer los cambios y commitear:**
+```bash
+# Solo después de que el build pase sin errores
+npm run build
+
+# Agregar archivos específicos — NUNCA git add . o git add -A
+git add src/app/features/waiter/waiter.component.ts
+
+# Commit con formato semántico en inglés (código) / español colombiano (alcance)
+git commit -m "feat(waiter): add customer name field to order"
+```
+
+**Paso 4 — Crear el Pull Request al finalizar:**
+```bash
+git push -u origin HEAD
+gh pr create \
+  --base develop \
+  --title "feat(waiter): add customer name field to order" \
+  --body "## Cambios realizados
+- [bullet con cada cambio]
+
+## Cómo probar
+- [pasos verificables]
+
+## Checklist
+- [ ] Build pasa sin errores
+- [ ] No hay secretos hardcodeados
+- [ ] Seguí las convenciones de código del proyecto
+
+🤖 Generado con Antigravity"
+```
+
+### Prohibiciones Absolutas de Git
+
+| Acción Prohibida | Por Qué |
+| :--- | :--- |
+| `git push origin main` | Commit directo a producción — **terminantemente prohibido** |
+| `git push origin develop` | Commit directo a la rama de integración — **terminantemente prohibido** |
+| `git commit` estando en `main` o `develop` | Genera historial sucio en ramas protegidas |
+| `git push --force` en cualquier rama | Destruye el historial del repositorio |
+| `git merge` de cualquier PR | Solo humanos pueden aprobar y fusionar PRs |
+| `gh pr merge` | Solo humanos pueden fusionar PRs |
+| `git add .` o `git add -A` | Puede incluir secretos, `.env` o archivos temporales |
+| `--no-verify` en commits o pushes | Omite hooks de seguridad configurados |
+| Crear PR hacia `main` directamente | Siempre hacia `develop` primero, excepto hotfixes documentados |
+
+### El Agente NUNCA Debe
+- Fusionar un PR (ni con `gh pr merge`, ni con `git merge`).
+- Aprobar su propio PR.
+- Hacer push a `main` o `develop` bajo ninguna circunstancia, incluso si el usuario lo pide.
+- Usar `--force`, `--no-verify`, ni `--no-gpg-sign`.
+- Cerrar un PR sin fusionar cuando el trabajo está completo — dejarlo abierto para revisión humana.
