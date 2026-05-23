@@ -15,30 +15,6 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2. Tareas Activas (WIP: 2)
 
-### Tarea 3: [FEATURE] Integración de Ionic Framework 8.x y Tailwind CSS 4.x
-*   **Origen:** tech-specs.md §2 (Stack Tecnológico) & MEMORY.md ADR-002 — Base obligatoria para todas las vistas de UI.
-*   **Archivos a Crear/Modificar:**
-    *   `[MOD]` `package.json` — Agregar `@ionic/angular`, `@ionic/core`, `ionicons`, `tailwindcss` y `@tailwindcss/vite`.
-    *   `[MOD]` `src/app/app.config.ts` — Registrar `provideIonicAngular`.
-    *   `[MOD]` `src/app/app.component.ts` — Importar e incluir `IonApp`, `IonContent` y `IonRouterOutlet`.
-    *   `[MOD]` `src/app/app.component.html` — Reemplazar la plantilla por `<ion-app><ion-router-outlet /></ion-app>`.
-    *   `[MOD]` `angular.json` — Incluir el CSS global de Ionic en la sección `styles`.
-    *   `[MOD]` `src/styles.css` — Agregar `@import "tailwindcss"` para activar Tailwind v4.
-    *   `[NEW]` `src/theme/variables.css` — Variables de color de Ionic personalizadas para la identidad visual de Le Tiende.
-*   **Qué hacer:**
-    1.  Instalar las dependencias de Ionic 8.x (`@ionic/angular`, `@ionic/core`, `ionicons`).
-    2.  Instalar Tailwind CSS 4.x (`tailwindcss`, `@tailwindcss/vite`).
-    3.  Configurar `@tailwindcss/vite` como plugin en el builder de Angular (vía `angular.json`).
-    4.  Registrar `provideIonicAngular({})` en los providers de `app.config.ts`.
-    5.  Envolver la aplicación en `<ion-app>` y `<ion-router-outlet>` en `app.component`.
-    6.  Definir las variables de tema de Ionic en `src/theme/variables.css` con colores de Le Tiende.
-*   **Definición de Done (Checklist):**
-    - `[ ]` `npm run build` compila sin errores con Ionic y Tailwind.
-    - `[ ]` Al inspeccionar `dist/`, se incluyen los estilos de Ionic y las clases de Tailwind utilizadas.
-    - `[ ]` El componente raíz renderiza `<ion-app>` sin errores en consola.
-
----
-
 ### Tarea 4: [FEATURE] Autenticación con Google Sign-In, Lista Blanca y Guardia de Rutas
 *   **Origen:** PRD §5.1 (Inicio de sesión), §8.2 (Seguridad) & MEMORY.md ADR-004 — Sin autenticación no puede activarse ningún módulo funcional.
 *   **Archivos a Crear/Modificar:**
@@ -60,17 +36,47 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
+### Tarea 5: [FEATURE] Módulo del Administrador — ABM de Productos y Gestión de Usuarios
+*   **Origen:** PRD §5.3 (Módulo de Administración) — Prerequisito para que el sistema tenga datos con los que operar; sin catálogo de productos el mesero no puede tomar pedidos.
+*   **Archivos a Crear/Modificar:**
+    *   `[NEW]` `src/app/core/models/product.model.ts` — Interface `Product` con campos `id`, `name`, `basePrice`, `tipAmount`, `totalPrice`, `category`, `isActive`.
+    *   `[NEW]` `src/app/core/models/user.model.ts` — Interface `AppUser` con campos `uid`, `email`, `displayName`, `role`, `createdAt`.
+    *   `[NEW]` `src/app/core/db/product.service.ts` — CRUD de productos sobre la colección `/products` usando Signals + Firestore.
+    *   `[NEW]` `src/app/core/db/user.service.ts` — CRUD de usuarios sobre la colección `/users` usando Signals + Firestore.
+    *   `[NEW]` `src/app/features/admin/admin.component.ts` — Vista de escritorio del administrador con tabs: Productos y Usuarios.
+    *   `[NEW]` `src/app/features/admin/products/product-form.component.ts` — Formulario reactivo para crear/editar producto.
+    *   `[NEW]` `src/app/features/admin/users/user-list.component.ts` — Lista de usuarios con selector de rol dinámico.
+*   **Qué hacer:**
+    1.  Definir las interfaces `Product` y `AppUser` en `core/models/`.
+    2.  Implementar `ProductService` con `getProducts()` (onSnapshot → Signal), `addProduct()`, `updateProduct()`, `archiveProduct()`. Desuscribirse del listener al destruir el servicio.
+    3.  Implementar `UserService` con `getUsers()` (onSnapshot → Signal), `createUser()`, `updateUserRole()`.
+    4.  Construir la vista de admin con `IonTabs` para navegar entre Productos y Usuarios.
+    5.  El formulario de producto debe calcular automáticamente `totalPrice = basePrice + tipAmount` en tiempo real.
+    6.  El selector de rol de usuario debe invocar `UserService.updateUserRole()` directamente (sin formulario intermedio).
+*   **Definición de Done (Checklist):**
+    - `[ ]` El administrador puede crear, editar y archivar un producto desde la interfaz.
+    - `[ ]` El administrador puede cambiar el rol de un usuario (waiter, barista, admin).
+    - `[ ]` Los listeners de Firestore se desuscriben al destruir los componentes (sin memory leaks).
+    - `[ ]` `npm run build` compila sin errores.
+
+---
+
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 3: [FEATURE] Integración de Ionic Framework 8.x y Tailwind CSS 4.x
+*   **Completada:** 2026-05-23
+*   **PR:** `feature/ionic-tailwind-setup`
+*   **Resultado:** `@ionic/angular 8.8.8` instalado. `provideIonicAngular({})` registrado en `app.config.ts`. `IonApp` + `IonRouterOutlet` en el componente raíz. `ionic.bundle.css` (481 selectores `ion-*`) + `src/theme/variables.css` añadidos a `angular.json`. Tailwind CSS 4.x activado vía `@tailwindcss/postcss` en `postcss.config.json` (formato JSON requerido por el builder `@angular/build:application`) y `@import "tailwindcss"` en `styles.css`. Build limpio: 628 KB JS + 43 KB CSS, sin warnings. Budgets actualizados a 1 MB / 3 MB para acomodar Ionic.
 
 ### ✅ Tarea 2: [SEGURIDAD] Configuración de Reglas de Seguridad en Cloud Firestore (`firestore.rules`)
 *   **Completada:** 2026-05-23
 *   **PR:** `claude/first-todo-task-yAA8H`
-*   **Resultado:** `firestore.rules` creado con bloqueo por defecto y reglas granulares por colección y rol. `users` y `products`: lectura pública autenticada, escritura solo admin/raíz. `orders`: creación para mesero, actualización de estado para barista, CRUD completo para admin. Función `onlyUpdatesOrderStatus()` limita los campos que barista puede modificar. Validado con el emulador Firestore local (arrancó sin errores de parseo). `firestore.indexes.json` con 3 índices compuestos para queries de la cola de barra. `firebase.json` y `.firebaserc` creados con placeholders de proyectos. `firebase-tools` agregado como devDependency.
+*   **Resultado:** `firestore.rules` creado con bloqueo por defecto y reglas granulares por colección y rol. `users` y `products`: lectura pública autenticada, escritura solo admin/raíz. `orders`: creación para mesero, actualización de estado para barista, CRUD completo para admin. Función `onlyUpdatesOrderStatus()` limita los campos que barista puede modificar. Validado con el emulador Firestore local. `firestore.indexes.json`, `firebase.json` y `.firebaserc` creados.
 
 ### ✅ Tarea 1: [FEATURE] Inicialización del Entorno de Angular 21.2.x e Integración del SDK de Firebase
 *   **Completada:** 2026-05-23
 *   **PR:** `claude/first-todo-task-yAA8H`
-*   **Resultado:** Proyecto Angular 21.2.x bootstrapped con componentes Standalone, routing y TypeScript estricto. @angular/fire 21.0.0-rc.0 + firebase ^12.4.0 instalados. `environment.ts` con placeholders genéricos (sin credenciales privadas). `app.config.ts` con `provideFirebaseApp`, `provideAuth` y `provideFirestore`. Build pasa sin errores en 5.1 s. Estructura de directorios core/, features/ y shared/ creada.
+*   **Resultado:** Proyecto Angular 21.2.x bootstrapped con componentes Standalone, routing y TypeScript estricto. @angular/fire 21.0.0-rc.0 + firebase ^12.4.0 instalados. `environment.ts` con placeholders genéricos (sin credenciales privadas). `app.config.ts` con `provideFirebaseApp`, `provideAuth` y `provideFirestore`. Build pasa sin errores. Estructura de directorios core/, features/ y shared/ creada.
 
 ---
 
@@ -80,4 +86,5 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | :--- | :--- | :--- |
 | 2026-05-22 | Inicialización de la planificación base sobre un repositorio limpio. | Se definen las tareas atómicas Tarea 1 (Setup del proyecto Angular/Firebase) y Tarea 2 (Reglas de Seguridad básicas de Firestore). |
 | 2026-05-23 | Tarea 1 completada. Angular 21.2.x + Firebase SDK integrado. Build verde. | Tarea 2 (firestore.rules) pasa a ser la única tarea activa. Se evaluará la siguiente tarea atómica al completarla. |
-| 2026-05-23 | Tarea 2 completada. Reglas de Firestore validadas en emulador. Sin brechas de seguridad pendientes en el stack base. PRD §8.2 cubierto. Gap principal: no hay UI ni autenticación — sin estas dos piezas no puede operar ningún módulo funcional. | Tarea 3 (Ionic + Tailwind — base de UI) y Tarea 4 (Auth con Google + lista blanca) son las siguientes tareas más desbloqueadoras. Ambas son FEATURE ya que las brechas de seguridad OWASP del stack base están cubiertas. |
+| 2026-05-23 | Tarea 2 completada. Reglas de Firestore validadas en emulador. Sin brechas de seguridad OWASP pendientes en el stack base. | Tareas 3 (Ionic + Tailwind) y 4 (Auth + lista blanca) redactadas. |
+| 2026-05-23 | Tarea 3 completada. Ionic 8.x + Tailwind 4.x integrados. Build limpio sin warnings. Gap principal: sin autenticación ni catálogo de datos el sistema no puede operar. | Tarea 4 (Auth Google + lista blanca — entrada al sistema) y Tarea 5 (Admin: ABM de productos y usuarios — datos necesarios para operar) son las dos tareas más desbloqueadoras. |
