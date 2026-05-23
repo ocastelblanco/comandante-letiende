@@ -14,7 +14,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # ─── Angular ─────────────────────────────────────────────────────────────────
-dist/
+/dist
+/tmp
+/out-tsc
+/bazel-out
 .angular/
 .sass-cache/
 
