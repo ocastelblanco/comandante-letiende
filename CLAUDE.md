@@ -157,3 +157,30 @@ gh pr create \
 - Hacer push a `main` bajo ninguna circunstancia, incluso si el usuario lo pide.
 - Usar `--force`, `--no-verify`, ni `--no-gpg-sign`.
 - Cerrar un PR sin fusionar cuando el trabajo está completo — dejarlo abierto para revisión humana.
+
+---
+
+## 7. Hallazgos Técnicos del Stack (Gotchas)
+
+Esta sección documenta comportamientos no obvios descubiertos durante el desarrollo. Leer antes de tocar la configuración del build.
+
+### Tailwind CSS 4.x + `@angular/build:application` — Solo acepta PostCSS en JSON
+
+**Síntoma:** Si creas un `postcss.config.js` o `postcss.config.mjs` con el plugin de Tailwind, el build de Angular lo ignora silenciosamente. Tailwind no se aplica.
+
+**Causa:** El builder `@angular/build:application` (esbuild) solo carga configuración PostCSS desde archivos en formato JSON: `postcss.config.json` o `.postcssrc.json`. Los archivos `.js`/`.mjs` son ignorados por diseño (ver `node_modules/@angular/build/src/utils/postcss-configuration.js`).
+
+**Solución correcta:**
+```json
+// postcss.config.json (en la raíz del workspace)
+{
+  "plugins": {
+    "@tailwindcss/postcss": {}
+  }
+}
+```
+```css
+/* src/styles.css */
+@import "tailwindcss";
+```
+**Dependencias requeridas:** `tailwindcss`, `@tailwindcss/postcss`, `postcss` (todas en `devDependencies`).
