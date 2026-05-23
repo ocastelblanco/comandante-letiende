@@ -7,7 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  # ── Producción: despliega al canal live en cada merge a main ─────────────
+  deploy_live:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,9 +25,37 @@ jobs:
       - name: Build de producción
         run: npm run build -- --configuration=production
 
-      # Push a main → despliega al canal live (producción)
-      # Pull Request → crea un canal de preview y publica la URL como comentario en la PR
-      - name: Deploy a Firebase Hosting
+      - name: Deploy al canal live
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE }}
+          channelId: live
+          projectId: comandante-letiende
+
+  # ── Preview: genera URL única y la comenta en la PR automáticamente ──────
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build de producción
+        run: npm run build -- --configuration=production
+
+      - name: Deploy al canal de preview
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
