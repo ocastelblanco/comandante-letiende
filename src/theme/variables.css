@@ -1,0 +1,48 @@
+/*
+ * Variables de tema de Ionic para Le Tiende.
+ * Actualizar con los colores definitivos de la identidad visual del establecimiento.
+ * Referencia de variables: https://ionicframework.com/docs/theming/css-variables
+ */
+
+:root {
+  /* ── Color primario: ámbar café (barra/cafetería) ── */
+  --ion-color-primary: #c8860a;
+  --ion-color-primary-rgb: 200, 134, 10;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #b07609;
+  --ion-color-primary-tint: #ce920b;
+
+  /* ── Color secundario: verde oscuro cultural ── */
+  --ion-color-secondary: #2c7873;
+  --ion-color-secondary-rgb: 44, 120, 115;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #276965;
+  --ion-color-secondary-tint: #418681;
+
+  /* ── Fondos y superficies ── */
+  --ion-background-color: #1c1c1e;
+  --ion-background-color-rgb: 28, 28, 30;
+  --ion-item-background: #2c2c2e;
+  --ion-card-background: #2c2c2e;
+
+  /* ── Texto ── */
+  --ion-text-color: #f5f0e8;
+  --ion-text-color-rgb: 245, 240, 232;
+  --ion-text-color-step-50: #e8e3db;
+  --ion-text-color-step-100: #dbd6ce;
+  --ion-text-color-step-150: #cec9c1;
+
+  /* ── Fuente del sistema ── */
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Roboto', sans-serif;
+
+  /* ── Toolbar (encabezados de página) ── */
+  --ion-toolbar-background: #2c2c2e;
+  --ion-toolbar-color: #f5f0e8;
+  --ion-toolbar-border-color: #3a3a3c;
+
+  /* ── Bordes y separadores ── */
+  --ion-border-color: #3a3a3c;
+  --ion-item-border-color: #3a3a3c;
+}
