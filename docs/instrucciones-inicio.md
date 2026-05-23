@@ -391,10 +391,8 @@ el PRD debe estar validado antes de escribir las Tech Specs.
 > Copiar esta sección literalmente en el `CLAUDE.md` de cualquier proyecto,
 > adaptando los valores entre corchetes.
 >
-> **Por qué no está en letiende.co:** Este proyecto usa la rama `2025` como
-> rama de desarrollo con un flujo ya establecido. Agregar estas reglas a mitad
-> del desarrollo activo podría interrumpir el flujo sin planificación previa.
-> Se debe incorporar al inicio del siguiente ciclo de desarrollo.
+> **Por qué no está en letiende.co:** Estas reglas se incorporaron al `CLAUDE.md`
+> del proyecto Comandante al inicio del ciclo de desarrollo actual.
 
 ---
 
@@ -494,7 +492,7 @@ EOF
 | Placeholder | Ejemplo Angular/Node | Ejemplo Python | Ejemplo otro |
 |---|---|---|---|
 | `[RAMA_PRINCIPAL]` | `main` | `main` | `master` |
-| `[RAMA_DESARROLLO]` | `develop` o `2025` | `develop` | `dev` |
+| `[RAMA_DESARROLLO]` | `develop` | `develop` | `dev` |
 | `[PREFIJO]` | `feature`, `fix`, `docs` | igual | igual |
 | `[COMANDO_BUILD]` | `npm run build` | `python -m pytest` | `make build` |
 | `[IDIOMA_DEL_PROYECTO]` | `español colombiano` | `inglés` | el que aplique |
