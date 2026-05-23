@@ -184,3 +184,22 @@ Esta sección documenta comportamientos no obvios descubiertos durante el desarr
 @import "tailwindcss";
 ```
 **Dependencias requeridas:** `tailwindcss`, `@tailwindcss/postcss`, `postcss` (todas en `devDependencies`).
+
+### `<ion-page>` en componentes Standalone — requiere `CUSTOM_ELEMENTS_SCHEMA`
+
+**Síntoma:** El compilador falla con `NG8001: 'ion-page' is not a known element` en componentes standalone que usan `<ion-page>` en su template.
+
+**Causa:** `IonPage` no existe en `@ionic/angular/standalone`. `<ion-page>` es un web component registrado globalmente por Ionic, no un componente Angular. El compilador strict de Angular no lo reconoce sin schema explícito.
+
+**Solución correcta:**
+```typescript
+import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+
+@Component({
+  standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA], // permite <ion-page> como web component
+  template: `<ion-page>...</ion-page>`,
+})
+export class MiPagina {}
+```
+No importar `IonPage` — no existe en la API standalone. Agregar `schemas: [CUSTOM_ELEMENTS_SCHEMA]` a cada componente que use `<ion-page>` en su template.
