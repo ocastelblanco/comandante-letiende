@@ -9,7 +9,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | Parámetro | Detalle |
 | :--- | :--- |
 | **Versión Actual** | v0.1.0-alpha (Inicialización del Proyecto) |
-| **Ramas Activas** | `2025` (desarrollo), `main` (producción) |
+| **Ramas Activas** | `develop` (integración), `main` (producción) |
 | **Entorno de Staging** | *Pendiente por configurar en Firebase Console* |
 | **Entorno de Prod** | *Pendiente por configurar en Firebase Console* |
 | **Última Sesión** | 2026-05-22 — Creación de la documentación base de arquitectura y requerimientos. |
@@ -166,4 +166,4 @@ export class OrderService {
   - Ajuste del flujo de toma de pedidos para permitir envío a barra inmediato antes de realizar el pago.
   - Adición de palabra clave (nombre del cliente) a los pedidos para una fácil identificación de comandas.
   - Ajustes de requerimientos para Angular 21.2.x, subdominio personalizado `comandante.letiende.co` en AWS Route 53, optimizaciones de costo cero bajo el plan Firebase Spark y roles dinámicos por jornada (administrador semilla: `letiende.co@gmail.com`).
-- **Próxima Tarea Sugerida:** Inicializar el proyecto Angular 21.2.x mediante el CLI e integrar el SDK de Firebase en `app.config.ts`.
+- **Próxima Tarea Sugerida:** Inicializar el proyecto Angular 21.2.x mediante el CLI e integrar el SDK de Firebase en `app.config.ts`. Crear la rama `develop` en el repositorio antes de comenzar.
