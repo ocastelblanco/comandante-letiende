@@ -27,9 +27,9 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
     3.  Configurar en `src/environments/environment.ts` las credenciales públicas del proyecto Firebase (vacías o genéricas para ser rellenadas luego).
     4.  Habilitar los proveedores `provideFirebaseApp`, `provideAuth` y `provideFirestore` en `app.config.ts`.
 *   **Definición de Done (Checklist):**
-    - `[ ]` La aplicación compila sin errores ejecutando `npm run build`.
-    - `[ ]` `app.config.ts` inicializa correctamente el cliente de Firebase sin fallos de importación.
-    - `[ ]` Las variables de entorno de Firebase están expuestas de forma segura en `environment.ts` sin contener llaves de acceso administrativo o llaves privadas.
+    - `[x]` La aplicación compila sin errores ejecutando `npm run build`.
+    - `[x]` `app.config.ts` inicializa correctamente el cliente de Firebase sin fallos de importación.
+    - `[x]` Las variables de entorno de Firebase están expuestas de forma segura en `environment.ts` sin contener llaves de acceso administrativo o llaves privadas.
 
 ---
 
@@ -52,7 +52,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 ---
 
 ## 3. Historial de Tareas Completadas
-*(Vacío al inicio del proyecto)*
+
+### ✅ Tarea 1: [FEATURE] Inicialización del Entorno de Angular 21.2.x e Integración del SDK de Firebase
+*   **Completada:** 2026-05-23
+*   **PR:** `claude/first-todo-task-yAA8H`
+*   **Resultado:** Proyecto Angular 21.2.x bootstrapped con componentes Standalone, routing y TypeScript estricto. @angular/fire 21.0.0-rc.0 + firebase ^12.4.0 instalados. `environment.ts` con placeholders genéricos (sin credenciales privadas). `app.config.ts` con `provideFirebaseApp`, `provideAuth` y `provideFirestore`. Build pasa sin errores en 5.1 s. Estructura de directorios core/, features/ y shared/ creada.
 
 ---
 
@@ -61,3 +65,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | Fecha | Comparación / Evaluación | Resultado |
 | :--- | :--- | :--- |
 | 2026-05-22 | Inicialización de la planificación base sobre un repositorio limpio. | Se definen las tareas atómicas Tarea 1 (Setup del proyecto Angular/Firebase) y Tarea 2 (Reglas de Seguridad básicas de Firestore). |
+| 2026-05-23 | Tarea 1 completada. Angular 21.2.x + Firebase SDK integrado. Build verde. | Tarea 2 (firestore.rules) pasa a ser la única tarea activa. Se evaluará la siguiente tarea atómica al completarla. |
