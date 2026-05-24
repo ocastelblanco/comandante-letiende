@@ -33,6 +33,14 @@ jobs:
           channelId: live
           projectId: comandante-letiende
 
+      - name: Deploy Firestore rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE }}' > /tmp/sa.json
+          npx firebase-tools deploy --only firestore:rules --project comandante-letiende
+          rm /tmp/sa.json
+
   # ── Preview: genera URL única y la comenta en la PR automáticamente ──────
   preview:
     if: github.event_name == 'pull_request'
