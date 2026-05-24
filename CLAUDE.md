@@ -185,21 +185,44 @@ Esta sección documenta comportamientos no obvios descubiertos durante el desarr
 ```
 **Dependencias requeridas:** `tailwindcss`, `@tailwindcss/postcss`, `postcss` (todas en `devDependencies`).
 
-### `<ion-page>` en componentes Standalone — requiere `CUSTOM_ELEMENTS_SCHEMA`
+### ⚠️ NO usar `<ion-page>` en templates de componentes Standalone
 
-**Síntoma:** El compilador falla con `NG8001: 'ion-page' is not a known element` en componentes standalone que usan `<ion-page>` en su template.
+**Síntoma:** Layout completamente colapsado en móvil: solo una franja del contenido visible arriba y fondo negro el resto de la pantalla.
 
-**Causa:** `IonPage` no existe en `@ionic/angular/standalone`. `<ion-page>` es un web component registrado globalmente por Ionic, no un componente Angular. El compilador strict de Angular no lo reconoce sin schema explícito.
+**Causa raíz:** `<ion-page>` NO es un web component de Ionic. No existe ningún archivo de componente para él en `@ionic/core`. Es simplemente un elemento HTML desconocido (no registrado como custom element). Al usarlo como contenedor en el template, queda con `display: inline` dentro del flex container `.ion-page` que `IonRouterOutlet` añade al host del componente. Un flex item inline con `height: auto` rompe la resolución de `height: 100%` de `ion-content`.
 
-**Solución correcta:**
+**Cómo funciona realmente:** `IonRouterOutlet` añade la clase CSS `.ion-page` directamente al **elemento host del componente** (ej. `<app-login>`, `<app-products>`). Esa clase aplica `position: absolute; inset: 0; display: flex; flex-direction: column` y lo convierte en el contenedor de página a pantalla completa. El template del componente debe empezar directamente con `<ion-header>` y/o `<ion-content>`, sin envoltura adicional.
+
+**Solución correcta — página con header:**
 ```typescript
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-
 @Component({
   standalone: true,
-  schemas: [CUSTOM_ELEMENTS_SCHEMA], // permite <ion-page> como web component
-  template: `<ion-page>...</ion-page>`,
+  imports: [IonHeader, IonToolbar, IonTitle, IonContent],
+  template: `
+    <ion-header>
+      <ion-toolbar><ion-title>Título</ion-title></ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <!-- contenido -->
+    </ion-content>
+  `,
 })
 export class MiPagina {}
 ```
-No importar `IonPage` — no existe en la API standalone. Agregar `schemas: [CUSTOM_ELEMENTS_SCHEMA]` a cada componente que use `<ion-page>` en su template.
+
+**Solución correcta — página sin header (ej. login):**  
+`ion-content { height: 100% }` puede no resolver si el host aún no tiene dimensiones definitivas en el primer paint. Usar un contenedor `position: fixed; inset: 0` que no depende de ninguna cadena de alturas padre:
+```typescript
+@Component({
+  standalone: true,
+  styles: [`:host { display: block; height: 100%; }`],
+  template: `
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow-y:auto">
+      <!-- contenido centrado -->
+    </div>
+  `,
+})
+export class LoginPage {}
+```
+
+**Nunca agregar `CUSTOM_ELEMENTS_SCHEMA` solo para poder escribir `<ion-page>`** — ese schema suprime errores del compilador y enmascara elementos mal escritos. Solo usarlo cuando se integran web components de terceros genuinamente no disponibles como imports de Angular.
