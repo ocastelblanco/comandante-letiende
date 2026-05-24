@@ -41,13 +41,12 @@ import { UserRole } from '../../../core/models/user.model';
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <ion-page>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Usuarios</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Usuarios</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
         <ion-list>
           @for (u of userService.users(); track u.email) {
             <ion-item>
@@ -115,8 +114,7 @@ import { UserRole } from '../../../core/models/user.model';
             </ion-button>
           </div>
         }
-      </ion-content>
-    </ion-page>
+    </ion-content>
   `,
 })
 export class UserListComponent {

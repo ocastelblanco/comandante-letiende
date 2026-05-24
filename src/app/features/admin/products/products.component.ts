@@ -39,13 +39,12 @@ import { ProductFormComponent } from './product-form.component';
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <ion-page>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Productos</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Productos</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
         @if (showForm()) {
           <app-product-form
             [product]="editingProduct()"
@@ -85,8 +84,7 @@ import { ProductFormComponent } from './product-form.component';
             </ion-fab-button>
           </ion-fab>
         }
-      </ion-content>
-    </ion-page>
+    </ion-content>
   `,
 })
 export class ProductsComponent {

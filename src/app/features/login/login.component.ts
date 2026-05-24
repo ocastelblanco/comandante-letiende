@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import {
   IonButton,
@@ -28,11 +28,10 @@ import { logoGoogle } from 'ionicons/icons';
     IonSpinner,
     IonText,
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <ion-page>
-      <ion-content class="ion-padding flex items-center justify-center">
-        <ion-card class="mx-auto max-w-sm w-full">
+    <ion-content>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <ion-card class="w-full m-0" style="max-width:360px">
           <ion-card-header class="text-center">
             <ion-card-title class="text-2xl font-bold">Comandante</ion-card-title>
             <p class="text-sm mt-1 opacity-60">Le Tiende · Bogotá</p>
@@ -60,8 +59,8 @@ import { logoGoogle } from 'ionicons/icons';
             </ion-button>
           </ion-card-content>
         </ion-card>
-      </ion-content>
-    </ion-page>
+      </div>
+    </ion-content>
   `,
 })
 export class LoginComponent {
