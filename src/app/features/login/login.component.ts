@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import {
   IonButton,
@@ -6,7 +6,6 @@ import {
   IonCardContent,
   IonCardHeader,
   IonCardTitle,
-  IonContent,
   IonIcon,
   IonSpinner,
   IonText,
@@ -18,7 +17,6 @@ import { logoGoogle } from 'ionicons/icons';
   selector: 'app-login',
   standalone: true,
   imports: [
-    IonContent,
     IonCard,
     IonCardHeader,
     IonCardTitle,
@@ -28,40 +26,38 @@ import { logoGoogle } from 'ionicons/icons';
     IonSpinner,
     IonText,
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  styles: [`:host { display: block; height: 100%; }`],
   template: `
-    <ion-page>
-      <ion-content class="ion-padding flex items-center justify-center">
-        <ion-card class="mx-auto max-w-sm w-full">
-          <ion-card-header class="text-center">
-            <ion-card-title class="text-2xl font-bold">Comandante</ion-card-title>
-            <p class="text-sm mt-1 opacity-60">Le Tiende · Bogotá</p>
-          </ion-card-header>
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;background:var(--ion-background-color)">
+      <ion-card style="width:100%;max-width:360px;margin:0">
+        <ion-card-header style="text-align:center">
+          <ion-card-title>Comandante</ion-card-title>
+          <p style="font-size:.875rem;margin-top:.25rem;opacity:.6">Le Tiende · Bogotá</p>
+        </ion-card-header>
 
-          <ion-card-content>
-            @if (error()) {
-              <ion-text color="danger">
-                <p class="text-sm mb-4 text-center">{{ error() }}</p>
-              </ion-text>
+        <ion-card-content>
+          @if (error()) {
+            <ion-text color="danger">
+              <p style="font-size:.875rem;margin-bottom:1rem;text-align:center">{{ error() }}</p>
+            </ion-text>
+          }
+
+          <ion-button
+            expand="block"
+            (click)="login()"
+            [disabled]="loading()"
+            style="margin-top:.5rem"
+          >
+            @if (loading()) {
+              <ion-spinner name="crescent" slot="start" />
+            } @else {
+              <ion-icon slot="start" name="logo-google" />
             }
-
-            <ion-button
-              expand="block"
-              (click)="login()"
-              [disabled]="loading()"
-              class="mt-2"
-            >
-              @if (loading()) {
-                <ion-spinner name="crescent" slot="start" />
-              } @else {
-                <ion-icon slot="start" name="logo-google" />
-              }
-              Ingresar con Google
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-      </ion-content>
-    </ion-page>
+            Ingresar con Google
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
   `,
 })
 export class LoginComponent {

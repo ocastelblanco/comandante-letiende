@@ -24,6 +24,23 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/admin/admin.component').then((m) => m.AdminComponent),
+    children: [
+      {
+        path: 'products',
+        loadComponent: () =>
+          import('./features/admin/products/products.component').then(
+            (m) => m.ProductsComponent,
+          ),
+      },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./features/admin/users/user-list.component').then(
+            (m) => m.UserListComponent,
+          ),
+      },
+      { path: '', redirectTo: 'products', pathMatch: 'full' },
+    ],
   },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },

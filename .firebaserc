@@ -1,6 +1,6 @@
 {
   "projects": {
-    "staging": "YOUR_STAGING_PROJECT_ID",
-    "production": "YOUR_PRODUCTION_PROJECT_ID"
+    "staging": "comandante-letiende",
+    "production": "comandante-letiende"
   }
 }

@@ -27,13 +27,24 @@ export class AuthService implements OnDestroy {
     const provider = new GoogleAuthProvider();
     const credential = await signInWithPopup(this.auth, provider);
 
-    const userRef = doc(this.firestore, 'users', credential.user.uid);
-    const userSnap = await getDoc(userRef);
+    const userRef = doc(this.firestore, 'users', credential.user.email!);
+
+    let userSnap;
+    try {
+      userSnap = await getDoc(userRef);
+    } catch {
+      await signOut(this.auth);
+      throw new Error('No se pudo verificar el acceso. Comprueba la conexión e intenta de nuevo.');
+    }
 
     if (!userSnap.exists()) {
-      await this.signOut();
+      await signOut(this.auth);
       throw new Error('Este correo no está autorizado para acceder a Comandante.');
     }
+
+    const role = userSnap.data()['role'] as string;
+    const destination = role === 'admin' ? '/admin' : role === 'waiter' ? '/waiter' : '/barista';
+    await this.router.navigate([destination]);
   }
 
   async signOut(): Promise<void> {
