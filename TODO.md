@@ -15,27 +15,28 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2. Tareas Activas (WIP: 1)
 
-### Tarea 6: [FEATURE] Módulo del Mesero — Toma de Pedidos
-*   **Origen:** PRD §5.1 (Módulo del Mesero) — Función central del sistema; sin toma de pedidos el flujo de trabajo completo (mesero → barista → cobro) no puede operar.
+### Tarea 7: [FEATURE] Módulo del Barista — Cola de Preparación
+*   **Origen:** PRD §5.2 (Módulo del Barista) — Cierra el ciclo mesero→barista; sin esta vista la barra no puede ver ni actualizar los pedidos.
 *   **Archivos a Crear/Modificar:**
-    *   `[NEW]` `src/app/core/models/order.model.ts` — Interface `Order` con campos `id`, `tableNumber`, `items` (array de `OrderItem`), `status`, `waiterId`, `createdAt`, `updatedAt`.
-    *   `[NEW]` `src/app/core/models/order-item.model.ts` — Interface `OrderItem` con campos `productId`, `productName`, `quantity`, `unitPrice`, `tipAmount`.
-    *   `[NEW]` `src/app/core/db/order.service.ts` — Servicio para crear y listar pedidos del turno activo usando Signals + Firestore.
-    *   `[MOD]` `src/app/features/waiter/waiter.component.ts` — Vista móvil: catálogo de productos activos, carrito de pedido, confirmación de envío.
+    *   `[MOD]` `src/app/features/barista/barista.component.ts` — Vista tablet: lista de pedidos pendientes/en-preparación con botón "Preparando" y "Listo".
 *   **Qué hacer:**
-    1.  Definir los modelos `Order` y `OrderItem`.
-    2.  Implementar `OrderService` con `createOrder()` y `pendingOrders` (Signal con onSnapshot filtrado por status `pending`/`preparing`).
-    3.  Construir la vista del mesero: lista de productos activos por categoría, botón "Agregar al pedido", resumen del carrito y botón "Enviar pedido".
-    4.  Al enviar el pedido, escribir en `/orders` con status `pending` y los datos del mesero autenticado.
+    1.  Inyectar `OrderService` y consumir `pendingOrders` Signal (ya implementado).
+    2.  Mostrar cada pedido con número de mesa, artículos, total y estado actual.
+    3.  Botón "Preparando" cambia status `pending` → `preparing`; botón "Listo" cambia `preparing` → `ready`.
+    4.  Solo modificar los campos permitidos por las Firestore rules (`status`, `updatedAt`, `baristaId`, `preparedAt`).
 *   **Definición de Done (Checklist):**
-    - `[ ]` El mesero puede seleccionar productos del catálogo y ver el total automático.
-    - `[ ]` Al confirmar, el pedido aparece en Firestore con status `pending`.
-    - `[ ]` Los listeners de Firestore se desuscriben al destruir el componente.
+    - `[ ]` El barista ve todos los pedidos en estado `pending` y `preparing`.
+    - `[ ]` Puede avanzar el estado de cada pedido.
     - `[ ]` `npm run build` compila sin errores.
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 6: [FEATURE] Módulo del Mesero — Toma de Pedidos
+*   **Completada:** 2026-05-24
+*   **PR:** `feature/waiter-order-flow`
+*   **Resultado:** Modelos `OrderItem` y `Order` creados con `OrderStatus` type. `OrderService` implementado con `pendingOrders` Signal via `onSnapshot` filtrado a `['pending','preparing']` (sort en memoria, sin índice compuesto), y `createOrder()` que escribe en `/orders` con email y nombre del usuario autenticado. `WaiterComponent` completamente reescrito: catálogo agrupado por categoría via `computed()`, carrito manejado con Signal de `Record<string, CartEntry>`, footer sticky con resumen de ítems y total, formulario de mesa con validación reactiva antes de confirmar, feedback de éxito inline 4 s. Listeners de Firestore desuscritos vía `DestroyRef`. Build verde: 1.26 MB inicial, `waiter-component` 7.97 kB lazy.
 
 ### ✅ Tarea 5: [FEATURE] Módulo del Administrador — ABM de Productos y Gestión de Usuarios
 *   **Completada:** 2026-05-23
@@ -73,3 +74,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-23 | Tarea 2 completada. Reglas de Firestore validadas en emulador. Sin brechas de seguridad OWASP pendientes en el stack base. | Tareas 3 (Ionic + Tailwind) y 4 (Auth + lista blanca) redactadas. |
 | 2026-05-23 | Tarea 3 completada. Ionic 8.x + Tailwind 4.x integrados. Build limpio sin warnings. Gap principal: sin autenticación ni catálogo de datos el sistema no puede operar. | Tarea 4 (Auth Google + lista blanca — entrada al sistema) y Tarea 5 (Admin: ABM de productos y usuarios — datos necesarios para operar) son las dos tareas más desbloqueadoras. |
 | 2026-05-23 | Tareas 4 y 5 completadas. Autenticación operativa, ABM de productos y usuarios funcional. Próximo gap crítico: sin módulo del mesero el flujo de pedidos no puede iniciarse. | Tarea 6 (Módulo del Mesero — toma de pedidos) es la única tarea activa. WIP bajó a 1 al cerrar ambas tareas simultáneamente. |
+| 2026-05-24 | Tarea 6 completada. Modelos Order/OrderItem creados. OrderService con onSnapshot filtrado y createOrder(). WaiterComponent reescrito con catálogo por categoría, carrito con Signals, formulario de mesa y feedback de éxito. Build verde: 1.26 MB inicial, waiter-component 7.97 kB lazy. Próximo gap: sin módulo de barista el ciclo de preparación no puede cerrarse. | Tarea 7 (Módulo del Barista — cola de preparación y actualización de estado) calificada como la siguiente tarea atómica. |
