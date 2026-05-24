@@ -1,2 +1,14 @@
 /* Estilos globales — Tailwind CSS v4 activado mediante @tailwindcss/postcss */
 @import "tailwindcss";
+
+/*
+ * ion-app usa height: 100% en su shadow DOM, pero eso resuelve contra el
+ * padre (app-root), que por defecto tiene height: auto (= 0 con hijos
+ * posicionados). Se necesita propagar la altura explícitamente por la
+ * cadena body → app-root → ion-app → ion-router-outlet.
+ */
+app-root,
+ion-router-outlet {
+  display: block;
+  height: 100%;
+}
