@@ -8,6 +8,15 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
+  <!-- Diagnóstico: visible solo si Angular NO llega a montar -->
+  <div id="pre-boot" style="position:fixed;inset:0;background:#1c1c1e;color:#f5f0e8;font:20px sans-serif;display:flex;align-items:center;justify-content:center;">Iniciando…</div>
+  <!-- Diagnóstico: muestra errores JS en pantalla -->
+  <div id="err-box" style="display:none;position:fixed;inset:0;background:#8b0000;color:#fff;font:13px monospace;padding:20px;overflow:auto;z-index:99999;white-space:pre-wrap;"></div>
+  <script>
+    window.onerror=function(m,s,l,c,e){var b=document.getElementById('err-box');b.style.display='block';b.textContent='ERROR JS\n'+m+'\n'+s+':'+l+'\n'+(e&&e.stack?e.stack:'');};
+    window.addEventListener('unhandledrejection',function(e){var b=document.getElementById('err-box');b.style.display='block';b.textContent+='PROMISE ERROR\n'+(e.reason&&e.reason.stack?e.reason.stack:e.reason)+'\n';});
+    new MutationObserver(function(m,o){if(document.querySelector('app-root ion-app')){document.getElementById('pre-boot').remove();o.disconnect();}}).observe(document.body,{childList:true,subtree:true});
+  </script>
   <app-root></app-root>
 </body>
 </html>
