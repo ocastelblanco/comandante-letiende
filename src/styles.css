@@ -2,13 +2,23 @@
 @import "tailwindcss";
 
 /*
- * ion-app usa height: 100% en su shadow DOM, pero eso resuelve contra el
- * padre (app-root), que por defecto tiene height: auto (= 0 con hijos
- * posicionados). Se necesita propagar la altura explícitamente por la
- * cadena body → app-root → ion-app → ion-router-outlet.
+ * Propagar altura a través de toda la cadena del layout de Ionic.
+ * ion-app y ion-router-outlet reciben height:100% via shadow :host, pero
+ * ese estilo solo aplica una vez el custom element queda registrado.
+ * Se repite aquí en el CSS global para cubrir el caso en que el registro
+ * ocurra después del primer paint (timing en Android Chrome).
  */
 app-root,
+ion-app,
 ion-router-outlet {
   display: block;
   height: 100%;
+}
+
+ion-app {
+  position: relative;
+}
+
+ion-router-outlet {
+  position: relative;
 }
