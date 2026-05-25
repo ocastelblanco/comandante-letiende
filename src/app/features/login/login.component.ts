@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import {
   IonButton,
@@ -61,22 +61,19 @@ import { logoGoogle } from 'ionicons/icons';
   `,
 })
 export class LoginComponent {
-  protected readonly loading = signal(false);
-  protected readonly error = signal('');
+  private readonly authService = inject(AuthService);
 
-  constructor(private authService: AuthService) {
+  protected readonly loading = signal(false);
+  protected readonly error = computed(() => this.authService.authError());
+
+  constructor() {
     addIcons({ logoGoogle });
   }
 
   async login(): Promise<void> {
     this.loading.set(true);
-    this.error.set('');
-    try {
-      await this.authService.signInWithGoogle();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Error al iniciar sesión.');
-    } finally {
-      this.loading.set(false);
-    }
+    await this.authService.signInWithGoogle();
+    // La página redirige a Google — este código solo se alcanza si el redirect falla
+    this.loading.set(false);
   }
 }
