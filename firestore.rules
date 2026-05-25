@@ -35,8 +35,9 @@ service cloud.firestore {
     }
 
     // Los baristas solo pueden tocar campos de estado al actualizar un pedido.
+    // 'items' se incluye para que puedan marcar itemStatus de cada ítem como 'ready'.
     function onlyUpdatesOrderStatus() {
-      let allowed = ['status', 'updatedAt', 'baristaId', 'preparedAt'];
+      let allowed = ['status', 'updatedAt', 'baristaId', 'preparedAt', 'items'];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 

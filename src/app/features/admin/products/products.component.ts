@@ -14,6 +14,8 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { add, archiveOutline, pencilOutline } from 'ionicons/icons';
 import { ProductService } from '../../../core/db/product.service';
 import { Product } from '../../../core/models/product.model';
 import { ProductFormComponent } from './product-form.component';
@@ -91,6 +93,10 @@ export class ProductsComponent {
   readonly productService = inject(ProductService);
 
   showForm = signal(false);
+
+  constructor() {
+    addIcons({ add, pencilOutline, archiveOutline });
+  }
   editingProduct = signal<Product | undefined>(undefined);
 
   openAdd(): void {

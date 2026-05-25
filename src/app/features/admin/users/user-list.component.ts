@@ -16,6 +16,8 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { personAddOutline } from 'ionicons/icons';
 import { UserService } from '../../../core/db/user.service';
 import { UserRole } from '../../../core/models/user.model';
 
@@ -120,6 +122,10 @@ import { UserRole } from '../../../core/models/user.model';
 export class UserListComponent {
   readonly userService = inject(UserService);
   private fb = inject(FormBuilder);
+
+  constructor() {
+    addIcons({ personAddOutline });
+  }
 
   showAddForm = signal(false);
   saving = signal(false);

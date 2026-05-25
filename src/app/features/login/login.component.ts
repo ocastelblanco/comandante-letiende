@@ -30,9 +30,8 @@ import { logoGoogle } from 'ionicons/icons';
   template: `
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;background:var(--ion-background-color)">
       <ion-card style="width:100%;max-width:360px;margin:0">
-        <ion-card-header style="text-align:center">
+        <ion-card-header style="text-align:center" class="py-[1em]">
           <ion-card-title>Comandante</ion-card-title>
-          <p style="font-size:.875rem;margin-top:.25rem;opacity:.6">Le Tiende · Bogotá</p>
         </ion-card-header>
 
         <ion-card-content>
@@ -53,7 +52,7 @@ import { logoGoogle } from 'ionicons/icons';
             } @else {
               <ion-icon slot="start" name="logo-google" />
             }
-            Ingresar con Google
+            <span class="ml-[1em]">Ingresar con Google</span>
           </ion-button>
         </ion-card-content>
       </ion-card>
