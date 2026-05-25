@@ -13,12 +13,27 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 1)
+## 2. Tareas Activas (WIP: 2)
 
-### Tarea 7: [FEATURE] Módulo del Barista — Cola de Preparación
+### Tarea 7: [FEATURE] Adaptación de la App al Estilo Visual de Le Tiende ⚡ CRÍTICO
+*   **Origen:** Decisión de producto (2026-05-25) — La app operaba con el tema oscuro placeholder del setup inicial. Antes de desplegar en producción se aplica la identidad visual oficial: paleta Le Tiende, tipografía y componentes del sistema de diseño (Stitch).
+*   **Archivos Modificados:**
+    *   `[✓]` `src/theme/variables.css` — Paleta Le Tiende mapeada a variables CSS de Ionic (primary #230C00, secondary #E8630A, tertiary #00B7A3, fondo #FFF8F1).
+    *   `[✓]` `src/index.html` — Google Fonts: Plus Jakarta Sans + Poppins.
+    *   `[✓]` `src/app/features/waiter/waiter.component.ts` — Rediseño visual según pantallas v2 de Stitch: toolbar oscuro, tarjetas full-width con badge de estado y tiempo relativo, alertas inline para pedidos listos, stepper pill crema, resumen Subtotal+Propina+Total, CTA naranja.
+    *   `[PENDIENTE]` `src/app/features/barista/barista.component.ts` — Aplicar estilos al construirse.
+    *   `[PENDIENTE]` `src/app/features/admin/` — Aplicar estilos al construirse.
+*   **Definición de Done (Checklist):**
+    - `[x]` `variables.css` usa paleta Le Tiende completa.
+    - `[x]` Fuentes Plus Jakarta Sans y Poppins cargadas.
+    - `[x]` Dashboard de Mesero: toolbar #230C00, tarjetas full-width, badge de estado, tiempo relativo, alertas inline dismissables.
+    - `[x]` Crear Nuevo Pedido: stepper en pill #FFE7B3, resumen con Subtotal+Propina+Total, botón CTA color secondary.
+    - `[x]` `npm run build` compila sin errores.
+
+### Tarea 8: [FEATURE] Módulo del Barista — Cola de Preparación
 *   **Origen:** PRD §5.2 (Módulo del Barista) — Cierra el ciclo mesero→barista; sin esta vista la barra no puede ver ni actualizar los pedidos.
 *   **Archivos a Crear/Modificar:**
-    *   `[MOD]` `src/app/features/barista/barista.component.ts` — Vista tablet: lista de pedidos pendientes/en-preparación con botón "Preparando" y "Listo".
+    *   `[CREAR]` `src/app/features/barista/barista.component.ts` — Vista tablet: lista de pedidos pendientes/en-preparación con botón "Preparando" y "Listo".
 *   **Qué hacer:**
     1.  Inyectar `OrderService` y consumir `pendingOrders` Signal (ya implementado).
     2.  Mostrar cada pedido con número de mesa, artículos, total y estado actual.
@@ -75,3 +90,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-23 | Tarea 3 completada. Ionic 8.x + Tailwind 4.x integrados. Build limpio sin warnings. Gap principal: sin autenticación ni catálogo de datos el sistema no puede operar. | Tarea 4 (Auth Google + lista blanca — entrada al sistema) y Tarea 5 (Admin: ABM de productos y usuarios — datos necesarios para operar) son las dos tareas más desbloqueadoras. |
 | 2026-05-23 | Tareas 4 y 5 completadas. Autenticación operativa, ABM de productos y usuarios funcional. Próximo gap crítico: sin módulo del mesero el flujo de pedidos no puede iniciarse. | Tarea 6 (Módulo del Mesero — toma de pedidos) es la única tarea activa. WIP bajó a 1 al cerrar ambas tareas simultáneamente. |
 | 2026-05-24 | Tarea 6 completada. Modelos Order/OrderItem creados. OrderService con onSnapshot filtrado y createOrder(). WaiterComponent reescrito con catálogo por categoría, carrito con Signals, formulario de mesa y feedback de éxito. Build verde: 1.26 MB inicial, waiter-component 7.97 kB lazy. Próximo gap: sin módulo de barista el ciclo de preparación no puede cerrarse. | Tarea 7 (Módulo del Barista — cola de preparación y actualización de estado) calificada como la siguiente tarea atómica. |
+| 2026-05-25 | Decisión de producto: aplicar identidad visual oficial de Le Tiende antes de continuar con nuevas funcionalidades. Sistema de diseño disponible en Google Stitch (proyecto "Sistema de Diseño Comandante"). Pantallas de referencia: Dashboard de Mesero v2 y Crear Nuevo Pedido v2. | Tarea 7 redefinida como adaptación visual (CRÍTICO). Tarea de barista renumerada a Tarea 8. WIP sube a 2: visual blocking, barista en cola. |

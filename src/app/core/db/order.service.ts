@@ -2,10 +2,12 @@ import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import {
   addDoc,
   collection,
+  doc,
   Firestore,
   onSnapshot,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
@@ -33,6 +35,13 @@ export class OrderService {
       this._activeOrders.set(orders);
     });
     inject(DestroyRef).onDestroy(unsubscribe);
+  }
+
+  updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
+    return updateDoc(doc(this.firestore, 'orders', orderId), {
+      status,
+      updatedAt: serverTimestamp(),
+    });
   }
 
   createOrder(tableNumber: string, items: OrderItem[]): Promise<unknown> {

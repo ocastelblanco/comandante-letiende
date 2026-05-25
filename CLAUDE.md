@@ -226,3 +226,36 @@ export class LoginPage {}
 ```
 
 **Nunca agregar `CUSTOM_ELEMENTS_SCHEMA` solo para poder escribir `<ion-page>`** — ese schema suprime errores del compilador y enmascara elementos mal escritos. Solo usarlo cuando se integran web components de terceros genuinamente no disponibles como imports de Angular.
+
+### ⚠️ Avatar de Google (lh3.googleusercontent.com) — 429 Too Many Requests
+
+**Síntoma:** La imagen del avatar del usuario de Google devuelve `429 Too Many Requests` cuando se renderiza en la app.
+
+**Causa raíz:** El servidor de imágenes de Google (`lh3.googleusercontent.com`) bloquea peticiones que envían un `Referer` header que no reconoce (p.ej. `localhost` o el dominio de la app). Al omitir el referer la petición pasa sin restricciones.
+
+**Solución obligatoria:** Añadir siempre `referrerpolicy="no-referrer"` en cualquier `<img>` que cargue una URL de Google:
+
+```html
+<img [src]="photoURL" alt="avatar" referrerpolicy="no-referrer" ... />
+```
+
+Aplica a todos los componentes que muestren el avatar del usuario (waiter toolbar, admin sidebar, login, etc.).
+
+### ⚠️ Tailwind v4 — modificadores de opacidad con colores arbitrarios no generan CSS
+
+**Síntoma:** Una clase como `text-[#FFE7B3]/55` no aplica ningún estilo — el texto queda invisible sobre fondos oscuros. Solo el elemento con la clase activa (p.ej. `routerLinkActive`) es visible porque tiene `color !important` definido en CSS de componente.
+
+**Causa raíz:** En Tailwind v4, los modificadores de opacidad (ej. `/55`) combinados con valores de color arbitrarios en corchetes (ej. `[#FFE7B3]`) no siempre generan la regla CSS correspondiente durante el escaneo JIT.
+
+**Solución:** Definir el color con opacidad directamente en los estilos del componente Angular en lugar de usar clases Tailwind:
+
+```typescript
+// ✅ Correcto — en styles del @Component
+styles: [`
+  .nav-link { color: rgba(255, 231, 179, 0.55); }
+  .nav-link:hover { color: #FFE7B3; }
+`]
+
+// ❌ Evitar en el template
+// class="text-[#FFE7B3]/55"
+```

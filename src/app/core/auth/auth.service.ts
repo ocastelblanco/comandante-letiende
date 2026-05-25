@@ -1,15 +1,21 @@
 import { inject, Injectable, OnDestroy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Auth, GoogleAuthProvider, signInWithPopup, signOut, User } from '@angular/fire/auth';
+import {
+  Auth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  User,
+  authState,
+} from '@angular/fire/auth';
 import { doc, Firestore, getDoc } from '@angular/fire/firestore';
 import { Subscription } from 'rxjs';
-import { authState } from '@angular/fire/auth';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
-  private auth = inject(Auth);
-  private firestore = inject(Firestore);
-  private router = inject(Router);
+  private readonly auth = inject(Auth);
+  private readonly firestore = inject(Firestore);
+  private readonly router = inject(Router);
 
   readonly currentUser = signal<User | null>(null);
   readonly isAuthenticated = signal(false);
@@ -25,6 +31,11 @@ export class AuthService implements OnDestroy {
 
   async signInWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();
+
+    // Nota: Chrome emite un warning "Cross-Origin-Opener-Policy would block
+    // window.closed" durante este popup. Es un warning del browser causado por
+    // el COOP propio de accounts.google.com — no es un error de nuestra app
+    // y no afecta el flujo de autenticación.
     const credential = await signInWithPopup(this.auth, provider);
 
     const userRef = doc(this.firestore, 'users', credential.user.email!);
