@@ -1,6 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { personCircleOutline } from 'ionicons/icons';
+import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
 import { Order, OrderStatus } from '../../../core/models/order.model';
 
@@ -9,15 +20,29 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
 @Component({
   selector: 'app-admin-orders',
   standalone: true,
-  imports: [DecimalPipe, IonContent, IonHeader, IonTitle, IonToolbar],
+  imports: [DecimalPipe, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar],
   styles: [`
     :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#F7F5F2;--color:#230C00">
+      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
+             style="height:24px;margin-left:16px">
         <ion-title>Pedidos</ion-title>
+        <ion-buttons slot="end">
+          @if (photoURL()) {
+            <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
+                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;
+                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+          } @else {
+            <ion-button fill="clear">
+              <ion-icon slot="icon-only" name="person-circle-outline"
+                        style="font-size:1.6rem;color:#FFE7B3" />
+            </ion-button>
+          }
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -33,12 +58,11 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
 
         <!-- Filter tabs -->
         <div class="flex gap-1 bg-white rounded-2xl p-1
-                    shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-4"
-             style="overflow-x:auto;scrollbar-width:none">
+                    shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-4">
           @for (tab of tabs; track tab.value) {
             <button (click)="activeTab.set(tab.value)"
-                    class="flex-1 py-2 px-3 rounded-xl text-sm font-semibold
-                           transition-colors whitespace-nowrap min-w-fit"
+                    class="flex-1 py-2.5 px-2 rounded-xl text-sm font-semibold
+                           transition-colors whitespace-nowrap"
                     [style.background]="activeTab() === tab.value ? '#230C00' : 'transparent'"
                     [style.color]="activeTab() === tab.value ? '#FFE7B3' : 'rgba(35,12,0,0.5)'">
               {{ tab.label }}
@@ -127,10 +151,12 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
   `,
 })
 export class AdminOrdersComponent {
+  private auth         = inject(AuthService);
   private orderService = inject(OrderService);
 
-  protected readonly orders    = this.orderService.activeOrders;
-  protected readonly activeTab = signal<FilterTab>('all');
+  protected readonly photoURL    = computed(() => this.auth.currentUser()?.photoURL ?? null);
+  protected readonly orders      = this.orderService.activeOrders;
+  protected readonly activeTab   = signal<FilterTab>('all');
 
   protected readonly tabs = [
     { value: 'all'       as FilterTab, label: 'Todos',      count: computed(() => this.orders().length) },
@@ -143,6 +169,10 @@ export class AdminOrdersComponent {
     const tab = this.activeTab();
     return tab === 'all' ? this.orders() : this.orders().filter(o => o.status === tab);
   });
+
+  constructor() {
+    addIcons({ personCircleOutline });
+  }
 
   protected statusColor(s: string): string {
     return s === 'preparing' ? '#E8630A' : s === 'ready' ? '#00B7A3' : '#FFE7B3';

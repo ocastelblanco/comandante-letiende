@@ -53,6 +53,13 @@ export const routes: Routes = [
             (m) => m.UserListComponent,
           ),
       },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./features/admin/reports/admin-reports.component').then(
+            (m) => m.AdminReportsComponent,
+          ),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

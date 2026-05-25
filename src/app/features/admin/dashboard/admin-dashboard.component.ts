@@ -1,20 +1,45 @@
 import { Component, computed, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { personCircleOutline } from 'ionicons/icons';
+import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [DecimalPipe, IonContent, IonHeader, IonTitle, IonToolbar],
+  imports: [DecimalPipe, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar],
   styles: [`
     :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#F7F5F2;--color:#230C00">
+      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
+             style="height:24px;margin-left:16px">
         <ion-title>Dashboard</ion-title>
+        <ion-buttons slot="end">
+          @if (photoURL()) {
+            <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
+                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;
+                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+          } @else {
+            <ion-button fill="clear">
+              <ion-icon slot="icon-only" name="person-circle-outline"
+                        style="font-size:1.6rem;color:#FFE7B3" />
+            </ion-button>
+          }
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -24,7 +49,7 @@ import { OrderService } from '../../../core/db/order.service';
         <!-- Desktop page header -->
         <div class="hidden lg:flex items-baseline justify-between mb-8">
           <div>
-            <h1 class="text-2xl font-bold text-[#230C00]">Buenos días, Admin</h1>
+            <h1 class="text-2xl font-bold text-[#230C00]">Hola, {{ firstName() }}</h1>
             <p class="text-[#230C00]/45 text-sm mt-0.5 capitalize">{{ today }}</p>
           </div>
         </div>
@@ -80,8 +105,8 @@ import { OrderService } from '../../../core/db/order.service';
                       &#36;{{ order.total | number:'1.0-0' }}
                     </p>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                          [style.background]="statusBg(order.status)"
-                          [style.color]="'#230C00'">
+                          [style.background]="statusColor(order.status)"
+                          style="color:#230C00">
                       {{ statusLabel(order.status) }}
                     </span>
                   </div>
@@ -96,8 +121,15 @@ import { OrderService } from '../../../core/db/order.service';
   `,
 })
 export class AdminDashboardComponent {
+  private auth         = inject(AuthService);
   private orderService = inject(OrderService);
+
   protected readonly activeOrders = this.orderService.activeOrders;
+  protected readonly photoURL     = computed(() => this.auth.currentUser()?.photoURL ?? null);
+  protected readonly firstName    = computed(() => {
+    const name = this.auth.currentUser()?.displayName;
+    return name ? name.split(' ')[0] : 'Admin';
+  });
 
   protected readonly today = new Date().toLocaleDateString('es-CO', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -105,21 +137,22 @@ export class AdminDashboardComponent {
 
   protected readonly kpis = computed(() => {
     const orders   = this.activeOrders();
-    const pending   = orders.filter(o => o.status === 'pending').length;
+    const pending  = orders.filter(o => o.status === 'pending').length;
     const preparing = orders.filter(o => o.status === 'preparing').length;
-    const ready     = orders.filter(o => o.status === 'ready').length;
+    const ready    = orders.filter(o => o.status === 'ready').length;
     return [
-      { label: 'En cola',     value: `${orders.length}`,  sub: 'pedidos activos'  },
-      { label: 'Pendientes',  value: `${pending}`,         sub: 'por preparar'     },
-      { label: 'Preparando',  value: `${preparing}`,       sub: 'en barra'         },
-      { label: 'Listos',      value: `${ready}`,           sub: 'por entregar'     },
+      { label: 'En cola',     value: `${orders.length}`, sub: 'pedidos activos' },
+      { label: 'Pendientes',  value: `${pending}`,       sub: 'por preparar'   },
+      { label: 'Preparando',  value: `${preparing}`,     sub: 'en barra'       },
+      { label: 'Listos',      value: `${ready}`,         sub: 'por entregar'   },
     ];
   });
 
-  protected statusColor(s: string): string {
-    return s === 'preparing' ? '#E8630A' : s === 'ready' ? '#00B7A3' : '#FFE7B3';
+  constructor() {
+    addIcons({ personCircleOutline });
   }
-  protected statusBg(s: string): string {
+
+  protected statusColor(s: string): string {
     return s === 'preparing' ? '#E8630A' : s === 'ready' ? '#00B7A3' : '#FFE7B3';
   }
   protected statusLabel(s: string): string {

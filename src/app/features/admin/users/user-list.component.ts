@@ -1,7 +1,8 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonButton,
+  IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
@@ -17,7 +18,8 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personAddOutline } from 'ionicons/icons';
+import { personAddOutline, personCircleOutline } from 'ionicons/icons';
+import { AuthService } from '../../../core/auth/auth.service';
 import { UserService } from '../../../core/db/user.service';
 import { UserRole } from '../../../core/models/user.model';
 
@@ -26,119 +28,137 @@ import { UserRole } from '../../../core/models/user.model';
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    IonButton,
+    IonButtons,
     IonContent,
     IonHeader,
     IonIcon,
+    IonInput,
     IonItem,
     IonLabel,
     IonList,
     IonNote,
-    IonTitle,
-    IonToolbar,
     IonSelect,
     IonSelectOption,
-    IonButton,
-    IonInput,
     IonSpinner,
+    IonTitle,
+    IonToolbar,
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   styles: [`
     :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#F7F5F2;--color:#230C00">
+      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
+             style="height:24px;margin-left:16px">
         <ion-title>Usuarios</ion-title>
+        <ion-buttons slot="end">
+          @if (photoURL()) {
+            <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
+                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;
+                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+          } @else {
+            <ion-button fill="clear">
+              <ion-icon slot="icon-only" name="person-circle-outline"
+                        style="font-size:1.6rem;color:#FFE7B3" />
+            </ion-button>
+          }
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="ion-padding">
-        <ion-list>
-          @for (u of userService.users(); track u.email) {
-            <ion-item>
-              <ion-label>
-                <h2>{{ u.displayName }}</h2>
-                <p>{{ u.email }}</p>
-              </ion-label>
-              <ion-select
-                slot="end"
-                [value]="u.role"
-                (ionChange)="onRoleChange(u.email, $event)"
-                interface="popover"
-              >
-                <ion-select-option value="admin">Admin</ion-select-option>
-                <ion-select-option value="waiter">Mesero</ion-select-option>
-                <ion-select-option value="barista">Barista</ion-select-option>
-              </ion-select>
-            </ion-item>
-          } @empty {
-            <ion-item>
-              <ion-label>No hay usuarios registrados.</ion-label>
-            </ion-item>
-          }
-        </ion-list>
 
-        @if (showAddForm()) {
-          <form [formGroup]="addForm" (ngSubmit)="submitAdd()" class="mt-4">
-            <ion-item>
-              <ion-label position="stacked">Correo *</ion-label>
-              <ion-input type="email" formControlName="email" placeholder="usuario@ejemplo.com" />
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">Nombre *</ion-label>
-              <ion-input formControlName="displayName" placeholder="Nombre completo" />
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">Rol *</ion-label>
-              <ion-select formControlName="role" placeholder="Seleccionar">
-                <ion-select-option value="admin">Admin</ion-select-option>
-                <ion-select-option value="waiter">Mesero</ion-select-option>
-                <ion-select-option value="barista">Barista</ion-select-option>
-              </ion-select>
-            </ion-item>
-            @if (addError()) {
-              <ion-note color="danger" class="px-4">{{ addError() }}</ion-note>
-            }
-            <div class="flex gap-2 px-4 pt-4">
-              <ion-button expand="block" type="submit" [disabled]="addForm.invalid || saving()">
-                @if (saving()) {
-                  <ion-spinner name="crescent" />
-                } @else {
-                  Crear usuario
-                }
-              </ion-button>
-              <ion-button expand="block" fill="outline" type="button" (click)="cancelAdd()">
-                Cancelar
-              </ion-button>
-            </div>
-          </form>
-        } @else {
-          <div class="px-4 pt-4">
-            <ion-button expand="block" fill="outline" (click)="showAddForm.set(true)">
-              <ion-icon slot="start" name="person-add-outline" />
-              Agregar usuario
+    <ion-content class="ion-padding">
+      <ion-list>
+        @for (u of userService.users(); track u.email) {
+          <ion-item>
+            <ion-label>
+              <h2>{{ u.displayName }}</h2>
+              <p>{{ u.email }}</p>
+            </ion-label>
+            <ion-select
+              slot="end"
+              [value]="u.role"
+              (ionChange)="onRoleChange(u.email, $event)"
+              interface="popover"
+            >
+              <ion-select-option value="admin">Admin</ion-select-option>
+              <ion-select-option value="waiter">Mesero</ion-select-option>
+              <ion-select-option value="barista">Barista</ion-select-option>
+            </ion-select>
+          </ion-item>
+        } @empty {
+          <ion-item>
+            <ion-label>No hay usuarios registrados.</ion-label>
+          </ion-item>
+        }
+      </ion-list>
+
+      @if (showAddForm()) {
+        <form [formGroup]="addForm" (ngSubmit)="submitAdd()" class="mt-4">
+          <ion-item>
+            <ion-label position="stacked">Correo *</ion-label>
+            <ion-input type="email" formControlName="email" placeholder="usuario@ejemplo.com" />
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Nombre *</ion-label>
+            <ion-input formControlName="displayName" placeholder="Nombre completo" />
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Rol *</ion-label>
+            <ion-select formControlName="role" placeholder="Seleccionar">
+              <ion-select-option value="admin">Admin</ion-select-option>
+              <ion-select-option value="waiter">Mesero</ion-select-option>
+              <ion-select-option value="barista">Barista</ion-select-option>
+            </ion-select>
+          </ion-item>
+          @if (addError()) {
+            <ion-note color="danger" class="px-4">{{ addError() }}</ion-note>
+          }
+          <div class="flex gap-2 px-4 pt-4">
+            <ion-button expand="block" type="submit" [disabled]="addForm.invalid || saving()">
+              @if (saving()) {
+                <ion-spinner name="crescent" />
+              } @else {
+                Crear usuario
+              }
+            </ion-button>
+            <ion-button expand="block" fill="outline" type="button" (click)="cancelAdd()">
+              Cancelar
             </ion-button>
           </div>
-        }
+        </form>
+      } @else {
+        <div class="px-4 pt-4">
+          <ion-button expand="block" fill="outline" (click)="showAddForm.set(true)">
+            <ion-icon slot="start" name="person-add-outline" />
+            Agregar usuario
+          </ion-button>
+        </div>
+      }
     </ion-content>
   `,
 })
 export class UserListComponent {
+  private auth = inject(AuthService);
   readonly userService = inject(UserService);
   private fb = inject(FormBuilder);
 
+  protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
+
   constructor() {
-    addIcons({ personAddOutline });
+    addIcons({ personAddOutline, personCircleOutline });
   }
 
   showAddForm = signal(false);
-  saving = signal(false);
-  addError = signal('');
+  saving      = signal(false);
+  addError    = signal('');
 
   addForm = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    email:       ['', [Validators.required, Validators.email]],
     displayName: ['', Validators.required],
-    role: ['waiter' as UserRole, Validators.required],
+    role:        ['waiter' as UserRole, Validators.required],
   });
 
   onRoleChange(email: string, event: Event): void {
