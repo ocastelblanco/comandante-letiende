@@ -104,6 +104,11 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
           }
         </ion-segment>
 
+        <!-- Active filter label — mobile only -->
+        <p class="lg:hidden text-sm font-semibold text-[#230C00] mb-3 px-1">
+          {{ activeTabLabel() }}
+        </p>
+
         <!-- Orders list -->
         @if (filteredOrders().length === 0) {
           <div class="bg-white rounded-2xl p-12 text-center
@@ -192,6 +197,10 @@ export class AdminOrdersComponent {
     { value: 'preparing' as FilterTab, label: 'Preparando', icon: 'flame-outline',            count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
     { value: 'ready'     as FilterTab, label: 'Listos',     icon: 'checkmark-circle-outline', count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
   ];
+
+  protected readonly activeTabLabel = computed(() =>
+    this.tabs.find(t => t.value === this.activeTab())?.label ?? '',
+  );
 
   protected readonly filteredOrders = computed(() => {
     const tab = this.activeTab();

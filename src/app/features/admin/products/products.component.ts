@@ -30,11 +30,11 @@ import { Product, ProductCategory } from '../../../core/models/product.model';
 import { ProductFormComponent } from './product-form.component';
 
 const CATEGORIES: { value: string; label: string; icon: string }[] = [
-  { value: 'all',     label: 'Todos',   icon: 'grid-outline'       },
-  { value: 'bebidas', label: 'Bebidas', icon: 'cafe-outline'       },
-  { value: 'licores', label: 'Licores', icon: 'wine-outline'       },
-  { value: 'comida',  label: 'Comida',  icon: 'restaurant-outline' },
-  { value: 'otros',   label: 'Otros',   icon: 'pricetag-outline'   },
+  { value: 'all', label: 'Todos', icon: 'grid-outline' },
+  { value: 'bebidas', label: 'Bebidas', icon: 'cafe-outline' },
+  { value: 'licores', label: 'Licores', icon: 'wine-outline' },
+  { value: 'comida', label: 'Comida', icon: 'restaurant-outline' },
+  { value: 'otros', label: 'Otros', icon: 'pricetag-outline' },
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -144,7 +144,7 @@ const CATEGORY_ICONS: Record<string, string> = {
                             padding:4px;
                             margin-bottom:20px">
           @for (cat of categories; track cat.value) {
-            <ion-segment-button [value]="cat.value"
+            <ion-segment-button class="min-w-[4em]" [value]="cat.value"
                                 style="--color:rgba(35,12,0,0.5);
                                        --color-checked:#FFE7B3;
                                        --background-checked:#230C00;
@@ -157,6 +157,11 @@ const CATEGORY_ICONS: Record<string, string> = {
             </ion-segment-button>
           }
         </ion-segment>
+
+        <!-- Active category label — mobile only -->
+        <p class="lg:hidden text-sm font-semibold text-[#230C00] mb-3 px-1">
+          {{ activeCategoryLabel() }}
+        </p>
 
         <!-- Product grid: 2 cols mobile, 3 cols desktop -->
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
@@ -243,6 +248,10 @@ export class ProductsComponent {
   protected readonly editingProduct = signal<Product | undefined>(undefined);
   protected readonly searchQuery = signal('');
   protected readonly activeCategory = signal('all');
+
+  protected readonly activeCategoryLabel = computed(() =>
+    this.categories.find(c => c.value === this.activeCategory())?.label ?? '',
+  );
 
   protected readonly filteredProducts = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
