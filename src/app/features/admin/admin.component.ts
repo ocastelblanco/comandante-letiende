@@ -24,17 +24,27 @@ const NAV = [
   standalone: true,
   imports: [RouterLink, RouterLinkActive, IonIcon, IonRouterOutlet],
   styles: [`
-    :host { display: flex; height: 100%; background: #F7F5F2; }
+    /* Ionic aplica .ion-page al host con flex-direction:column — lo sobreescribimos */
+    :host, :host.ion-page {
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: flex-start !important;
+      height: 100%;
+      background: #F7F5F2;
+    }
+    /* Sin height explícito, ion-router-outlet queda en 0px y el contenido no aparece */
+    ion-router-outlet { display: block !important; height: 100%; }
     .nav-link.active {
       color: #FFE7B3 !important;
       background: rgba(255,255,255,0.10) !important;
       padding-left: 10px !important;
       border-left: 2px solid #E8630A;
     }
+    .mobile-nav-active { color: #E8630A !important; }
   `],
   template: `
     <!-- SIDEBAR — desktop only (≥1024px) -->
-    <aside class="hidden lg:flex flex-col w-60 shrink-0 bg-[#230C00]" style="min-height:100%">
+    <aside class="hidden lg:flex flex-col w-60 shrink-0 bg-[#230C00]" style="height:100%">
       <div class="px-5 pt-7 pb-5 border-b border-white/10">
         <p class="text-[#FFE7B3] text-3xl leading-none"
            style="font-family:'Angellya',cursive">Comandante</p>
@@ -77,7 +87,8 @@ const NAV = [
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 overflow-auto pb-16 lg:pb-0">
+    <main style="flex:1;overflow:auto;position:relative;padding-bottom:64px"
+          class="lg:!pb-0">
       <ion-router-outlet />
     </main>
 
@@ -87,7 +98,7 @@ const NAV = [
                 padding-bottom:env(safe-area-inset-bottom)">
       @for (item of mobileNav; track item.path) {
         <a [routerLink]="item.path"
-           routerLinkActive="!text-[#E8630A]"
+           routerLinkActive="mobile-nav-active"
            class="flex-1 flex flex-col items-center justify-center gap-1
                   text-[#FFE7B3]/55 text-[10px] font-semibold tracking-wide min-h-[48px]">
           <ion-icon [name]="item.icon" class="text-2xl" />
