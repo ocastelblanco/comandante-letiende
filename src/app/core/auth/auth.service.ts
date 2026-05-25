@@ -3,8 +3,7 @@ import { Router } from '@angular/router';
 import {
   Auth,
   GoogleAuthProvider,
-  getRedirectResult,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
   User,
   authState,
@@ -20,7 +19,6 @@ export class AuthService implements OnDestroy {
 
   readonly currentUser = signal<User | null>(null);
   readonly isAuthenticated = signal(false);
-  readonly authError = signal('');
 
   private authSub: Subscription;
 
@@ -29,45 +27,35 @@ export class AuthService implements OnDestroy {
       this.currentUser.set(user);
       this.isAuthenticated.set(user !== null);
     });
-
-    this.handleRedirectResult();
-  }
-
-  private async handleRedirectResult(): Promise<void> {
-    try {
-      const result = await getRedirectResult(this.auth);
-      if (!result) return;
-
-      const userRef = doc(this.firestore, 'users', result.user.email!);
-      let userSnap;
-      try {
-        userSnap = await getDoc(userRef);
-      } catch {
-        await signOut(this.auth);
-        this.authError.set('No se pudo verificar el acceso. Comprueba la conexión e intenta de nuevo.');
-        await this.router.navigate(['/login']);
-        return;
-      }
-
-      if (!userSnap.exists()) {
-        await signOut(this.auth);
-        this.authError.set('Este correo no está autorizado para acceder a Comandante.');
-        await this.router.navigate(['/login']);
-        return;
-      }
-
-      const role = userSnap.data()['role'] as string;
-      const destination = role === 'admin' ? '/admin' : role === 'waiter' ? '/waiter' : '/barista';
-      await this.router.navigate([destination]);
-    } catch {
-      // No hay redirect pendiente — carga normal de la app
-    }
   }
 
   async signInWithGoogle(): Promise<void> {
-    this.authError.set('');
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(this.auth, provider);
+
+    // Nota: Chrome emite un warning "Cross-Origin-Opener-Policy would block
+    // window.closed" durante este popup. Es un warning del browser causado por
+    // el COOP propio de accounts.google.com — no es un error de nuestra app
+    // y no afecta el flujo de autenticación.
+    const credential = await signInWithPopup(this.auth, provider);
+
+    const userRef = doc(this.firestore, 'users', credential.user.email!);
+
+    let userSnap;
+    try {
+      userSnap = await getDoc(userRef);
+    } catch {
+      await signOut(this.auth);
+      throw new Error('No se pudo verificar el acceso. Comprueba la conexión e intenta de nuevo.');
+    }
+
+    if (!userSnap.exists()) {
+      await signOut(this.auth);
+      throw new Error('Este correo no está autorizado para acceder a Comandante.');
+    }
+
+    const role = userSnap.data()['role'] as string;
+    const destination = role === 'admin' ? '/admin' : role === 'waiter' ? '/waiter' : '/barista';
+    await this.router.navigate([destination]);
   }
 
   async signOut(): Promise<void> {
