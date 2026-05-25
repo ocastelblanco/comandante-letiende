@@ -6,11 +6,20 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
+  IonLabel,
+  IonSegment,
+  IonSegmentButton,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personCircleOutline } from 'ionicons/icons';
+import {
+  checkmarkCircleOutline,
+  flameOutline,
+  listOutline,
+  personCircleOutline,
+  timeOutline,
+} from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
 import { Order, OrderStatus } from '../../../core/models/order.model';
@@ -20,7 +29,19 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
 @Component({
   selector: 'app-admin-orders',
   standalone: true,
-  imports: [DecimalPipe, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar],
+  imports: [
+    DecimalPipe,
+    IonButton,
+    IonButtons,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonLabel,
+    IonSegment,
+    IonSegmentButton,
+    IonTitle,
+    IonToolbar,
+  ],
   styles: [`
     :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
@@ -30,7 +51,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
       <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
-        <ion-title>Pedidos</ion-title>
+        <ion-title class="text-center">Pedidos</ion-title>
         <ion-buttons slot="end">
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
@@ -56,22 +77,32 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
           <span class="text-xs text-[#230C00]/45 font-medium">En tiempo real</span>
         </div>
 
-        <!-- Filter tabs -->
-        <div class="flex gap-1 bg-white rounded-2xl p-1
-                    shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-4">
+        <!-- Filter segment -->
+        <ion-segment [value]="activeTab()" (ionChange)="onTabChange($event)"
+                     style="--background:white;
+                            box-shadow:0 1px 3px rgba(35,12,0,0.08);
+                            border-radius:16px;
+                            padding:4px;
+                            margin-bottom:16px">
           @for (tab of tabs; track tab.value) {
-            <button (click)="activeTab.set(tab.value)"
-                    class="flex-1 py-2.5 px-2 rounded-xl text-sm font-semibold
-                           transition-colors whitespace-nowrap"
-                    [style.background]="activeTab() === tab.value ? '#230C00' : 'transparent'"
-                    [style.color]="activeTab() === tab.value ? '#FFE7B3' : 'rgba(35,12,0,0.5)'">
-              {{ tab.label }}
-              @if (tab.count() > 0) {
-                <span class="ml-1 opacity-60 text-xs">({{ tab.count() }})</span>
-              }
-            </button>
+            <ion-segment-button [value]="tab.value"
+                                style="--color:rgba(35,12,0,0.5);
+                                       --color-checked:#FFE7B3;
+                                       --background-checked:#230C00;
+                                       --indicator-color:transparent;
+                                       --indicator-height:0;
+                                       --border-radius:12px;
+                                       --min-width:0">
+              <ion-icon [name]="tab.icon" class="lg:hidden" style="font-size:1.3rem;margin:0" />
+              <ion-label class="hidden lg:block">
+                {{ tab.label }}
+                @if (tab.count() > 0) {
+                  <span style="opacity:.6;font-size:.7rem">({{ tab.count() }})</span>
+                }
+              </ion-label>
+            </ion-segment-button>
           }
-        </div>
+        </ion-segment>
 
         <!-- Orders list -->
         @if (filteredOrders().length === 0) {
@@ -120,24 +151,21 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                   <!-- Action button -->
                   <div class="mt-4">
                     @if (order.status === 'pending') {
-                      <button (click)="updateStatus(order, 'preparing')"
-                              class="w-full bg-[#E8630A] text-[#230C00] text-sm font-semibold
-                                     py-2.5 rounded-xl transition-opacity active:opacity-80">
+                      <ion-button expand="block" (click)="updateStatus(order, 'preparing')"
+                                  style="--background:#E8630A;--color:#230C00;--border-radius:12px">
                         Marcar como preparando
-                      </button>
+                      </ion-button>
                     } @else if (order.status === 'preparing') {
-                      <button (click)="updateStatus(order, 'ready')"
-                              class="w-full bg-[#00B7A3] text-[#230C00] text-sm font-semibold
-                                     py-2.5 rounded-xl transition-opacity active:opacity-80">
+                      <ion-button expand="block" (click)="updateStatus(order, 'ready')"
+                                  style="--background:#00B7A3;--color:#230C00;--border-radius:12px">
                         Marcar como lista ✓
-                      </button>
+                      </ion-button>
                     } @else if (order.status === 'ready') {
-                      <button (click)="updateStatus(order, 'delivered')"
-                              class="w-full text-[#230C00]/50 text-sm font-semibold py-2.5
-                                     rounded-xl border border-[#230C00]/12
-                                     transition-opacity active:opacity-80">
+                      <ion-button expand="block" fill="outline" (click)="updateStatus(order, 'delivered')"
+                                  style="--color:rgba(35,12,0,0.45);--border-color:rgba(35,12,0,0.12);
+                                         --border-radius:12px">
                         Marcar como entregada
-                      </button>
+                      </ion-button>
                     }
                   </div>
                 </div>
@@ -151,18 +179,18 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
   `,
 })
 export class AdminOrdersComponent {
-  private auth         = inject(AuthService);
+  private auth = inject(AuthService);
   private orderService = inject(OrderService);
 
-  protected readonly photoURL    = computed(() => this.auth.currentUser()?.photoURL ?? null);
-  protected readonly orders      = this.orderService.activeOrders;
-  protected readonly activeTab   = signal<FilterTab>('all');
+  protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
+  protected readonly orders = this.orderService.activeOrders;
+  protected readonly activeTab = signal<FilterTab>('all');
 
   protected readonly tabs = [
-    { value: 'all'       as FilterTab, label: 'Todos',      count: computed(() => this.orders().length) },
-    { value: 'pending'   as FilterTab, label: 'Pendientes', count: computed(() => this.orders().filter(o => o.status === 'pending').length) },
-    { value: 'preparing' as FilterTab, label: 'Preparando', count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
-    { value: 'ready'     as FilterTab, label: 'Listos',     count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
+    { value: 'all'       as FilterTab, label: 'Todos',      icon: 'list-outline',             count: computed(() => this.orders().length) },
+    { value: 'pending'   as FilterTab, label: 'Pendientes', icon: 'time-outline',             count: computed(() => this.orders().filter(o => o.status === 'pending').length) },
+    { value: 'preparing' as FilterTab, label: 'Preparando', icon: 'flame-outline',            count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
+    { value: 'ready'     as FilterTab, label: 'Listos',     icon: 'checkmark-circle-outline', count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
   ];
 
   protected readonly filteredOrders = computed(() => {
@@ -171,7 +199,11 @@ export class AdminOrdersComponent {
   });
 
   constructor() {
-    addIcons({ personCircleOutline });
+    addIcons({ checkmarkCircleOutline, flameOutline, listOutline, personCircleOutline, timeOutline });
+  }
+
+  onTabChange(ev: Event): void {
+    this.activeTab.set((ev as CustomEvent).detail.value as FilterTab);
   }
 
   protected statusColor(s: string): string {

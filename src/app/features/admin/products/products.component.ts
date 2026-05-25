@@ -8,6 +8,9 @@ import {
   IonFabButton,
   IonHeader,
   IonIcon,
+  IonLabel,
+  IonSegment,
+  IonSegmentButton,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
@@ -15,6 +18,7 @@ import { addIcons } from 'ionicons';
 import {
   add,
   cafeOutline,
+  gridOutline,
   personCircleOutline,
   pricetagOutline,
   restaurantOutline,
@@ -25,18 +29,18 @@ import { ProductService } from '../../../core/db/product.service';
 import { Product, ProductCategory } from '../../../core/models/product.model';
 import { ProductFormComponent } from './product-form.component';
 
-const CATEGORIES: { value: string; label: string }[] = [
-  { value: 'all',     label: 'Todos'   },
-  { value: 'bebidas', label: 'Bebidas' },
-  { value: 'licores', label: 'Licores' },
-  { value: 'comida',  label: 'Comida'  },
-  { value: 'otros',   label: 'Otros'   },
+const CATEGORIES: { value: string; label: string; icon: string }[] = [
+  { value: 'all',     label: 'Todos',   icon: 'grid-outline'       },
+  { value: 'bebidas', label: 'Bebidas', icon: 'cafe-outline'       },
+  { value: 'licores', label: 'Licores', icon: 'wine-outline'       },
+  { value: 'comida',  label: 'Comida',  icon: 'restaurant-outline' },
+  { value: 'otros',   label: 'Otros',   icon: 'pricetag-outline'   },
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
   bebidas: 'cafe-outline',
   licores: 'wine-outline',
-  comida:  'restaurant-outline',
+  comida: 'restaurant-outline',
 };
 
 @Component({
@@ -51,6 +55,9 @@ const CATEGORY_ICONS: Record<string, string> = {
     IonFabButton,
     IonHeader,
     IonIcon,
+    IonLabel,
+    IonSegment,
+    IonSegmentButton,
     IonTitle,
     IonToolbar,
     ProductFormComponent,
@@ -92,7 +99,7 @@ const CATEGORY_ICONS: Record<string, string> = {
       <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
-        <ion-title>Productos</ion-title>
+        <ion-title class="text-center">Productos</ion-title>
         <ion-buttons slot="end">
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
@@ -114,11 +121,10 @@ const CATEGORY_ICONS: Record<string, string> = {
         <!-- Desktop page header -->
         <div class="hidden lg:flex items-center justify-between mb-6">
           <h1 class="text-2xl font-bold text-[#230C00]">Productos</h1>
-          <button (click)="openAdd()"
-                  class="bg-[#E8630A] text-[#230C00] font-semibold px-5 py-2.5
-                         rounded-xl text-sm hover:opacity-90 transition-opacity">
+          <ion-button (click)="openAdd()"
+                      style="--background:#E8630A;--color:#230C00;--border-radius:12px">
             + Agregar producto
-          </button>
+          </ion-button>
         </div>
 
         <!-- Search -->
@@ -130,18 +136,27 @@ const CATEGORY_ICONS: Record<string, string> = {
                  shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-3
                  focus:outline-none focus:ring-2 focus:ring-[#E8630A]/25" />
 
-        <!-- Category tabs -->
-        <div class="flex gap-1 bg-white rounded-2xl p-1
-                    shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-5">
+        <!-- Category segment -->
+        <ion-segment class="mt-[1em]" [value]="activeCategory()" (ionChange)="onCategoryChange($event)"
+                     style="--background:white;
+                            box-shadow:0 1px 3px rgba(35,12,0,0.08);
+                            border-radius:16px;
+                            padding:4px;
+                            margin-bottom:20px">
           @for (cat of categories; track cat.value) {
-            <button (click)="activeCategory.set(cat.value)"
-                    class="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-                    [style.background]="activeCategory() === cat.value ? '#230C00' : 'transparent'"
-                    [style.color]="activeCategory() === cat.value ? '#FFE7B3' : 'rgba(35,12,0,0.5)'">
-              {{ cat.label }}
-            </button>
+            <ion-segment-button [value]="cat.value"
+                                style="--color:rgba(35,12,0,0.5);
+                                       --color-checked:#FFE7B3;
+                                       --background-checked:#230C00;
+                                       --indicator-color:transparent;
+                                       --indicator-height:0;
+                                       --border-radius:12px;
+                                       --min-width:0">
+              <ion-icon [name]="cat.icon" class="lg:hidden" style="font-size:1.3rem;margin:0" />
+              <ion-label class="hidden lg:block">{{ cat.label }}</ion-label>
+            </ion-segment-button>
           }
-        </div>
+        </ion-segment>
 
         <!-- Product grid: 2 cols mobile, 3 cols desktop -->
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
@@ -179,18 +194,20 @@ const CATEGORY_ICONS: Record<string, string> = {
 
                 <!-- Actions -->
                 <div class="flex gap-2 mt-auto pt-3">
-                  <button (click)="openEdit(p)"
-                          class="flex-1 py-2 text-xs font-semibold text-[#230C00]
-                                 border border-[#230C00]/15 rounded-xl
-                                 hover:border-[#E8630A] hover:text-[#E8630A] transition-colors">
+                  <ion-button (click)="openEdit(p)" fill="outline" size="small" expand="block"
+                              class="flex-1"
+                              style="--color:#230C00;--border-color:rgba(35,12,0,0.2);
+                                     --border-radius:10px;--border-width:1px;
+                                     --border-style:solid;margin:0">
                     Editar
-                  </button>
-                  <button (click)="toggleActive(p)"
-                          class="flex-1 py-2 text-xs font-semibold rounded-xl transition-colors"
-                          [style.background]="p.isActive ? 'rgba(0,183,163,0.12)' : 'rgba(35,12,0,0.08)'"
-                          [style.color]="p.isActive ? '#00B7A3' : 'rgba(35,12,0,0.4)'">
+                  </ion-button>
+                  <ion-button (click)="toggleActive(p)" fill="solid" size="small" expand="block"
+                              class="flex-1"
+                              [style.--background]="p.isActive ? 'rgba(0,183,163,0.12)' : 'rgba(35,12,0,0.08)'"
+                              [style.--color]="p.isActive ? '#00B7A3' : 'rgba(35,12,0,0.4)'"
+                              style="--border-radius:10px;--box-shadow:none;margin:0">
                     {{ p.isActive ? 'Activo' : 'Inactivo' }}
-                  </button>
+                  </ion-button>
                 </div>
               </div>
             </div>
@@ -217,18 +234,18 @@ const CATEGORY_ICONS: Record<string, string> = {
   `,
 })
 export class ProductsComponent {
-  private auth           = inject(AuthService);
+  private auth = inject(AuthService);
   private productService = inject(ProductService);
 
-  protected readonly categories     = CATEGORIES;
-  protected readonly photoURL       = computed(() => this.auth.currentUser()?.photoURL ?? null);
-  protected readonly showForm       = signal(false);
+  protected readonly categories = CATEGORIES;
+  protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
+  protected readonly showForm = signal(false);
   protected readonly editingProduct = signal<Product | undefined>(undefined);
-  protected readonly searchQuery    = signal('');
+  protected readonly searchQuery = signal('');
   protected readonly activeCategory = signal('all');
 
   protected readonly filteredProducts = computed(() => {
-    const q   = this.searchQuery().toLowerCase().trim();
+    const q = this.searchQuery().toLowerCase().trim();
     const cat = this.activeCategory();
     return this.productService.products().filter(p =>
       (cat === 'all' || p.category === (cat as ProductCategory)) &&
@@ -237,11 +254,15 @@ export class ProductsComponent {
   });
 
   constructor() {
-    addIcons({ add, cafeOutline, wineOutline, restaurantOutline, pricetagOutline, personCircleOutline });
+    addIcons({ add, cafeOutline, gridOutline, wineOutline, restaurantOutline, pricetagOutline, personCircleOutline });
   }
 
   protected categoryIcon(cat: string): string {
     return CATEGORY_ICONS[cat] ?? 'pricetag-outline';
+  }
+
+  onCategoryChange(ev: Event): void {
+    this.activeCategory.set((ev as CustomEvent).detail.value as string);
   }
 
   openAdd(): void {
