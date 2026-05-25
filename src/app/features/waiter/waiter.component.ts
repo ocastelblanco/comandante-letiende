@@ -6,9 +6,6 @@ import {
   IonButtons,
   IonCard,
   IonCardContent,
-  IonCardHeader,
-  IonCardSubtitle,
-  IonCardTitle,
   IonContent,
   IonFab,
   IonFabButton,
@@ -18,21 +15,25 @@ import {
   IonInput,
   IonItem,
   IonLabel,
-  IonList,
-  IonListHeader,
   IonNote,
   IonSpinner,
   IonTitle,
   IonToolbar,
   ToastController,
 } from '@ionic/angular/standalone';
+import { Timestamp } from '@angular/fire/firestore';
 import { pairwise } from 'rxjs';
 import { addIcons } from 'ionicons';
 import {
   addCircleOutline,
   addOutline,
   arrowBackOutline,
+  closeOutline,
+  filterOutline,
+  notificationsOutline,
+  personCircleOutline,
   removeCircleOutline,
+  timeOutline,
   trashOutline,
 } from 'ionicons/icons';
 import { OrderService } from '../../core/db/order.service';
@@ -51,18 +52,18 @@ interface OrderLine {
   quantity: number;
 }
 
-const STATUS_COLORS: Record<OrderStatus, string> = {
-  pending: 'warning',
-  preparing: 'primary',
-  ready: 'success',
-  delivered: 'medium',
-  cancelled: 'danger',
+const STATUS_BADGE: Record<OrderStatus, { bg: string; text: string }> = {
+  pending:   { bg: '#FFE7B3', text: '#230C00' },
+  preparing: { bg: '#E8630A', text: '#230C00' },
+  ready:     { bg: '#00B7A3', text: '#230C00' },
+  delivered: { bg: '#82746c', text: '#ffffff' },
+  cancelled: { bg: '#C0392B', text: '#ffffff' },
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'Pendiente',
+  pending:   'Pendiente',
   preparing: 'Preparando',
-  ready: 'Listo para entregar',
+  ready:     'Listo ✓',
   delivered: 'Entregado',
   cancelled: 'Cancelado',
 };
@@ -80,14 +81,9 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
     IonIcon,
     IonContent,
     IonCard,
-    IonCardHeader,
-    IonCardSubtitle,
-    IonCardTitle,
     IonCardContent,
     IonFab,
     IonFabButton,
-    IonList,
-    IonListHeader,
     IonItem,
     IonLabel,
     IonInput,
@@ -100,58 +96,78 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       <!-- ── Dashboard ──────────────────────────────────────────────────── -->
       <ion-header>
         <ion-toolbar>
-          <ion-title>Mesero</ion-title>
+          <ion-title>Comandante</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear">
+              <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:#FFE7B3" />
+            </ion-button>
+          </ion-buttons>
         </ion-toolbar>
       </ion-header>
 
       <ion-content>
+        @for (alert of visibleReadyAlerts(); track alert.id) {
+          <div style="background:#E8630A;color:#230C00;padding:10px 16px;display:flex;align-items:center;gap:8px">
+            <ion-icon name="notifications-outline" style="font-size:1.1rem;flex-shrink:0" />
+            <span style="flex:1;font-size:.875rem;font-weight:600">
+              ¡"{{ alert.tableNumber }}" listo para entregar!
+            </span>
+            <ion-button fill="clear" size="small" (click)="dismissAlert(alert.id)" style="--color:#230C00;flex-shrink:0">
+              <ion-icon slot="icon-only" name="close-outline" />
+            </ion-button>
+          </div>
+        }
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px">
+          <span style="font-size:1rem;font-weight:700;color:#251a00">Pedidos Activos</span>
+          <ion-button fill="clear" size="small">
+            <ion-icon slot="icon-only" name="filter-outline" />
+          </ion-button>
+        </div>
+
         @if (orderService.activeOrders().length === 0) {
           <div style="padding:48px 24px;text-align:center;opacity:.5">
             <p style="font-size:1rem">No hay pedidos activos.</p>
             <p style="font-size:.875rem;margin-top:4px">Usa el botón + para crear uno.</p>
           </div>
         } @else {
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px">
+          <div style="padding:0 12px 96px;display:flex;flex-direction:column;gap:10px">
             @for (order of orderService.activeOrders(); track order.id) {
-              <ion-card
-                button
-                (click)="toggleExpand(order.id)"
-                style="margin:0;border-left:4px solid"
-                [style.border-left-color]="'var(--ion-color-' + statusColors[order.status] + ')'"
-              >
-                <ion-card-header style="padding:8px 10px 4px">
-                  <ion-card-subtitle style="font-size:.65rem;text-transform:uppercase">
-                    {{ statusLabels[order.status] }}
-                  </ion-card-subtitle>
-                  <ion-card-title
-                    style="font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-                  >
-                    {{ order.tableNumber }}
-                  </ion-card-title>
-                </ion-card-header>
-
-                <ion-card-content style="padding:4px 10px 10px">
+              <ion-card button (click)="toggleExpand(order.id)" style="margin:0;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
+                <ion-card-content style="padding:14px 16px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:1rem;font-weight:700;color:#251a00">{{ order.tableNumber }}</span>
+                    <span
+                      style="padding:4px 12px;border-radius:9999px;font-size:.75rem;font-weight:600;line-height:1"
+                      [style.background]="statusBadge[order.status].bg"
+                      [style.color]="statusBadge[order.status].text"
+                    >{{ statusLabels[order.status] }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:4px;font-size:.8rem;color:#82746c">
+                    <ion-icon name="time-outline" style="font-size:.9rem" />
+                    <span>{{ timeAgo(order.createdAt) }}</span>
+                  </div>
                   @if (expandedOrderId() === order.id) {
-                    @for (item of order.items; track item.productId) {
-                      <div
-                        style="display:flex;justify-content:space-between;font-size:.8rem;padding:2px 0"
-                        [style.opacity]="item.itemStatus === 'ready' ? '1' : '.6'"
-                      >
-                        <span>
-                          @if (item.itemStatus === 'ready') { ✓&nbsp; }
-                          {{ item.productName }} ×{{ item.quantity }}
-                        </span>
+                    <div style="margin-top:10px;border-top:1px solid #FFE7B3;padding-top:8px">
+                      @for (item of order.items; track item.productId) {
+                        <div
+                          style="display:flex;justify-content:space-between;font-size:.8rem;padding:2px 0"
+                          [style.opacity]="item.itemStatus === 'ready' ? '1' : '.6'"
+                        >
+                          <span>
+                            @if (item.itemStatus === 'ready') { ✓&nbsp; }
+                            {{ item.productName }} ×{{ item.quantity }}
+                          </span>
+                        </div>
+                      }
+                      <div style="margin-top:6px;padding-top:4px;font-size:.85rem;font-weight:700;color:#251a00">
+                        $ {{ order.total | number:'1.0-0' }}
                       </div>
-                    }
-                    <div
-                      style="border-top:1px solid var(--ion-color-light);margin-top:6px;padding-top:4px;font-size:.8rem;font-weight:700"
-                    >
-                      $ {{ order.total | number : '1.0-0' }}
                     </div>
                   } @else {
-                    <div style="font-size:.8rem;opacity:.7">
+                    <div style="font-size:.8rem;color:#82746c;margin-top:4px">
                       {{ order.items.length }} ítem{{ order.items.length !== 1 ? 's' : '' }}
-                      · $ {{ order.total | number : '1.0-0' }}
+                      · $ {{ order.total | number:'1.0-0' }}
                     </div>
                   }
                 </ion-card-content>
@@ -162,17 +178,18 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       </ion-content>
 
       <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-        <ion-fab-button (click)="openNewOrder()">
+        <ion-fab-button color="secondary" (click)="openNewOrder()">
           <ion-icon name="add-outline" />
         </ion-fab-button>
       </ion-fab>
+
     } @else {
       <!-- ── Nuevo pedido ────────────────────────────────────────────────── -->
       <ion-header>
         <ion-toolbar>
           <ion-buttons slot="start">
             <ion-button fill="clear" (click)="cancelNewOrder()">
-              <ion-icon slot="icon-only" name="arrow-back-outline" />
+              <ion-icon slot="icon-only" name="arrow-back-outline" style="color:#FFE7B3" />
             </ion-button>
           </ion-buttons>
           <ion-title>Nuevo pedido</ion-title>
@@ -180,165 +197,126 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       </ion-header>
 
       <ion-content>
-        <!-- Identificador -->
-        <ion-item>
-          <ion-label position="stacked">Identificador del pedido *</ion-label>
-          <ion-input
-            [value]="orderIdentifier()"
-            (ionInput)="onIdentifierInput($event)"
-            placeholder="Ej: Mesa 3, Juan"
-            clearInput
-          />
-        </ion-item>
+        <div style="padding:16px 16px 8px">
+          <ion-item style="--border-radius:8px">
+            <ion-label position="stacked">Identificador del pedido *</ion-label>
+            <ion-input
+              [value]="orderIdentifier()"
+              (ionInput)="onIdentifierInput($event)"
+              placeholder="Ej: Mesa 3, Juan"
+              clearInput
+            />
+          </ion-item>
+        </div>
 
-        <!-- Líneas de productos -->
-        <div style="padding:8px 0">
+        <div style="padding:0 16px">
           @for (line of orderLines(); track line.id) {
             @if (line.selectedProduct) {
-              <!-- Tarjeta de producto seleccionado -->
-              <div
-                style="display:flex;align-items:center;gap:6px;padding:8px 12px;margin:4px 12px;background:var(--ion-color-light);border-radius:10px"
-              >
+              <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;margin-bottom:8px;background:#ffffff;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
                 <div style="flex:1;min-width:0">
-                  <div
-                    style="font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
-                  >
+                  <div style="font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#251a00">
                     {{ line.selectedProduct.name }}
                   </div>
-                  <div style="font-size:.75rem;opacity:.65">
-                    $ {{ line.selectedProduct.totalPrice | number : '1.0-0' }} × {{ line.quantity }}
-                    = $ {{ line.selectedProduct.totalPrice * line.quantity | number : '1.0-0' }}
+                  <div style="font-size:.75rem;color:#82746c;margin-top:2px">
+                    $ {{ line.selectedProduct.totalPrice | number:'1.0-0' }} c/u
                   </div>
                 </div>
-                <ion-button
-                  fill="clear"
-                  size="small"
-                  [disabled]="line.quantity <= 1"
-                  (click)="decrementLine(line.id)"
-                >
-                  <ion-icon slot="icon-only" name="remove-circle-outline" />
-                </ion-button>
-                <span style="min-width:1.2rem;text-align:center;font-weight:700">
-                  {{ line.quantity }}
-                </span>
-                <ion-button fill="clear" size="small" (click)="incrementLine(line.id)">
-                  <ion-icon slot="icon-only" name="add-circle-outline" />
-                </ion-button>
-                <ion-button
-                  fill="clear"
-                  size="small"
-                  color="danger"
-                  (click)="removeLine(line.id)"
-                >
+                <div style="display:flex;align-items:center;gap:2px;background:#FFE7B3;border-radius:9999px;padding:2px">
+                  <ion-button fill="clear" size="small" [disabled]="line.quantity <= 1" (click)="decrementLine(line.id)">
+                    <ion-icon slot="icon-only" name="remove-circle-outline" />
+                  </ion-button>
+                  <span style="min-width:1.5rem;text-align:center;font-weight:700;font-size:.9rem;color:#230C00">
+                    {{ line.quantity }}
+                  </span>
+                  <ion-button fill="clear" size="small" (click)="incrementLine(line.id)">
+                    <ion-icon slot="icon-only" name="add-circle-outline" />
+                  </ion-button>
+                </div>
+                <ion-button fill="clear" size="small" color="danger" (click)="removeLine(line.id)">
                   <ion-icon slot="icon-only" name="trash-outline" />
                 </ion-button>
               </div>
             } @else {
-              <!-- Autocompletar -->
-              <div style="margin:4px 12px">
-                <ion-item>
+              <div style="margin-bottom:8px">
+                <ion-item style="--border-radius:8px">
                   <ion-input
                     [value]="line.query"
                     (ionInput)="filterLine(line.id, $event)"
                     placeholder="Buscar producto..."
                     clearInput
                   />
-                  <ion-button
-                    fill="clear"
-                    slot="end"
-                    color="danger"
-                    (click)="removeLine(line.id)"
-                  >
+                  <ion-button fill="clear" slot="end" color="danger" (click)="removeLine(line.id)">
                     <ion-icon slot="icon-only" name="trash-outline" />
                   </ion-button>
                 </ion-item>
                 @if (line.filteredProducts.length > 0) {
-                  <ion-list
-                    style="border:1px solid var(--ion-color-medium-tint);border-radius:8px;margin-top:2px;overflow:hidden"
-                  >
+                  <div style="background:#ffffff;border-radius:8px;margin-top:4px;overflow:hidden;box-shadow:0 2px 8px rgba(35,12,0,.1)">
                     @for (p of line.filteredProducts; track p.id) {
-                      <ion-item
-                        button
-                        lines="full"
-                        style="--min-height:40px"
+                      <div
+                        style="padding:10px 16px;font-size:.875rem;cursor:pointer;border-bottom:1px solid #FFE7B3"
                         (click)="selectProduct(line.id, p)"
                       >
-                        <ion-label style="font-size:.875rem">
-                          {{ p.name }}
-                          <span style="opacity:.6"> — $ {{ p.totalPrice | number : '1.0-0' }}</span>
-                        </ion-label>
-                      </ion-item>
+                        <span style="color:#251a00;font-weight:500">{{ p.name }}</span>
+                        <span style="color:#82746c"> — $ {{ p.totalPrice | number:'1.0-0' }}</span>
+                      </div>
                     }
-                  </ion-list>
+                  </div>
                 }
               </div>
             }
           }
         </div>
 
-        <!-- Botón añadir producto -->
-        <div style="padding:4px 12px">
+        <div style="padding:4px 16px 8px">
           <ion-button expand="block" fill="outline" (click)="addLine()">
             <ion-icon slot="start" name="add-circle-outline" />
             Añadir producto
           </ion-button>
         </div>
 
-        <!-- Resumen discriminado -->
         @if (hasSelectedProducts()) {
-          <div
-            style="margin:16px 12px 80px;border:1px solid var(--ion-color-light-shade);border-radius:10px;overflow:hidden"
-          >
-            <ion-list-header style="--background:var(--ion-color-light)">
-              <ion-label>Resumen</ion-label>
-            </ion-list-header>
+          <div style="margin:8px 16px 100px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(35,12,0,.08)">
+            <div style="padding:14px 16px 4px;font-size:.75rem;font-weight:600;color:#82746c;letter-spacing:.05em;text-transform:uppercase">
+              Resumen
+            </div>
             @for (line of orderLines(); track line.id) {
               @if (line.selectedProduct) {
-                <div style="padding:6px 16px">
-                  <div style="display:flex;justify-content:space-between;font-size:.875rem">
-                    <span>{{ line.selectedProduct.name }} ×{{ line.quantity }}</span>
-                    <span>
-                      $ {{ line.selectedProduct.totalPrice * line.quantity | number : '1.0-0' }}
-                    </span>
-                  </div>
-                  <div
-                    style="display:flex;justify-content:space-between;font-size:.75rem;opacity:.55;padding-left:8px"
-                  >
-                    <span>Base + propina</span>
-                    <span>
-                      $ {{ line.selectedProduct.basePrice * line.quantity | number : '1.0-0' }}
-                      + $ {{ line.selectedProduct.tipAmount * line.quantity | number : '1.0-0' }}
-                    </span>
-                  </div>
+                <div style="display:flex;justify-content:space-between;padding:4px 16px;font-size:.875rem;color:#251a00">
+                  <span>{{ line.selectedProduct.name }} ×{{ line.quantity }}</span>
+                  <span>$ {{ line.selectedProduct.totalPrice * line.quantity | number:'1.0-0' }}</span>
                 </div>
               }
             }
-            <div
-              style="display:flex;justify-content:space-between;padding:10px 16px;font-weight:700;background:var(--ion-color-light);border-top:1px solid var(--ion-color-medium-tint)"
-            >
+            <div style="border-top:1px solid #FFE7B3;margin:8px 16px 0"></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:#82746c">
+              <span>Subtotal (base)</span>
+              <span>$ {{ orderSubtotal() | number:'1.0-0' }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:#82746c">
+              <span>Propina</span>
+              <span>$ {{ orderTip() | number:'1.0-0' }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 16px 14px;font-size:1rem;font-weight:700;color:#251a00">
               <span>Total a cobrar</span>
-              <span>$ {{ orderTotal() | number : '1.0-0' }}</span>
+              <span>$ {{ orderTotal() | number:'1.0-0' }}</span>
             </div>
           </div>
         }
       </ion-content>
 
       <ion-footer>
-        <ion-toolbar>
+        <ion-toolbar style="--background:#fff8f1;--border-color:#FFE7B3">
           @if (submitError()) {
-            <ion-note
-              color="danger"
-              style="display:block;padding:4px 16px;font-size:.85rem;text-align:center"
-            >
+            <ion-note color="danger" style="display:block;padding:4px 16px;font-size:.85rem;text-align:center">
               {{ submitError() }}
             </ion-note>
           }
           <div style="padding:8px 16px">
-            <ion-button expand="block" [disabled]="!canSubmit()" (click)="submitOrder()">
+            <ion-button expand="block" color="secondary" [disabled]="!canSubmit()" (click)="submitOrder()">
               @if (submitting()) {
                 <ion-spinner name="crescent" />
               } @else {
-                Realizar pedido · $ {{ orderTotal() | number : '1.0-0' }}
+                Realizar pedido · $ {{ orderTotal() | number:'1.0-0' }}
               }
             </ion-button>
           </div>
@@ -352,12 +330,19 @@ export class WaiterComponent {
   private readonly productService = inject(ProductService);
   private readonly toastCtrl = inject(ToastController);
 
-  readonly statusColors = STATUS_COLORS;
+  readonly statusBadge = STATUS_BADGE;
   readonly statusLabels = STATUS_LABELS;
 
   // ── Dashboard ────────────────────────────────────────────────────────────
   view = signal<View>('dashboard');
   expandedOrderId = signal<string | null>(null);
+  private readonly dismissedReadyIds = signal<Set<string>>(new Set());
+
+  readonly visibleReadyAlerts = computed(() =>
+    this.orderService
+      .activeOrders()
+      .filter((o) => o.status === 'ready' && !this.dismissedReadyIds().has(o.id)),
+  );
 
   // ── New-order form ────────────────────────────────────────────────────────
   orderIdentifier = signal('');
@@ -370,6 +355,18 @@ export class WaiterComponent {
 
   readonly hasSelectedProducts = computed(() =>
     this._orderLines().some((l) => l.selectedProduct !== null),
+  );
+
+  readonly orderSubtotal = computed(() =>
+    this._orderLines()
+      .filter((l) => l.selectedProduct)
+      .reduce((s, l) => s + l.selectedProduct!.basePrice * l.quantity, 0),
+  );
+
+  readonly orderTip = computed(() =>
+    this._orderLines()
+      .filter((l) => l.selectedProduct)
+      .reduce((s, l) => s + l.selectedProduct!.tipAmount * l.quantity, 0),
   );
 
   readonly orderTotal = computed(() =>
@@ -386,18 +383,30 @@ export class WaiterComponent {
   );
 
   constructor() {
-    addIcons({ addOutline, addCircleOutline, removeCircleOutline, trashOutline, arrowBackOutline });
+    addIcons({
+      addOutline,
+      addCircleOutline,
+      removeCircleOutline,
+      trashOutline,
+      arrowBackOutline,
+      closeOutline,
+      filterOutline,
+      notificationsOutline,
+      personCircleOutline,
+      timeOutline,
+    });
 
-    // Notificar al mesero cuando un ítem pase a estado 'ready'
     toObservable(this.orderService.activeOrders)
       .pipe(pairwise(), takeUntilDestroyed())
       .subscribe(([prev, curr]: [Order[], Order[]]) => {
         const prevReady = new Set(
-          prev.flatMap((o) =>
-            o.items.map((item, i) =>
-              item.itemStatus === 'ready' ? `${o.id}:${i}` : null,
-            ),
-          ).filter((k): k is string => k !== null),
+          prev
+            .flatMap((o) =>
+              o.items.map((item, i) =>
+                item.itemStatus === 'ready' ? `${o.id}:${i}` : null,
+              ),
+            )
+            .filter((k): k is string => k !== null),
         );
 
         const newlyReady: string[] = [];
@@ -432,6 +441,17 @@ export class WaiterComponent {
     this.orderIdentifier.set('');
     this.submitError.set('');
     this.view.set('new-order');
+  }
+
+  dismissAlert(id: string): void {
+    this.dismissedReadyIds.update((s) => new Set([...s, id]));
+  }
+
+  timeAgo(timestamp: Timestamp): string {
+    const mins = Math.floor((Date.now() - timestamp.toDate().getTime()) / 60000);
+    if (mins < 1) return 'ahora mismo';
+    if (mins < 60) return `hace ${mins} min`;
+    return `hace ${Math.floor(mins / 60)} h`;
   }
 
   // ── New-order form methods ────────────────────────────────────────────────
