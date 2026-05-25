@@ -46,7 +46,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 
         <!-- Desktop page header -->
         <div class="hidden lg:block mb-8">
-          <h1 class="text-2xl font-bold text-[#230C00]">Reportes</h1>
+          <h1 class="text-2xl font-bold text-[#230C00] text-center">Reportes</h1>
         </div>
 
         <!-- Placeholder -->

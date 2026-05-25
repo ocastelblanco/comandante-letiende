@@ -27,7 +27,7 @@ import { OrderService } from '../../../core/db/order.service';
       <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
-        <ion-title>Dashboard</ion-title>
+        <ion-title class="text-center">Dashboard</ion-title>
         <ion-buttons slot="end">
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
@@ -121,12 +121,12 @@ import { OrderService } from '../../../core/db/order.service';
   `,
 })
 export class AdminDashboardComponent {
-  private auth         = inject(AuthService);
+  private auth = inject(AuthService);
   private orderService = inject(OrderService);
 
   protected readonly activeOrders = this.orderService.activeOrders;
-  protected readonly photoURL     = computed(() => this.auth.currentUser()?.photoURL ?? null);
-  protected readonly firstName    = computed(() => {
+  protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
+  protected readonly firstName = computed(() => {
     const name = this.auth.currentUser()?.displayName;
     return name ? name.split(' ')[0] : 'Admin';
   });
@@ -136,15 +136,15 @@ export class AdminDashboardComponent {
   });
 
   protected readonly kpis = computed(() => {
-    const orders   = this.activeOrders();
-    const pending  = orders.filter(o => o.status === 'pending').length;
+    const orders = this.activeOrders();
+    const pending = orders.filter(o => o.status === 'pending').length;
     const preparing = orders.filter(o => o.status === 'preparing').length;
-    const ready    = orders.filter(o => o.status === 'ready').length;
+    const ready = orders.filter(o => o.status === 'ready').length;
     return [
-      { label: 'En cola',     value: `${orders.length}`, sub: 'pedidos activos' },
-      { label: 'Pendientes',  value: `${pending}`,       sub: 'por preparar'   },
-      { label: 'Preparando',  value: `${preparing}`,     sub: 'en barra'       },
-      { label: 'Listos',      value: `${ready}`,         sub: 'por entregar'   },
+      { label: 'En cola', value: `${orders.length}`, sub: 'pedidos activos' },
+      { label: 'Pendientes', value: `${pending}`, sub: 'por preparar' },
+      { label: 'Preparando', value: `${preparing}`, sub: 'en barra' },
+      { label: 'Listos', value: `${ready}`, sub: 'por entregar' },
     ];
   });
 

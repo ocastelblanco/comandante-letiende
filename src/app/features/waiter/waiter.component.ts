@@ -54,17 +54,17 @@ interface OrderLine {
 }
 
 const STATUS_BADGE: Record<OrderStatus, { bg: string; text: string }> = {
-  pending:   { bg: '#FFE7B3', text: '#230C00' },
+  pending: { bg: '#FFE7B3', text: '#230C00' },
   preparing: { bg: '#E8630A', text: '#230C00' },
-  ready:     { bg: '#00B7A3', text: '#230C00' },
+  ready: { bg: '#00B7A3', text: '#230C00' },
   delivered: { bg: '#82746c', text: '#ffffff' },
   cancelled: { bg: '#C0392B', text: '#ffffff' },
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending:   'Pendiente',
+  pending: 'Pendiente',
   preparing: 'Preparando',
-  ready:     'Listo ✓',
+  ready: 'Listo ✓',
   delivered: 'Entregado',
   cancelled: 'Cancelado',
 };
@@ -98,7 +98,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       <ion-header>
         <ion-toolbar>
           <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" style="height:26px;margin-left:16px">
-          <ion-title style="text-align:center">Comandante</ion-title>
+          <ion-title class="text-center">Comandante</ion-title>
           <ion-buttons slot="end">
             @if (authService.currentUser()?.photoURL; as photoURL) {
               <img [src]="photoURL" alt="avatar" referrerpolicy="no-referrer" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5)">
@@ -489,13 +489,13 @@ export class WaiterComponent {
     const filtered =
       query.trim().length > 0
         ? this.productService
-            .activeProducts()
-            .filter(
-              (p) =>
-                p.name.toLowerCase().includes(query.toLowerCase()) ||
-                p.category.toLowerCase().includes(query.toLowerCase()),
-            )
-            .slice(0, 6)
+          .activeProducts()
+          .filter(
+            (p) =>
+              p.name.toLowerCase().includes(query.toLowerCase()) ||
+              p.category.toLowerCase().includes(query.toLowerCase()),
+          )
+          .slice(0, 6)
         : [];
     this._orderLines.update((lines) =>
       lines.map((l) => (l.id === lineId ? { ...l, query, filteredProducts: filtered } : l)),

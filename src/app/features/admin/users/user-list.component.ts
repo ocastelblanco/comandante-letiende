@@ -53,7 +53,7 @@ import { UserRole } from '../../../core/models/user.model';
       <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
-        <ion-title>Usuarios</ion-title>
+        <ion-title class="text-center">Usuarios</ion-title>
         <ion-buttons slot="end">
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
@@ -152,13 +152,13 @@ export class UserListComponent {
   }
 
   showAddForm = signal(false);
-  saving      = signal(false);
-  addError    = signal('');
+  saving = signal(false);
+  addError = signal('');
 
   addForm = this.fb.nonNullable.group({
-    email:       ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
     displayName: ['', Validators.required],
-    role:        ['waiter' as UserRole, Validators.required],
+    role: ['waiter' as UserRole, Validators.required],
   });
 
   onRoleChange(email: string, event: Event): void {

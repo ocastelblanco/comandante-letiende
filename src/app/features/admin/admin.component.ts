@@ -12,11 +12,11 @@ import {
 import { AuthService } from '../../core/auth/auth.service';
 
 const NAV = [
-  { path: '/admin/dashboard', icon: 'apps-outline',      label: 'Dashboard' },
-  { path: '/admin/orders',   icon: 'receipt-outline',    label: 'Pedidos'   },
-  { path: '/admin/products', icon: 'cube-outline',       label: 'Productos' },
-  { path: '/admin/users',    icon: 'people-outline',     label: 'Usuarios'  },
-  { path: '/admin/reports',  icon: 'bar-chart-outline',  label: 'Reportes'  },
+  { path: '/admin/dashboard', icon: 'apps-outline', label: 'Dashboard' },
+  { path: '/admin/orders', icon: 'receipt-outline', label: 'Pedidos' },
+  { path: '/admin/products', icon: 'cube-outline', label: 'Productos' },
+  { path: '/admin/users', icon: 'people-outline', label: 'Usuarios' },
+  { path: '/admin/reports', icon: 'bar-chart-outline', label: 'Reportes' },
 ];
 
 @Component({
@@ -50,11 +50,8 @@ const NAV = [
     <!-- SIDEBAR — desktop only (≥1024px) -->
     <aside class="hidden lg:flex flex-col w-60 shrink-0 bg-[#230C00]" style="height:100%">
       <div class="px-5 pt-7 pb-5 border-b border-white/10">
-        <p class="text-[#FFE7B3] text-3xl leading-none"
-           style="font-family:'Angellya',cursive">Comandante</p>
-        <p class="text-[#FFE7B3]/40 text-xs mt-1 font-semibold tracking-widest uppercase">
-          Le Tiende Admin
-        </p>
+        <img src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" class="h-[4em] m-auto mb-[1em]">
+        <p class="text-(--ion-color-primary-contrast) text-[1.5em] uppercase font-black text-center leading-none">Comandante</p>
       </div>
 
       <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
@@ -114,12 +111,12 @@ const NAV = [
 export class AdminComponent {
   private auth = inject(AuthService);
 
-  protected readonly nav       = NAV;
+  protected readonly nav = NAV;
   protected readonly mobileNav = NAV.slice(0, 4);
 
-  protected readonly photoURL    = computed(() => this.auth.currentUser()?.photoURL    ?? null);
+  protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly displayName = computed(() => this.auth.currentUser()?.displayName ?? 'Admin');
-  protected readonly initials    = computed(() =>
+  protected readonly initials = computed(() =>
     this.displayName().split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase(),
   );
 
