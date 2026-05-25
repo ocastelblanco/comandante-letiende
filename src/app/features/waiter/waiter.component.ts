@@ -101,7 +101,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
           <ion-title style="text-align:center">Comandante</ion-title>
           <ion-buttons slot="end">
             @if (authService.currentUser()?.photoURL; as photoURL) {
-              <img [src]="photoURL" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+              <img [src]="photoURL" alt="avatar" referrerpolicy="no-referrer" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5)">
             } @else {
               <ion-button fill="clear">
                 <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:#FFE7B3" />
