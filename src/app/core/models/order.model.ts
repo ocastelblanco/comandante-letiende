@@ -8,6 +8,7 @@ export interface Order {
   tableNumber: string;
   items: OrderItem[];
   status: OrderStatus;
+  paid: boolean;
   waiterId: string;
   waiterName: string;
   total: number;

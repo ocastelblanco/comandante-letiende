@@ -18,16 +18,19 @@ export class OrderService {
   private readonly auth = inject(Auth);
   private readonly colRef = collection(this.firestore, 'orders');
 
-  private readonly _pendingOrders = signal<Order[]>([]);
-  readonly pendingOrders = this._pendingOrders.asReadonly();
+  private readonly _activeOrders = signal<Order[]>([]);
+  readonly activeOrders = this._activeOrders.asReadonly();
 
   constructor() {
-    const q = query(this.colRef, where('status', 'in', ['pending', 'preparing']));
+    const q = query(
+      this.colRef,
+      where('status', 'in', ['pending', 'preparing', 'ready']),
+    );
     const unsubscribe = onSnapshot(q, (snap) => {
       const orders = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }) as Order)
         .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
-      this._pendingOrders.set(orders);
+      this._activeOrders.set(orders);
     });
     inject(DestroyRef).onDestroy(unsubscribe);
   }
@@ -39,6 +42,7 @@ export class OrderService {
       tableNumber,
       items,
       status: 'pending' as OrderStatus,
+      paid: true,
       waiterId: user?.email ?? '',
       waiterName: user?.displayName ?? '',
       total,
