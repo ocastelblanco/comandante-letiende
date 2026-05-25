@@ -36,6 +36,7 @@ import {
   timeOutline,
   trashOutline,
 } from 'ionicons/icons';
+import { AuthService } from '../../core/auth/auth.service';
 import { OrderService } from '../../core/db/order.service';
 import { ProductService } from '../../core/db/product.service';
 import { OrderItem } from '../../core/models/order-item.model';
@@ -96,11 +97,16 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       <!-- ── Dashboard ──────────────────────────────────────────────────── -->
       <ion-header>
         <ion-toolbar>
-          <ion-title>Comandante</ion-title>
+          <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" style="height:26px;margin-left:16px">
+          <ion-title style="text-align:center">Comandante</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear">
-              <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:#FFE7B3" />
-            </ion-button>
+            @if (authService.currentUser()?.photoURL; as photoURL) {
+              <img [src]="photoURL" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+            } @else {
+              <ion-button fill="clear">
+                <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:#FFE7B3" />
+              </ion-button>
+            }
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -326,6 +332,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   `,
 })
 export class WaiterComponent {
+  readonly authService = inject(AuthService);
   readonly orderService = inject(OrderService);
   private readonly productService = inject(ProductService);
   private readonly toastCtrl = inject(ToastController);

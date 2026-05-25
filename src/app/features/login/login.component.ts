@@ -31,6 +31,7 @@ import { logoGoogle } from 'ionicons/icons';
     <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;background:var(--ion-background-color)">
       <ion-card style="width:100%;max-width:360px;margin:0">
         <ion-card-header style="text-align:center" class="py-[1em]">
+          <img src="/logo_negro_sin_fondo.svg" alt="Le Tiende" style="width:140px;height:auto;display:block;margin:0 auto 12px">
           <ion-card-title>Comandante</ion-card-title>
         </ion-card-header>
 

@@ -86,8 +86,8 @@
   --ion-text-color: #251a00;
   --ion-text-color-rgb: 37, 26, 0;
 
-  /* ── Fuente: Plus Jakarta Sans / Poppins ── */
-  --ion-font-family: 'Plus Jakarta Sans', 'Poppins', -apple-system, sans-serif;
+  /* ── Fuente: Poppins ── */
+  --ion-font-family: 'Poppins', -apple-system, sans-serif;
 
   /* ── Toolbar (dark espresso) ── */
   --ion-toolbar-background: #230c00;
