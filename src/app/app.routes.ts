@@ -26,6 +26,20 @@ export const routes: Routes = [
       import('./features/admin/admin.component').then((m) => m.AdminComponent),
     children: [
       {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/admin/dashboard/admin-dashboard.component').then(
+            (m) => m.AdminDashboardComponent,
+          ),
+      },
+      {
+        path: 'orders',
+        loadComponent: () =>
+          import('./features/admin/orders/admin-orders.component').then(
+            (m) => m.AdminOrdersComponent,
+          ),
+      },
+      {
         path: 'products',
         loadComponent: () =>
           import('./features/admin/products/products.component').then(
@@ -39,7 +53,7 @@ export const routes: Routes = [
             (m) => m.UserListComponent,
           ),
       },
-      { path: '', redirectTo: 'products', pathMatch: 'full' },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
   { path: '', redirectTo: 'login', pathMatch: 'full' },

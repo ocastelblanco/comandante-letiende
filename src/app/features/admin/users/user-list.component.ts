@@ -42,9 +42,13 @@ import { UserRole } from '../../../core/models/user.model';
     IonSpinner,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  styles: [`
+    :host { display: block; height: 100%; }
+    @media (min-width: 1024px) { ion-header { display: none; } }
+  `],
   template: `
-    <ion-header>
-      <ion-toolbar>
+    <ion-header class="ion-no-border">
+      <ion-toolbar style="--background:#F7F5F2;--color:#230C00">
         <ion-title>Usuarios</ion-title>
       </ion-toolbar>
     </ion-header>
