@@ -15,38 +15,56 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2. Tareas Activas (WIP: 2)
 
-### Tarea 7: [FEATURE] Adaptación de la App al Estilo Visual de Le Tiende ⚡ CRÍTICO
-*   **Origen:** Decisión de producto (2026-05-25) — La app operaba con el tema oscuro placeholder del setup inicial. Antes de desplegar en producción se aplica la identidad visual oficial: paleta Le Tiende, tipografía y componentes del sistema de diseño (Stitch).
-*   **Archivos Modificados:**
-    *   `[✓]` `src/theme/variables.css` — Paleta Le Tiende mapeada a variables CSS de Ionic (primary #230C00, secondary #E8630A, tertiary #00B7A3, fondo #FFF8F1).
-    *   `[✓]` `src/index.html` — Google Fonts: Plus Jakarta Sans + Poppins.
-    *   `[✓]` `src/app/features/waiter/waiter.component.ts` — Rediseño visual según pantallas v2 de Stitch: toolbar oscuro, tarjetas full-width con badge de estado y tiempo relativo, alertas inline para pedidos listos, stepper pill crema, resumen Subtotal+Propina+Total, CTA naranja.
-    *   `[PENDIENTE]` `src/app/features/barista/barista.component.ts` — Aplicar estilos al construirse.
-    *   `[PENDIENTE]` `src/app/features/admin/` — Aplicar estilos al construirse.
+### Tarea 9: [FEATURE] Pantalla de Cobro del Mesero — Discriminación para Datáfono
+*   **Origen:** PRD §5.1 — El core diferenciador de la app. Actualmente el flujo va directo al dashboard tras enviar el pedido sin registrar el cobro. El barista prepara sin confirmación de pago y el mesero no tiene la discriminación datáfono en pantalla.
+*   **Archivos a Modificar:**
+    *   `src/app/features/waiter/waiter.component.ts` — Añadir estado `'payment'` al tipo `View`. Tras el `submitOrder()` exitoso, guardar el resumen del pedido (identifier, items, baseTotal, tipTotal, grandTotal) en una Signal y navegar a la vista `payment` en lugar de al dashboard.
+*   **Qué construir (vista `payment`):**
+    1. Cabecera con botón "← Volver" y título "Cobro".
+    2. Nombre del pedido destacado (identifier).
+    3. Lista de ítems con cantidades y precios.
+    4. Bloque de discriminación en letras grandes:
+       - **Valor consumo:** `$baseTotal` (ingresarlo en el datáfono como "consumo")
+       - **Valor propina:** `$tipTotal` (ingresarlo como "propina")
+       - **Total a cobrar:** `$grandTotal`
+    5. Botón principal "Confirmar cobro" → navega a dashboard y limpia el estado.
 *   **Definición de Done (Checklist):**
-    - `[x]` `variables.css` usa paleta Le Tiende completa.
-    - `[x]` Fuentes Plus Jakarta Sans y Poppins cargadas.
-    - `[x]` Dashboard de Mesero: toolbar #230C00, tarjetas full-width, badge de estado, tiempo relativo, alertas inline dismissables.
-    - `[x]` Crear Nuevo Pedido: stepper en pill #FFE7B3, resumen con Subtotal+Propina+Total, botón CTA color secondary.
-    - `[x]` `npm run build` compila sin errores.
+    - `[ ]` Tras `submitOrder()` exitoso, el mesero ve la pantalla de cobro (no el dashboard).
+    - `[ ]` Los valores Consumo / Propina / Total están claramente discriminados.
+    - `[ ]` "Confirmar cobro" regresa al dashboard y la orden ya no aparece en el nuevo pedido.
+    - `[ ]` `npm run build` compila sin errores.
 
-### Tarea 8: [FEATURE] Módulo del Barista — Cola de Preparación
-*   **Origen:** PRD §5.2 (Módulo del Barista) — Cierra el ciclo mesero→barista; sin esta vista la barra no puede ver ni actualizar los pedidos.
-*   **Archivos a Crear/Modificar:**
-    *   `[CREAR]` `src/app/features/barista/barista.component.ts` — Vista tablet: lista de pedidos pendientes/en-preparación con botón "Preparando" y "Listo".
-*   **Qué hacer:**
-    1.  Inyectar `OrderService` y consumir `pendingOrders` Signal (ya implementado).
-    2.  Mostrar cada pedido con número de mesa, artículos, total y estado actual.
-    3.  Botón "Preparando" cambia status `pending` → `preparing`; botón "Listo" cambia `preparing` → `ready`.
-    4.  Solo modificar los campos permitidos por las Firestore rules (`status`, `updatedAt`, `baristaId`, `preparedAt`).
+### Tarea 10: [FEATURE] Consolidado de Ventas del Administrador
+*   **Origen:** PRD §5.3 — La sección "Reportes" del admin existe como placeholder. Sin ella, el administrador no puede cuadrar caja al cierre de la jornada.
+*   **Archivos a Modificar:**
+    *   `src/app/features/admin/reports/admin-reports.component.ts` — Reemplazar placeholder con la vista funcional.
+    *   `src/app/core/db/order.service.ts` — Añadir método `getOrdersByDate(date: Date): Promise<Order[]>` que consulte Firestore filtrando por `status == 'delivered'` y rango de timestamps del día seleccionado.
+    *   `firestore.indexes.json` — Añadir índice compuesto `(status ASC, createdAt ASC)` requerido por la consulta.
+*   **Qué construir:**
+    1. Selector de fecha (input `type="date"` con valor por defecto = hoy).
+    2. Al cambiar la fecha, ejecutar `getOrdersByDate()` y mostrar un spinner mientras carga.
+    3. Tabla resumen agrupada por producto: columnas Producto | Cantidad | Base | Propina | Total.
+    4. Fila de totales: suma de Base, Propina y Total de todos los productos.
+    5. Estado vacío si no hay ventas en esa fecha.
 *   **Definición de Done (Checklist):**
-    - `[ ]` El barista ve todos los pedidos en estado `pending` y `preparing`.
-    - `[ ]` Puede avanzar el estado de cada pedido.
+    - `[ ]` El administrador puede seleccionar una fecha y ver el consolidado de órdenes entregadas.
+    - `[ ]` Los totales de Consumo y Propina son correctos y coinciden con la suma de los pedidos.
+    - `[ ]` El índice Firestore está declarado en `firestore.indexes.json` y desplegado.
     - `[ ]` `npm run build` compila sin errores.
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 8: [FEATURE] Módulo del Barista — Cola de Preparación
+*   **Completada:** 2026-05-26
+*   **PR:** `feature/barista-queue`
+*   **Resultado:** `BaristaComponent` implementado con layout de dos columnas (Por preparar | En preparación), stacks a una columna en móvil. Cada card muestra identifier, nombre del mesero, chips de ítems, total y botón de acción. `OrderService.updateOrderStatusAsBarista()` escribe `baristaId` + `preparedAt` en la transición a `ready`. `firestore.rules` corregido: bug crítico en `userRole()` — operador `&&` retornaba `bool` en lugar del string del rol, bloqueando todas las escrituras; corregido con operador ternario. Mesero puede marcar órdenes como `delivered` (nuevo `onlyMarksDelivered()` en reglas). Botón de filtro del mesero operativo (alterna entre todos los pedidos y solo los listos). Build verde.
+
+### ✅ Tarea 7: [FEATURE] Adaptación de la App al Estilo Visual de Le Tiende
+*   **Completada:** 2026-05-25
+*   **PR:** `feature/visual-style-letiende`
+*   **Resultado:** Paleta Le Tiende (#230C00 / #E8630A / #00B7A3 / #FFE7B3 / #F7F5F2) aplicada a todos los componentes. Toolbar oscuro + logo en mesero, barista y admin. Admin: shell responsivo con sidebar desktop/bottom-nav mobile, dashboard con tarjetas de métricas, pedidos con `ion-segment` (íconos en móvil + label en desktop), productos con grid 2/3 col, segmento de categorías, overlay de archivado y FAB. Barista: layout dos columnas tablet. Fuentes Plus Jakarta Sans + Poppins via Google Fonts. Tailwind v4 gotchas documentados en CLAUDE.md. Build verde: 1.26 MB inicial.
 
 ### ✅ Tarea 6: [FEATURE] Módulo del Mesero — Toma de Pedidos
 *   **Completada:** 2026-05-24
@@ -91,3 +109,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-23 | Tareas 4 y 5 completadas. Autenticación operativa, ABM de productos y usuarios funcional. Próximo gap crítico: sin módulo del mesero el flujo de pedidos no puede iniciarse. | Tarea 6 (Módulo del Mesero — toma de pedidos) es la única tarea activa. WIP bajó a 1 al cerrar ambas tareas simultáneamente. |
 | 2026-05-24 | Tarea 6 completada. Modelos Order/OrderItem creados. OrderService con onSnapshot filtrado y createOrder(). WaiterComponent reescrito con catálogo por categoría, carrito con Signals, formulario de mesa y feedback de éxito. Build verde: 1.26 MB inicial, waiter-component 7.97 kB lazy. Próximo gap: sin módulo de barista el ciclo de preparación no puede cerrarse. | Tarea 7 (Módulo del Barista — cola de preparación y actualización de estado) calificada como la siguiente tarea atómica. |
 | 2026-05-25 | Decisión de producto: aplicar identidad visual oficial de Le Tiende antes de continuar con nuevas funcionalidades. Sistema de diseño disponible en Google Stitch (proyecto "Sistema de Diseño Comandante"). Pantallas de referencia: Dashboard de Mesero v2 y Crear Nuevo Pedido v2. | Tarea 7 redefinida como adaptación visual (CRÍTICO). Tarea de barista renumerada a Tarea 8. WIP sube a 2: visual blocking, barista en cola. |
+| 2026-05-26 | Tareas 7 y 8 completadas. Estilo visual Le Tiende aplicado a toda la app. Módulo de barista operativo con bug crítico de Firestore rules resuelto (`&&` retornaba bool). Ciclo completo mesero→barista→entrega funcional. Brechas restantes de Fase 1: pantalla de cobro con discriminación datáfono (§5.1, core diferenciador) y consolidado de ventas del admin (§5.3, cierre de jornada). | Tarea 9 (pantalla de cobro) y Tarea 10 (consolidado) son las dos tareas activas. Tarea 9 es prioridad porque completa el flujo de pago, que es el valor central del producto. |
