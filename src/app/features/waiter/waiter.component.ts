@@ -544,7 +544,8 @@ export class WaiterComponent {
         }));
       await this.orderService.createOrder(identifier, items);
       this.view.set('dashboard');
-    } catch {
+    } catch (err) {
+      console.error('[submitOrder] createOrder failed:', err);
       this.submitError.set('No se pudo crear el pedido. Intenta de nuevo.');
     } finally {
       this.submitting.set(false);
