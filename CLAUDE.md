@@ -241,6 +241,32 @@ export class LoginPage {}
 
 Aplica a todos los componentes que muestren el avatar del usuario (waiter toolbar, admin sidebar, login, etc.).
 
+### ⚠️ Firestore Security Rules — `&&` retorna `bool`, no el último valor
+
+**Síntoma:** Escrituras (create/update) en Firestore fallan con `permission-denied` aunque el documento del usuario existe y tiene el rol correcto. Las lecturas funcionan bien porque no dependen de `userRole()`.
+
+**Causa raíz:** En Firestore Security Rules, el operador `&&` siempre retorna un valor **booleano**, no el último valor evaluado como en JavaScript. Si `userRole()` usa `&&` para retornar el string del rol:
+```javascript
+// ❌ INCORRECTO — retorna true (bool), no 'waiter' (string)
+function userRole() {
+  return isAuthenticated()
+      && exists(/databases/$(database)/documents/users/$(request.auth.token.email))
+      && get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role;
+}
+```
+Cuando las tres condiciones son verdaderas, `&&` retorna `true` (bool). Luego `isWaiter()` evalúa `true == 'waiter'` → `false`. Todas las escrituras quedan denegadas.
+
+**Solución obligatoria:** Usar operador ternario `? :` para retornar el string del rol directamente:
+```javascript
+// ✅ CORRECTO — retorna 'waiter' (string) o null
+function userRole() {
+  return isAuthenticated()
+      && exists(/databases/$(database)/documents/users/$(request.auth.token.email))
+      ? get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role
+      : null;
+}
+```
+
 ### ⚠️ Tailwind v4 — modificadores de opacidad con colores arbitrarios no generan CSS
 
 **Síntoma:** Una clase como `text-[#FFE7B3]/55` no aplica ningún estilo — el texto queda invisible sobre fondos oscuros. Solo el elemento con la clase activa (p.ej. `routerLinkActive`) es visible porque tiene `color !important` definido en CSS de componente.
