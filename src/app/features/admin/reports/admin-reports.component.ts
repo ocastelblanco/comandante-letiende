@@ -95,6 +95,17 @@ interface ProductSummary {
             <ion-spinner name="crescent" style="--color:#E8630A;width:36px;height:36px" />
           </div>
 
+        <!-- Error state -->
+        } @else if (errorMsg()) {
+          <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);
+                      display:flex;flex-direction:column;align-items:center;justify-content:center;
+                      padding:48px 24px;gap:10px">
+            <p style="font-size:.875rem;font-weight:600;color:#C0392B;margin:0">Error al cargar el reporte</p>
+            <p style="font-size:.8rem;color:rgba(35,12,0,.5);text-align:center;max-width:320px;margin:0">
+              {{ errorMsg() }}
+            </p>
+          </div>
+
         <!-- Empty state -->
         } @else if (summary().length === 0) {
           <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);
@@ -198,6 +209,7 @@ export class AdminReportsComponent {
 
   readonly selectedDate = signal(this.todayString());
   readonly loading = signal(false);
+  readonly errorMsg = signal('');
   readonly summary = signal<ProductSummary[]>([]);
 
   readonly totals = computed(() => ({
@@ -226,6 +238,7 @@ export class AdminReportsComponent {
 
   private async loadReport(dateStr: string): Promise<void> {
     this.loading.set(true);
+    this.errorMsg.set('');
     this.summary.set([]);
     try {
       const [year, month, day] = dateStr.split('-').map(Number);
@@ -257,6 +270,9 @@ export class AdminReportsComponent {
       this.summary.set(
         [...map.values()].sort((a, b) => a.productName.localeCompare(b.productName, 'es')),
       );
+    } catch (err) {
+      console.error('[loadReport]', err);
+      this.errorMsg.set(err instanceof Error ? err.message : 'Error desconocido. Revisa la consola.');
     } finally {
       this.loading.set(false);
     }
