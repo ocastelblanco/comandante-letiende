@@ -13,9 +13,25 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 0)
+## 2. Tareas Activas (WIP: 1)
 
-*Sin tareas activas — evaluar PRD para calcular siguiente tarea atómica.*
+### Tarea 11: [FEATURE] Reporte Detallado por Pedido con Medio de Pago y Rango Fecha/Hora
+*   **Origen:** Necesidad operativa confirmada — eventos nocturnos cruzan medianoche; el admin necesita rango libre de fecha/hora, desglose por pedido con hora de cobro y medio de pago para cuadre de caja preciso. Plan completo en `docs/aumento-detalle-reportes.md`.
+*   **Archivos a Modificar:**
+    *   `src/app/core/models/order.model.ts` — Añadir `PaymentMethod = 'card'|'cash'|'nequi'|'daviplata'` y campos `paymentMethod: PaymentMethod | null`, `paidAt: Timestamp | null` a `Order`.
+    *   `src/app/core/db/order.service.ts` — Actualizar `markOrderPaid(orderId, paymentMethod)` para escribir `paidAt` y `paymentMethod`. Reemplazar `getOrdersByDate` por `getOrdersByRange(start, end)` filtrando por `paid == true` + rango de `paidAt`.
+    *   `firestore.rules` — Añadir `paidAt` y `paymentMethod` a `onlyMarksPaid()`.
+    *   `firestore.indexes.json` — Añadir índice `(paid ASC, paidAt ASC)` y desplegar a staging.
+    *   `src/app/features/waiter/waiter.component.ts` — Chip "Cobrar" abre `IonActionSheet` con 4 opciones (Datáfono/Efectivo/Nequi/Daviplata) antes de llamar a `markOrderPaid`.
+    *   `src/app/features/admin/reports/admin-reports.component.ts` — Dos `<input type="datetime-local">` (inicio/cierre, default hoy 00:00–23:59). Tabla cambia a una fila por pedido pagado: Pedido | Hora de cobro | Medio de pago | Ítems | Base | Propina | Total.
+*   **Definición de Done (Checklist):**
+    - `[ ]` Al cobrar, el mesero selecciona el medio de pago antes de confirmar.
+    - `[ ]` `paidAt` y `paymentMethod` quedan grabados en Firestore al marcar pagado.
+    - `[ ]` El admin puede filtrar el reporte por rango hora/fecha arbitrario.
+    - `[ ]` El reporte muestra una fila por pedido con hora de cobro y badge de medio de pago.
+    - `[ ]` Los pedidos sin `paidAt` (anteriores al cambio) muestran "—" sin romper la vista.
+    - `[ ]` Índice `(paid ASC, paidAt ASC)` desplegado y operativo en staging.
+    - `[ ]` `npm run build` compila sin errores.
 
 ---
 
@@ -87,3 +103,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-26 | Tareas 7 y 8 completadas. Estilo visual Le Tiende aplicado a toda la app. Módulo de barista operativo con bug crítico de Firestore rules resuelto (`&&` retornaba bool). Ciclo completo mesero→barista→entrega funcional. Brechas restantes de Fase 1: pantalla de cobro con discriminación datáfono (§5.1, core diferenciador) y consolidado de ventas del admin (§5.3, cierre de jornada). | Tarea 9 (pantalla de cobro) y Tarea 10 (consolidado) son las dos tareas activas. Tarea 9 es prioridad porque completa el flujo de pago, que es el valor central del producto. |
 | 2026-05-26 | Tarea 9 completada (redefinida). Decisión de producto: no crear pantalla separada de cobro; el desglose discriminado (base + propina + total) se integra inline en el card expandido del mesero. Indicador Pagado/Sin cobrar disponible en las tres interfaces. Ciclo de pago completo sin interrumpir el flujo de pedidos. Única brecha restante de Fase 1: consolidado de ventas del admin para cierre de jornada. | WIP baja a 1. Tarea 10 (consolidado de ventas) es la única tarea activa. |
 | 2026-05-26 | Tarea 10 completada. Consolidado de ventas operativo: selector de fecha, tabla por producto con discriminación base/propina/total, totales del día. Flujo completo Fase 1 cerrado: mesero toma pedido → barista prepara → mesero entrega y cobra → admin cuadra caja. Evaluar PRD para siguiente ciclo de mejoras. | WIP baja a 0. Fase 1 del producto completada. |
+| 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
