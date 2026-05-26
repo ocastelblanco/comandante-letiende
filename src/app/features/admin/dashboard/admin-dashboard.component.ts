@@ -91,7 +91,7 @@ import { OrderService } from '../../../core/db/order.service';
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                       <span class="text-sm font-semibold text-[#230C00]">
-                        Mesa {{ order.tableNumber }}
+                        Pedido: {{ order.tableNumber }}
                       </span>
                       <span class="text-[#230C00]/30 text-xs">·</span>
                       <span class="text-[#230C00]/45 text-xs truncate">{{ order.waiterName }}</span>
