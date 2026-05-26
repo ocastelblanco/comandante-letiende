@@ -126,7 +126,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                     <div>
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-base font-bold text-[#230C00]">
-                          Mesa {{ order.tableNumber }}
+                          Pedido: {{ order.tableNumber }}
                         </span>
                         <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide"
                               [style.background]="statusColor(order.status)"
@@ -192,10 +192,10 @@ export class AdminOrdersComponent {
   protected readonly activeTab = signal<FilterTab>('all');
 
   protected readonly tabs = [
-    { value: 'all'       as FilterTab, label: 'Todos',      icon: 'list-outline',             count: computed(() => this.orders().length) },
-    { value: 'pending'   as FilterTab, label: 'Pendientes', icon: 'time-outline',             count: computed(() => this.orders().filter(o => o.status === 'pending').length) },
-    { value: 'preparing' as FilterTab, label: 'Preparando', icon: 'flame-outline',            count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
-    { value: 'ready'     as FilterTab, label: 'Listos',     icon: 'checkmark-circle-outline', count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
+    { value: 'all' as FilterTab, label: 'Todos', icon: 'list-outline', count: computed(() => this.orders().length) },
+    { value: 'pending' as FilterTab, label: 'Pendientes', icon: 'time-outline', count: computed(() => this.orders().filter(o => o.status === 'pending').length) },
+    { value: 'preparing' as FilterTab, label: 'Preparando', icon: 'flame-outline', count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
+    { value: 'ready' as FilterTab, label: 'Listos', icon: 'checkmark-circle-outline', count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
   ];
 
   protected readonly activeTabLabel = computed(() =>

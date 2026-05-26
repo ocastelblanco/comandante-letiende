@@ -14,12 +14,15 @@ service cloud.firestore {
           && request.auth.token.email == 'letiende.co@gmail.com';
     }
 
-    // Retorna el rol del usuario autenticado, o false si no existe su documento.
+    // Retorna el rol del usuario autenticado, o null si no existe su documento.
     // El documento usa el email como ID (no el UID), igual que UserService.createUser().
+    // Nota: se usa operador ternario para retornar el string del rol directamente;
+    // el operador && en Firestore rules retorna bool, no el último valor.
     function userRole() {
       return isAuthenticated()
           && exists(/databases/$(database)/documents/users/$(request.auth.token.email))
-          && get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role;
+          ? get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role
+          : null;
     }
 
     function isAdmin() {
@@ -39,6 +42,13 @@ service cloud.firestore {
     function onlyUpdatesOrderStatus() {
       let allowed = ['status', 'updatedAt', 'baristaId', 'preparedAt', 'items'];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+
+    // Los meseros solo pueden marcar un pedido como 'delivered' (entregado).
+    function onlyMarksDelivered() {
+      let allowed = ['status', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+          && request.resource.data.status == 'delivered';
     }
 
     // ── Colección: users ────────────────────────────────────────────────────
@@ -66,7 +76,8 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isWaiter() || isAdmin();
       allow update: if isAdmin()
-          || (isBarista() && onlyUpdatesOrderStatus());
+          || (isBarista() && onlyUpdatesOrderStatus())
+          || (isWaiter() && onlyMarksDelivered());
       allow delete: if isAdmin();
     }
   }

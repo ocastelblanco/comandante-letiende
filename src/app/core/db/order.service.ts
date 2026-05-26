@@ -44,6 +44,16 @@ export class OrderService {
     });
   }
 
+  updateOrderStatusAsBarista(orderId: string, status: OrderStatus): Promise<void> {
+    const user = this.auth.currentUser;
+    const payload: Record<string, unknown> = { status, updatedAt: serverTimestamp() };
+    if (status === 'ready') {
+      payload['baristaId']  = user?.email ?? '';
+      payload['preparedAt'] = serverTimestamp();
+    }
+    return updateDoc(doc(this.firestore, 'orders', orderId), payload);
+  }
+
   createOrder(tableNumber: string, items: OrderItem[]): Promise<unknown> {
     const user = this.auth.currentUser;
     const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);

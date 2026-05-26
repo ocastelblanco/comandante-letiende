@@ -125,20 +125,27 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
         }
 
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px">
-          <span style="font-size:1rem;font-weight:700;color:#251a00">Pedidos Activos</span>
-          <ion-button fill="clear" size="small">
+          <span style="font-size:1rem;font-weight:700;color:#251a00">
+            {{ filterReady() ? 'Listos para entregar' : 'Pedidos Activos' }}
+          </span>
+          <ion-button fill="clear" size="small" (click)="filterReady.update(v => !v)"
+                      [style.--color]="filterReady() ? '#E8630A' : 'rgba(37,26,0,0.4)'">
             <ion-icon slot="icon-only" name="filter-outline" />
           </ion-button>
         </div>
 
-        @if (orderService.activeOrders().length === 0) {
+        @if (filteredOrders().length === 0) {
           <div style="padding:48px 24px;text-align:center;opacity:.5">
-            <p style="font-size:1rem">No hay pedidos activos.</p>
-            <p style="font-size:.875rem;margin-top:4px">Usa el botón + para crear uno.</p>
+            @if (filterReady()) {
+              <p style="font-size:1rem">No hay pedidos listos aún.</p>
+            } @else {
+              <p style="font-size:1rem">No hay pedidos activos.</p>
+              <p style="font-size:.875rem;margin-top:4px">Usa el botón + para crear uno.</p>
+            }
           </div>
         } @else {
           <div style="padding:0 12px 96px;display:flex;flex-direction:column;gap:10px">
-            @for (order of orderService.activeOrders(); track order.id) {
+            @for (order of filteredOrders(); track order.id) {
               <ion-card button (click)="toggleExpand(order.id)" style="margin:0;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
                 <ion-card-content style="padding:14px 16px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -169,6 +176,13 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                       <div style="margin-top:6px;padding-top:4px;font-size:.85rem;font-weight:700;color:#251a00">
                         $ {{ order.total | number:'1.0-0' }}
                       </div>
+                      @if (order.status === 'ready') {
+                        <ion-button expand="block" size="small"
+                                    (click)="markDelivered(order); $event.stopPropagation()"
+                                    style="margin-top:10px;--background:#00B7A3;--color:#230C00;--border-radius:10px">
+                          Entregar ✓
+                        </ion-button>
+                      }
                     </div>
                   } @else {
                     <div style="font-size:.8rem;color:#82746c;margin-top:4px">
@@ -360,6 +374,13 @@ export class WaiterComponent {
   submitting = signal(false);
   submitError = signal('');
 
+  readonly filterReady = signal(false);
+  readonly filteredOrders = computed(() =>
+    this.filterReady()
+      ? this.orderService.activeOrders().filter((o) => o.status === 'ready')
+      : this.orderService.activeOrders(),
+  );
+
   readonly hasSelectedProducts = computed(() =>
     this._orderLines().some((l) => l.selectedProduct !== null),
   );
@@ -454,6 +475,10 @@ export class WaiterComponent {
     this.dismissedReadyIds.update((s) => new Set([...s, id]));
   }
 
+  async markDelivered(order: Order): Promise<void> {
+    await this.orderService.updateOrderStatus(order.id, 'delivered');
+  }
+
   timeAgo(timestamp: Timestamp): string {
     const mins = Math.floor((Date.now() - timestamp.toDate().getTime()) / 60000);
     if (mins < 1) return 'ahora mismo';
@@ -544,7 +569,8 @@ export class WaiterComponent {
         }));
       await this.orderService.createOrder(identifier, items);
       this.view.set('dashboard');
-    } catch {
+    } catch (err) {
+      console.error('[submitOrder] createOrder failed:', err);
       this.submitError.set('No se pudo crear el pedido. Intenta de nuevo.');
     } finally {
       this.submitting.set(false);
