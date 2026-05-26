@@ -187,10 +187,21 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                             @if (item.itemStatus === 'ready') { ✓&nbsp; }
                             {{ item.productName }} ×{{ item.quantity }}
                           </span>
+                          <span>$ {{ item.unitPrice * item.quantity | number:'1.0-0' }}</span>
                         </div>
                       }
-                      <div style="margin-top:6px;padding-top:4px;font-size:.85rem;font-weight:700;color:#251a00">
-                        $ {{ order.total | number:'1.0-0' }}
+                      <div style="border-top:1px solid rgba(255,231,179,.6);margin:6px 0 4px"></div>
+                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#82746c;padding:2px 0">
+                        <span>Subtotal (base)</span>
+                        <span>$ {{ orderSubtotalFor(order) | number:'1.0-0' }}</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#82746c;padding:2px 0">
+                        <span>Propina</span>
+                        <span>$ {{ orderTipFor(order) | number:'1.0-0' }}</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:700;color:#251a00;padding:4px 0 2px">
+                        <span>Total</span>
+                        <span>$ {{ order.total | number:'1.0-0' }}</span>
                       </div>
                       @if (order.status === 'ready') {
                         <ion-button expand="block" size="small"
@@ -504,6 +515,14 @@ export class WaiterComponent {
     if (mins < 1) return 'ahora mismo';
     if (mins < 60) return `hace ${mins} min`;
     return `hace ${Math.floor(mins / 60)} h`;
+  }
+
+  orderSubtotalFor(order: Order): number {
+    return order.items.reduce((s, item) => s + (item.unitPrice - item.tipAmount) * item.quantity, 0);
+  }
+
+  orderTipFor(order: Order): number {
+    return order.items.reduce((s, item) => s + item.tipAmount * item.quantity, 0);
   }
 
   // ── New-order form methods ────────────────────────────────────────────────

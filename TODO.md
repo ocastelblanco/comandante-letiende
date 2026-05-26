@@ -13,26 +13,7 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 2)
-
-### Tarea 9: [FEATURE] Pantalla de Cobro del Mesero — Discriminación para Datáfono
-*   **Origen:** PRD §5.1 — El core diferenciador de la app. Actualmente el flujo va directo al dashboard tras enviar el pedido sin registrar el cobro. El barista prepara sin confirmación de pago y el mesero no tiene la discriminación datáfono en pantalla.
-*   **Archivos a Modificar:**
-    *   `src/app/features/waiter/waiter.component.ts` — Añadir estado `'payment'` al tipo `View`. Tras el `submitOrder()` exitoso, guardar el resumen del pedido (identifier, items, baseTotal, tipTotal, grandTotal) en una Signal y navegar a la vista `payment` en lugar de al dashboard.
-*   **Qué construir (vista `payment`):**
-    1. Cabecera con botón "← Volver" y título "Cobro".
-    2. Nombre del pedido destacado (identifier).
-    3. Lista de ítems con cantidades y precios.
-    4. Bloque de discriminación en letras grandes:
-       - **Valor consumo:** `$baseTotal` (ingresarlo en el datáfono como "consumo")
-       - **Valor propina:** `$tipTotal` (ingresarlo como "propina")
-       - **Total a cobrar:** `$grandTotal`
-    5. Botón principal "Confirmar cobro" → navega a dashboard y limpia el estado.
-*   **Definición de Done (Checklist):**
-    - `[ ]` Tras `submitOrder()` exitoso, el mesero ve la pantalla de cobro (no el dashboard).
-    - `[ ]` Los valores Consumo / Propina / Total están claramente discriminados.
-    - `[ ]` "Confirmar cobro" regresa al dashboard y la orden ya no aparece en el nuevo pedido.
-    - `[ ]` `npm run build` compila sin errores.
+## 2. Tareas Activas (WIP: 1)
 
 ### Tarea 10: [FEATURE] Consolidado de Ventas del Administrador
 *   **Origen:** PRD §5.3 — La sección "Reportes" del admin existe como placeholder. Sin ella, el administrador no puede cuadrar caja al cierre de la jornada.
@@ -55,6 +36,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 9: [FEATURE] Indicador de Pago + Cobro Discriminado en Vista del Mesero
+*   **Completada:** 2026-05-26
+*   **PR:** `feature/waiter-payment-breakdown` (#14)
+*   **Resultado:** Tarea redefinida por decisión de producto — el desglose de cobro se integra directamente en el card expandido del mesero (no como pantalla separada). Al desplegar un pedido el mesero ve precio de línea por ítem, Subtotal (base), Propina incluida y Total en negrita, antes del botón «Cobrar». Indicador Pagado / Sin cobrar añadido en las tres interfaces: chip tappable «Cobrar» → «✓ Pagado» en el mesero, badge de solo lectura en barista y admin. Nuevo método `markOrderPaid()` en `OrderService`. Nuevas funciones Firestore `onlyMarksPaid()` y `onlyMarksDelivered()` con regla de update granular para meseros. Reglas desplegadas a staging. Build verde.
 
 ### ✅ Tarea 8: [FEATURE] Módulo del Barista — Cola de Preparación
 *   **Completada:** 2026-05-26
@@ -110,3 +96,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-24 | Tarea 6 completada. Modelos Order/OrderItem creados. OrderService con onSnapshot filtrado y createOrder(). WaiterComponent reescrito con catálogo por categoría, carrito con Signals, formulario de mesa y feedback de éxito. Build verde: 1.26 MB inicial, waiter-component 7.97 kB lazy. Próximo gap: sin módulo de barista el ciclo de preparación no puede cerrarse. | Tarea 7 (Módulo del Barista — cola de preparación y actualización de estado) calificada como la siguiente tarea atómica. |
 | 2026-05-25 | Decisión de producto: aplicar identidad visual oficial de Le Tiende antes de continuar con nuevas funcionalidades. Sistema de diseño disponible en Google Stitch (proyecto "Sistema de Diseño Comandante"). Pantallas de referencia: Dashboard de Mesero v2 y Crear Nuevo Pedido v2. | Tarea 7 redefinida como adaptación visual (CRÍTICO). Tarea de barista renumerada a Tarea 8. WIP sube a 2: visual blocking, barista en cola. |
 | 2026-05-26 | Tareas 7 y 8 completadas. Estilo visual Le Tiende aplicado a toda la app. Módulo de barista operativo con bug crítico de Firestore rules resuelto (`&&` retornaba bool). Ciclo completo mesero→barista→entrega funcional. Brechas restantes de Fase 1: pantalla de cobro con discriminación datáfono (§5.1, core diferenciador) y consolidado de ventas del admin (§5.3, cierre de jornada). | Tarea 9 (pantalla de cobro) y Tarea 10 (consolidado) son las dos tareas activas. Tarea 9 es prioridad porque completa el flujo de pago, que es el valor central del producto. |
+| 2026-05-26 | Tarea 9 completada (redefinida). Decisión de producto: no crear pantalla separada de cobro; el desglose discriminado (base + propina + total) se integra inline en el card expandido del mesero. Indicador Pagado/Sin cobrar disponible en las tres interfaces. Ciclo de pago completo sin interrumpir el flujo de pedidos. Única brecha restante de Fase 1: consolidado de ventas del admin para cierre de jornada. | WIP baja a 1. Tarea 10 (consolidado de ventas) es la única tarea activa. |
