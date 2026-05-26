@@ -68,14 +68,15 @@ import { Order } from '../../core/models/order.model';
                   <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)] overflow-hidden"
                        style="border-left:4px solid #FFE7B3">
                     <div class="p-4">
-                      <div class="flex items-baseline justify-between mb-2">
+                      <div class="flex items-baseline justify-between mb-1">
                         <span class="text-lg font-bold text-[#230C00]">
-                          Mesa {{ order.tableNumber }}
+                          Pedido: {{ order.tableNumber }}
                         </span>
                         <span class="text-sm font-bold text-[#230C00]">
                           &#36;{{ order.total | number:'1.0-0' }}
                         </span>
                       </div>
+                      <p style="font-size:.75rem;color:rgba(35,12,0,0.45);margin:0 0 8px">{{ order.waiterName }}</p>
                       <div class="flex flex-wrap gap-1.5 mb-4">
                         @for (item of order.items; track item.productId) {
                           <span class="bg-[#F7F5F2] text-[#230C00] text-xs font-semibold
@@ -116,14 +117,15 @@ import { Order } from '../../core/models/order.model';
                   <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)] overflow-hidden"
                        style="border-left:4px solid #E8630A">
                     <div class="p-4">
-                      <div class="flex items-baseline justify-between mb-2">
+                      <div class="flex items-baseline justify-between mb-1">
                         <span class="text-lg font-bold text-[#230C00]">
-                          Mesa {{ order.tableNumber }}
+                          Pedido: {{ order.tableNumber }}
                         </span>
                         <span class="text-sm font-bold text-[#230C00]">
                           &#36;{{ order.total | number:'1.0-0' }}
                         </span>
                       </div>
+                      <p style="font-size:.75rem;color:rgba(35,12,0,0.45);margin:0 0 8px">{{ order.waiterName }}</p>
                       <div class="flex flex-wrap gap-1.5 mb-4">
                         @for (item of order.items; track item.productId) {
                           <span class="bg-[#F7F5F2] text-[#230C00] text-xs font-semibold
@@ -149,11 +151,11 @@ import { Order } from '../../core/models/order.model';
   `,
 })
 export class BaristaComponent {
-  private auth         = inject(AuthService);
+  private auth = inject(AuthService);
   private orderService = inject(OrderService);
 
-  protected readonly photoURL        = computed(() => this.auth.currentUser()?.photoURL ?? null);
-  protected readonly pendingOrders   = computed(() =>
+  protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
+  protected readonly pendingOrders = computed(() =>
     this.orderService.activeOrders().filter(o => o.status === 'pending'),
   );
   protected readonly preparingOrders = computed(() =>
