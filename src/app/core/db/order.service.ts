@@ -4,9 +4,11 @@ import {
   collection,
   doc,
   Firestore,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
 } from '@angular/fire/firestore';
@@ -59,6 +61,21 @@ export class OrderService {
       payload['preparedAt'] = serverTimestamp();
     }
     return updateDoc(doc(this.firestore, 'orders', orderId), payload);
+  }
+
+  async getOrdersByDate(date: Date): Promise<Order[]> {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    const q = query(
+      this.colRef,
+      where('status', '==', 'delivered'),
+      where('createdAt', '>=', Timestamp.fromDate(start)),
+      where('createdAt', '<=', Timestamp.fromDate(end)),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
   }
 
   createOrder(tableNumber: string, items: OrderItem[]): Promise<unknown> {
