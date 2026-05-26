@@ -10,14 +10,19 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
+import { Timestamp } from '@angular/fire/firestore';
 import { addIcons } from 'ionicons';
 import { barChartOutline, calendarOutline, personCircleOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
 
-interface ProductSummary {
-  productName: string;
-  quantity: number;
+interface OrderRow {
+  id: string;
+  tableNumber: string;
+  paidAtLabel: string;
+  paymentLabel: string;
+  paymentColor: string;
+  itemsLabel: string;
   base: number;
   tip: number;
   total: number;
@@ -40,7 +45,7 @@ interface ProductSummary {
   styles: [`
     :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
-    input[type="date"] {
+    input[type="datetime-local"] {
       padding: 8px 12px;
       border: 1.5px solid #FFE7B3;
       border-radius: 10px;
@@ -50,7 +55,7 @@ interface ProductSummary {
       outline: none;
       cursor: pointer;
     }
-    input[type="date"]:focus { border-color: #E8630A; }
+    input[type="datetime-local"]:focus { border-color: #E8630A; }
   `],
   template: `
     <ion-header class="ion-no-border">
@@ -81,12 +86,16 @@ interface ProductSummary {
           <h1 style="font-size:1.5rem;font-weight:700;color:#230C00">Consolidado de ventas</h1>
         </div>
 
-        <!-- Date selector -->
+        <!-- Range selector -->
         <div style="background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:16px;
-                    box-shadow:0 1px 3px rgba(35,12,0,.1);display:flex;align-items:center;gap:12px">
-          <ion-icon name="calendar-outline" style="font-size:1.25rem;color:#E8630A;flex-shrink:0" />
-          <span style="font-size:.875rem;font-weight:600;color:#230C00;flex-shrink:0">Fecha</span>
-          <input type="date" [value]="selectedDate()" (change)="onDateChange($event)">
+                    box-shadow:0 1px 3px rgba(35,12,0,.1)">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <ion-icon name="calendar-outline" style="font-size:1.25rem;color:#E8630A;flex-shrink:0" />
+            <span style="font-size:.875rem;font-weight:600;color:#230C00;flex-shrink:0">Desde</span>
+            <input type="datetime-local" [value]="startDatetime()" (change)="onStartChange($event)">
+            <span style="font-size:.875rem;font-weight:600;color:#230C00;flex-shrink:0">Hasta</span>
+            <input type="datetime-local" [value]="endDatetime()" (change)="onEndChange($event)">
+          </div>
         </div>
 
         <!-- Loading -->
@@ -107,15 +116,15 @@ interface ProductSummary {
           </div>
 
         <!-- Empty state -->
-        } @else if (summary().length === 0) {
+        } @else if (orders().length === 0) {
           <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);
                       display:flex;flex-direction:column;align-items:center;justify-content:center;
                       padding:64px 24px;gap:12px">
             <ion-icon name="bar-chart-outline"
                       style="font-size:3.5rem;color:rgba(35,12,0,0.18)" />
-            <p style="font-size:1rem;font-weight:600;color:#230C00;margin:0">Sin ventas este día</p>
+            <p style="font-size:1rem;font-weight:600;color:#230C00;margin:0">Sin pedidos en el rango</p>
             <p style="font-size:.875rem;color:rgba(35,12,0,.4);text-align:center;max-width:260px;margin:0">
-              No hay órdenes entregadas para la fecha seleccionada.
+              No hay pedidos cobrados en el período seleccionado.
             </p>
           </div>
 
@@ -123,16 +132,24 @@ interface ProductSummary {
         } @else {
           <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);overflow:hidden">
             <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;min-width:460px">
+              <table style="width:100%;border-collapse:collapse;min-width:700px">
                 <thead>
                   <tr style="background:#230C00">
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
-                      Producto
+                      Pedido
                     </th>
-                    <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
+                    <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3;white-space:nowrap">
-                      Cant.
+                      Hora de cobro
+                    </th>
+                    <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
+                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3;white-space:nowrap">
+                      Medio de pago
+                    </th>
+                    <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
+                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                      Ítems
                     </th>
                     <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
@@ -149,13 +166,23 @@ interface ProductSummary {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of summary(); track row.productName) {
+                  @for (row of orders(); track row.id) {
                     <tr style="border-bottom:1px solid #FFE7B3">
-                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;font-weight:500">
-                        {{ row.productName }}
+                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;font-weight:600">
+                        {{ row.tableNumber }}
                       </td>
-                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;text-align:right">
-                        {{ row.quantity }}
+                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;white-space:nowrap">
+                        {{ row.paidAtLabel }}
+                      </td>
+                      <td style="padding:10px 16px">
+                        <span style="padding:3px 10px;border-radius:9999px;font-size:.75rem;font-weight:600;
+                                     line-height:1;color:#fff;white-space:nowrap"
+                              [style.background]="row.paymentColor">
+                          {{ row.paymentLabel }}
+                        </span>
+                      </td>
+                      <td style="padding:10px 16px;font-size:.8rem;color:#82746c;max-width:220px">
+                        {{ row.itemsLabel }}
                       </td>
                       <td style="padding:10px 16px;font-size:.875rem;color:#251a00;text-align:right;white-space:nowrap">
                         $ {{ row.base | number:'1.0-0' }}
@@ -172,11 +199,8 @@ interface ProductSummary {
                 </tbody>
                 <tfoot>
                   <tr style="background:#FFF8F1;border-top:2px solid #FFE7B3">
-                    <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#230C00">
-                      Total del día
-                    </td>
-                    <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#230C00;text-align:right">
-                      {{ totals().quantity }}
+                    <td colspan="4" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#230C00">
+                      Total del rango
                     </td>
                     <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#230C00;
                                text-align:right;white-space:nowrap">
@@ -207,69 +231,94 @@ export class AdminReportsComponent {
 
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
 
-  readonly selectedDate = signal(this.todayString());
+  readonly startDatetime = signal(this.todayStartString());
+  readonly endDatetime = signal(this.todayEndString());
   readonly loading = signal(false);
   readonly errorMsg = signal('');
-  readonly summary = signal<ProductSummary[]>([]);
+  readonly orders = signal<OrderRow[]>([]);
 
   readonly totals = computed(() => ({
-    quantity: this.summary().reduce((s, r) => s + r.quantity, 0),
-    base: this.summary().reduce((s, r) => s + r.base, 0),
-    tip: this.summary().reduce((s, r) => s + r.tip, 0),
-    total: this.summary().reduce((s, r) => s + r.total, 0),
+    base: this.orders().reduce((s, r) => s + r.base, 0),
+    tip: this.orders().reduce((s, r) => s + r.tip, 0),
+    total: this.orders().reduce((s, r) => s + r.total, 0),
   }));
 
   constructor() {
     addIcons({ barChartOutline, calendarOutline, personCircleOutline });
-    this.loadReport(this.selectedDate());
+    this.loadReport();
   }
 
-  async onDateChange(event: Event): Promise<void> {
+  async onStartChange(event: Event): Promise<void> {
     const value = (event.target as HTMLInputElement).value;
     if (!value) return;
-    this.selectedDate.set(value);
-    await this.loadReport(value);
+    this.startDatetime.set(value);
+    await this.loadReport();
   }
 
-  private todayString(): string {
+  async onEndChange(event: Event): Promise<void> {
+    const value = (event.target as HTMLInputElement).value;
+    if (!value) return;
+    this.endDatetime.set(value);
+    await this.loadReport();
+  }
+
+  private todayStartString(): string {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T00:00`;
   }
 
-  private async loadReport(dateStr: string): Promise<void> {
+  private todayEndString(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T23:59`;
+  }
+
+  private formatPaidAt(ts: Timestamp | null): string {
+    if (!ts) return '—';
+    const d = ts.toDate();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm} ${hh}:${min}`;
+  }
+
+  private paymentColor(method: string | null): string {
+    if (method === 'card') return '#E8630A';
+    if (method === 'cash') return '#00B7A3';
+    if (method === 'nequi' || method === 'daviplata') return '#5C2E91';
+    return '#82746c';
+  }
+
+  private paymentLabel(method: string | null): string {
+    if (method === 'card') return 'Datáfono';
+    if (method === 'cash') return 'Efectivo';
+    if (method === 'nequi') return 'Nequi';
+    if (method === 'daviplata') return 'Daviplata';
+    return '—';
+  }
+
+  private async loadReport(): Promise<void> {
     this.loading.set(true);
     this.errorMsg.set('');
-    this.summary.set([]);
+    this.orders.set([]);
     try {
-      const [year, month, day] = dateStr.split('-').map(Number);
-      const date = new Date(year, month - 1, day);
-      const orders = await this.orderService.getOrdersByDate(date);
+      const start = new Date(this.startDatetime());
+      const end = new Date(this.endDatetime());
+      const rawOrders = await this.orderService.getOrdersByRange(start, end);
 
-      const map = new Map<string, ProductSummary>();
-      for (const order of orders) {
-        for (const item of order.items) {
-          const baseUnit = item.unitPrice - item.tipAmount;
-          const existing = map.get(item.productId);
-          if (existing) {
-            existing.quantity += item.quantity;
-            existing.base += baseUnit * item.quantity;
-            existing.tip += item.tipAmount * item.quantity;
-            existing.total += item.unitPrice * item.quantity;
-          } else {
-            map.set(item.productId, {
-              productName: item.productName,
-              quantity: item.quantity,
-              base: baseUnit * item.quantity,
-              tip: item.tipAmount * item.quantity,
-              total: item.unitPrice * item.quantity,
-            });
-          }
-        }
-      }
+      const rows: OrderRow[] = rawOrders.map((order) => ({
+        id: order.id,
+        tableNumber: order.tableNumber,
+        paidAtLabel: this.formatPaidAt(order.paidAt ?? null),
+        paymentLabel: this.paymentLabel(order.paymentMethod ?? null),
+        paymentColor: this.paymentColor(order.paymentMethod ?? null),
+        itemsLabel: order.items.map((i) => `${i.productName} ×${i.quantity}`).join(', '),
+        base: order.items.reduce((s, i) => s + (i.unitPrice - i.tipAmount) * i.quantity, 0),
+        tip: order.items.reduce((s, i) => s + i.tipAmount * i.quantity, 0),
+        total: order.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
+      }));
 
-      this.summary.set(
-        [...map.values()].sort((a, b) => a.productName.localeCompare(b.productName, 'es')),
-      );
+      this.orders.set(rows);
     } catch (err) {
       console.error('[loadReport]', err);
       const msg = err instanceof Error ? err.message : '';
