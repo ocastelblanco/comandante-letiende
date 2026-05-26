@@ -44,6 +44,13 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 
+    // Los meseros solo pueden marcar un pedido como 'delivered' (entregado).
+    function onlyMarksDelivered() {
+      let allowed = ['status', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+          && request.resource.data.status == 'delivered';
+    }
+
     // ── Colección: users ────────────────────────────────────────────────────
     // Lectura para cualquier usuario autenticado.
     // Escrituras (alta, modificación y baja) solo para administradores.
@@ -69,7 +76,8 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isWaiter() || isAdmin();
       allow update: if isAdmin()
-          || (isBarista() && onlyUpdatesOrderStatus());
+          || (isBarista() && onlyUpdatesOrderStatus())
+          || (isWaiter() && onlyMarksDelivered());
       allow delete: if isAdmin();
     }
   }
