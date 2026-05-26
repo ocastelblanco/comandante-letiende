@@ -272,7 +272,12 @@ export class AdminReportsComponent {
       );
     } catch (err) {
       console.error('[loadReport]', err);
-      this.errorMsg.set(err instanceof Error ? err.message : 'Error desconocido. Revisa la consola.');
+      const msg = err instanceof Error ? err.message : '';
+      this.errorMsg.set(
+        msg.includes('currently building')
+          ? 'El índice de Firestore se está construyendo (tarda ~2 min). Recarga la página en un momento.'
+          : msg || 'Error desconocido. Revisa la consola.',
+      );
     } finally {
       this.loading.set(false);
     }
