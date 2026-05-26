@@ -76,7 +76,16 @@ import { Order } from '../../core/models/order.model';
                           &#36;{{ order.total | number:'1.0-0' }}
                         </span>
                       </div>
-                      <p style="font-size:.75rem;color:rgba(35,12,0,0.45);margin:0 0 8px">{{ order.waiterName }}</p>
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px">
+                        <p style="font-size:.75rem;color:rgba(35,12,0,0.45);margin:0">{{ order.waiterName }}</p>
+                        @if (order.paid) {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(0,183,163,.15);color:#00B7A3">✓ Pagado</span>
+                        } @else {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(232,99,10,.12);color:#E8630A">Sin cobrar</span>
+                        }
+                      </div>
                       <div class="flex flex-wrap gap-1.5 mb-4">
                         @for (item of order.items; track item.productId) {
                           <span class="bg-[#F7F5F2] text-[#230C00] text-xs font-semibold
@@ -125,7 +134,16 @@ import { Order } from '../../core/models/order.model';
                           &#36;{{ order.total | number:'1.0-0' }}
                         </span>
                       </div>
-                      <p style="font-size:.75rem;color:rgba(35,12,0,0.45);margin:0 0 8px">{{ order.waiterName }}</p>
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px">
+                        <p style="font-size:.75rem;color:rgba(35,12,0,0.45);margin:0">{{ order.waiterName }}</p>
+                        @if (order.paid) {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(0,183,163,.15);color:#00B7A3">✓ Pagado</span>
+                        } @else {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(232,99,10,.12);color:#E8630A">Sin cobrar</span>
+                        }
+                      </div>
                       <div class="flex flex-wrap gap-1.5 mb-4">
                         @for (item of order.items; track item.productId) {
                           <span class="bg-[#F7F5F2] text-[#230C00] text-xs font-semibold

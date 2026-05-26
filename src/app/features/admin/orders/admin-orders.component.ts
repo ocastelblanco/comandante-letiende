@@ -133,6 +133,15 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                               style="color:#230C00">
                           {{ statusLabel(order.status) }}
                         </span>
+                        @if (order.paid) {
+                          <span style="font-size:.625rem;font-weight:700;padding:2px 8px;
+                                       border-radius:9999px;text-transform:uppercase;letter-spacing:.05em;
+                                       background:rgba(0,183,163,.15);color:#00B7A3">Pagado</span>
+                        } @else {
+                          <span style="font-size:.625rem;font-weight:700;padding:2px 8px;
+                                       border-radius:9999px;text-transform:uppercase;letter-spacing:.05em;
+                                       background:rgba(232,99,10,.12);color:#E8630A">Sin cobrar</span>
+                        }
                       </div>
                       <p class="text-xs text-[#230C00]/45 mt-0.5">
                         Mesero: {{ order.waiterName }}

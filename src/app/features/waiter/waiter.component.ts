@@ -150,11 +150,27 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                 <ion-card-content style="padding:14px 16px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                     <span style="font-size:1rem;font-weight:700;color:#251a00">{{ order.tableNumber }}</span>
-                    <span
-                      style="padding:4px 12px;border-radius:9999px;font-size:.75rem;font-weight:600;line-height:1"
-                      [style.background]="statusBadge[order.status].bg"
-                      [style.color]="statusBadge[order.status].text"
-                    >{{ statusLabels[order.status] }}</span>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <span
+                        style="padding:4px 12px;border-radius:9999px;font-size:.75rem;font-weight:600;line-height:1"
+                        [style.background]="statusBadge[order.status].bg"
+                        [style.color]="statusBadge[order.status].text"
+                      >{{ statusLabels[order.status] }}</span>
+                      @if (order.paid) {
+                        <span style="padding:4px 10px;border-radius:9999px;font-size:.7rem;
+                                     font-weight:700;line-height:1;
+                                     background:rgba(0,183,163,.15);color:#00B7A3">
+                          ✓ Pagado
+                        </span>
+                      } @else {
+                        <span (click)="markPaid(order); $event.stopPropagation()"
+                              style="padding:4px 10px;border-radius:9999px;font-size:.7rem;
+                                     font-weight:700;line-height:1;cursor:pointer;
+                                     background:rgba(232,99,10,.12);color:#E8630A">
+                          Cobrar
+                        </span>
+                      }
+                    </div>
                   </div>
                   <div style="display:flex;align-items:center;gap:4px;font-size:.8rem;color:#82746c">
                     <ion-icon name="time-outline" style="font-size:.9rem" />
@@ -477,6 +493,10 @@ export class WaiterComponent {
 
   async markDelivered(order: Order): Promise<void> {
     await this.orderService.updateOrderStatus(order.id, 'delivered');
+  }
+
+  async markPaid(order: Order): Promise<void> {
+    await this.orderService.markOrderPaid(order.id);
   }
 
   timeAgo(timestamp: Timestamp): string {

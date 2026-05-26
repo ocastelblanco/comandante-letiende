@@ -51,6 +51,14 @@ service cloud.firestore {
           && request.resource.data.status == 'delivered';
     }
 
+    // Los meseros solo pueden marcar un pedido como pagado (false → true).
+    function onlyMarksPaid() {
+      let allowed = ['paid', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+          && resource.data.paid == false
+          && request.resource.data.paid == true;
+    }
+
     // ── Colección: users ────────────────────────────────────────────────────
     // Lectura para cualquier usuario autenticado.
     // Escrituras (alta, modificación y baja) solo para administradores.
@@ -77,7 +85,7 @@ service cloud.firestore {
       allow create: if isWaiter() || isAdmin();
       allow update: if isAdmin()
           || (isBarista() && onlyUpdatesOrderStatus())
-          || (isWaiter() && onlyMarksDelivered());
+          || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid()));
       allow delete: if isAdmin();
     }
   }

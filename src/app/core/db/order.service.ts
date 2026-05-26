@@ -37,6 +37,13 @@ export class OrderService {
     inject(DestroyRef).onDestroy(unsubscribe);
   }
 
+  markOrderPaid(orderId: string): Promise<void> {
+    return updateDoc(doc(this.firestore, 'orders', orderId), {
+      paid: true,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
     return updateDoc(doc(this.firestore, 'orders', orderId), {
       status,
@@ -61,7 +68,7 @@ export class OrderService {
       tableNumber,
       items,
       status: 'pending' as OrderStatus,
-      paid: true,
+      paid: false,
       waiterId: user?.email ?? '',
       waiterName: user?.displayName ?? '',
       total,
