@@ -19,14 +19,21 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-### Tarea 15: [REFACTOR] Migración de estilos inline → Tailwind semántico + variables CSS del tema
-*   **Origen:** La app mezcla `style="..."` inline con clases Tailwind de forma inconsistente. Los colores están hardcodeados (`#230C00`, `#E8630A`) en lugar de usar las variables del tema Ionic (`var(--ion-color-primary)`, etc.).
-*   **Alcance:** Todos los componentes de `src/app/features/` y los shared. Establecer primero las variables en `src/theme/variables.css`, luego reemplazar color-hardcodes en los templates.
-*   **Definición de Done:** Cero ocurrencias de colores hexadecimales hardcodeados en templates de Angular; todas las instancias de `style="color:#..."` y `style="background:#..."` eliminadas y sustituidas por clases Tailwind o variables CSS.
+*(vacía — Fase 1 completa)*
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 16: [INFRA] Actualizar GitHub Actions a Node.js 24
+*   **Completada:** 2026-05-27
+*   **PR:** `fix/ci-node24`
+*   **Resultado:** Añadida variable de entorno `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'` a nivel de workflow en `deploy-hosting.yml`. Esto opta anticipadamente al runtime de Node 24 para todos los action-runners (`actions/checkout@v4`, `actions/setup-node@v4`, `FirebaseExtended/action-hosting-deploy@v0`), eliminando el warning de deprecación antes del cutover forzado del 2 de junio de 2026. El build de producción (`node-version: '20'`) no se modifica — esa variable solo afecta el JS runtime del action, no el entorno de build.
+
+### ✅ Tarea 15: [REFACTOR] Migración de estilos inline → Tailwind semántico + variables CSS del tema
+*   **Completada:** 2026-05-27
+*   **PR:** `refactor/tailwind-theme` (#17)
+*   **Resultado:** Bloque `@theme` con 6 tokens nombrados añadido a `styles.css` (`espresso`, `orange`, `teal`, `cream`, `surface`, `purple`). Clase global `ion-button.btn-rounded` para border-radius reutilizable. Todos los colores hexadecimales hardcodeados (`#230C00`, `#E8630A`, `#00B7A3`, `#FFE7B3`, `#F7F5F2`, `#5C2E91`, `#251a00`, `#82746c`) eliminados de los 8 componentes de features y reemplazados por tokens Tailwind (`text-espresso`, `bg-cream`, `bg-orange`, etc.) o variables CSS de Ionic (`--ion-color-primary/secondary/tertiary/light/dark/medium`). Toolbars móviles sin inline styles redundantes. Botones con `color="secondary"/"tertiary"`. `STATUS_BADGE` y `paymentColor()` migrados a CSS vars. Vista móvil de Productos convertida de grid 2-col a lista con botones icono. Build verde.
 
 ### ✅ Tarea 13: [INFRA] Reparar step `Deploy Firestore rules` en GitHub Actions
 *   **Completada:** 2026-05-27
