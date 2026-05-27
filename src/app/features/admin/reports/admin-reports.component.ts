@@ -11,8 +11,9 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { Timestamp } from '@angular/fire/firestore';
+import { utils, writeFileXLSX } from 'xlsx';
 import { addIcons } from 'ionicons';
-import { barChartOutline, calendarOutline, personCircleOutline } from 'ionicons/icons';
+import { barChartOutline, calendarOutline, downloadOutline, personCircleOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
 
@@ -130,6 +131,13 @@ interface OrderRow {
 
         <!-- Consolidado table -->
         } @else {
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <ion-button (click)="exportToExcel()" fill="outline"
+                        style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
+              <ion-icon slot="start" name="download-outline" />
+              Descargar Excel
+            </ion-button>
+          </div>
           <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);overflow:hidden">
             <div style="overflow-x:auto">
               <table style="width:100%;border-collapse:collapse;min-width:700px">
@@ -244,7 +252,7 @@ export class AdminReportsComponent {
   }));
 
   constructor() {
-    addIcons({ barChartOutline, calendarOutline, personCircleOutline });
+    addIcons({ barChartOutline, calendarOutline, downloadOutline, personCircleOutline });
     this.loadReport();
   }
 
@@ -260,6 +268,36 @@ export class AdminReportsComponent {
     if (!value) return;
     this.endDatetime.set(value);
     await this.loadReport();
+  }
+
+  exportToExcel(): void {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const now = new Date();
+    const filename = `reporte-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
+
+    const rows = this.orders().map((r) => ({
+      'Pedido': r.tableNumber,
+      'Hora de cobro': r.paidAtLabel,
+      'Medio de pago': r.paymentLabel,
+      'Ítems': r.itemsLabel,
+      'Base ($)': r.base,
+      'Propina ($)': r.tip,
+      'Total ($)': r.total,
+    }));
+    rows.push({
+      'Pedido': 'TOTAL',
+      'Hora de cobro': '',
+      'Medio de pago': '',
+      'Ítems': '',
+      'Base ($)': this.totals().base,
+      'Propina ($)': this.totals().tip,
+      'Total ($)': this.totals().total,
+    });
+
+    const ws = utils.json_to_sheet(rows);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Reporte');
+    writeFileXLSX(wb, filename);
   }
 
   private todayStartString(): string {

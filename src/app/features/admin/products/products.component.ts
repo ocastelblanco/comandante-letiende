@@ -1,5 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, ViewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { read, utils, writeFileXLSX } from 'xlsx';
 import {
   IonButton,
   IonButtons,
@@ -18,6 +19,7 @@ import { addIcons } from 'ionicons';
 import {
   add,
   cafeOutline,
+  cloudUploadOutline,
   gridOutline,
   personCircleOutline,
   pricetagOutline,
@@ -28,6 +30,18 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ProductService } from '../../../core/db/product.service';
 import { Product, ProductCategory } from '../../../core/models/product.model';
 import { ProductFormComponent } from './product-form.component';
+
+interface ImportRow {
+  name: string;
+  category: ProductCategory;
+  basePrice: number;
+  tipAmount: number;
+  totalPrice: number;
+  isNew: boolean;
+  existingId: string | null;
+}
+
+const VALID_CATEGORIES = new Set<string>(['bebidas', 'licores', 'comida', 'otros']);
 
 const CATEGORIES: { value: string; label: string; icon: string }[] = [
   { value: 'all', label: 'Todos', icon: 'grid-outline' },
@@ -67,7 +81,124 @@ const CATEGORY_ICONS: Record<string, string> = {
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `
-    <!-- Form overlay (outside ion-content to avoid scroll stacking context) -->
+    <!-- Hidden file input for Excel import (desktop only) -->
+    <input #fileInput type="file" accept=".xlsx,.xls" style="display:none"
+           (change)="onFileSelected($event)">
+
+    <!-- Import preview overlay -->
+    @if (showImportPreview()) {
+      <div style="position:fixed;inset:0;z-index:1001;background:rgba(35,12,0,0.55);
+                  display:flex;align-items:center;justify-content:center;padding:24px">
+        <div style="background:white;border-radius:20px;width:100%;max-width:800px;
+                    max-height:80vh;display:flex;flex-direction:column;overflow:hidden;
+                    box-shadow:0 8px 32px rgba(35,12,0,0.25)">
+          <!-- Header -->
+          <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(35,12,0,0.08);
+                      display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h2 style="font-size:1rem;font-weight:700;color:#230C00;margin:0">
+                Previsualización de carga
+              </h2>
+              <p style="font-size:.8rem;color:#82746c;margin:4px 0 0">
+                {{ newCount() }} nuevos · {{ updateCount() }} a actualizar
+              </p>
+            </div>
+            <button (click)="cancelImport()"
+                    style="color:rgba(35,12,0,.45);background:none;border:none;
+                           font-size:1.2rem;cursor:pointer;width:32px;height:32px;
+                           border-radius:50%;display:flex;align-items:center;justify-content:center">
+              ✕
+            </button>
+          </div>
+          <!-- Table -->
+          <div style="flex:1;overflow:auto">
+            <table style="width:100%;border-collapse:collapse;min-width:560px">
+              <thead>
+                <tr style="background:#230C00;position:sticky;top:0">
+                  <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                    Nombre
+                  </th>
+                  <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                    Categoría
+                  </th>
+                  <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                    Base
+                  </th>
+                  <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                    Propina
+                  </th>
+                  <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                    Total
+                  </th>
+                  <th style="text-align:center;padding:10px 16px;font-size:.7rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                    Estado
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of importRows(); track row.name) {
+                  <tr style="border-bottom:1px solid #FFE7B3">
+                    <td style="padding:10px 16px;font-size:.875rem;color:#251a00;font-weight:500">
+                      {{ row.name }}
+                    </td>
+                    <td style="padding:10px 16px;font-size:.875rem;color:#82746c">
+                      {{ row.category }}
+                    </td>
+                    <td style="padding:10px 16px;font-size:.875rem;color:#251a00;
+                               text-align:right;white-space:nowrap">
+                      $ {{ row.basePrice | number:'1.0-0' }}
+                    </td>
+                    <td style="padding:10px 16px;font-size:.875rem;color:#251a00;
+                               text-align:right;white-space:nowrap">
+                      $ {{ row.tipAmount | number:'1.0-0' }}
+                    </td>
+                    <td style="padding:10px 16px;font-size:.875rem;font-weight:700;color:#251a00;
+                               text-align:right;white-space:nowrap">
+                      $ {{ row.totalPrice | number:'1.0-0' }}
+                    </td>
+                    <td style="padding:10px 16px;text-align:center">
+                      @if (row.isNew) {
+                        <span style="padding:3px 10px;border-radius:9999px;font-size:.72rem;
+                                     font-weight:700;background:rgba(0,183,163,0.12);
+                                     color:#00B7A3;white-space:nowrap">
+                          Nuevo
+                        </span>
+                      } @else {
+                        <span style="padding:3px 10px;border-radius:9999px;font-size:.72rem;
+                                     font-weight:700;background:rgba(232,99,10,0.12);
+                                     color:#E8630A;white-space:nowrap">
+                          Actualizar
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <!-- Footer -->
+          <div style="padding:16px 24px;border-top:1px solid rgba(35,12,0,0.08);
+                      display:flex;align-items:center;justify-content:flex-end;gap:12px">
+            <ion-button fill="outline" (click)="cancelImport()"
+                        style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
+              Cancelar
+            </ion-button>
+            <ion-button (click)="applyImport()" [disabled]="importing()"
+                        style="--background:#E8630A;--color:#230C00;--border-radius:12px">
+              {{ importing() ? 'Aplicando...' : 'Aceptar (' + importRows().length + ')' }}
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Form overlay -->
     @if (showForm()) {
       <div style="position:fixed;inset:0;z-index:1000;background:rgba(35,12,0,0.45);
                   display:flex;align-items:flex-end;justify-content:center;padding:16px"
@@ -121,10 +252,23 @@ const CATEGORY_ICONS: Record<string, string> = {
         <!-- Desktop page header -->
         <div class="hidden lg:flex items-center justify-between mb-6">
           <h1 class="text-2xl font-bold text-[#230C00]">Productos</h1>
-          <ion-button (click)="openAdd()"
-                      style="--background:#E8630A;--color:#230C00;--border-radius:12px">
-            + Agregar producto
-          </ion-button>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button (click)="downloadTemplate()"
+                    style="font-size:.8rem;color:#E8630A;cursor:pointer;background:none;
+                           border:none;text-decoration:underline;text-underline-offset:3px;
+                           padding:0;font-family:inherit">
+              Descargar plantilla
+            </button>
+            <ion-button (click)="triggerFileSelect()" fill="outline"
+                        style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
+              <ion-icon slot="start" name="cloud-upload-outline" />
+              Cargar Excel
+            </ion-button>
+            <ion-button (click)="openAdd()"
+                        style="--background:#E8630A;--color:#230C00;--border-radius:12px">
+              + Agregar producto
+            </ion-button>
+          </div>
         </div>
 
         <!-- Search -->
@@ -174,7 +318,7 @@ const CATEGORY_ICONS: Record<string, string> = {
                           style="font-size:3rem;color:rgba(35,12,0,0.22)" />
               </div>
 
-              <!-- Archived overlay — tapping reactivates the product -->
+              <!-- Archived overlay -->
               @if (!p.isActive) {
                 <div (click)="toggleActive(p)"
                      style="position:absolute;inset:0;background:rgba(35,12,0,0.55);
@@ -239,6 +383,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   `,
 })
 export class ProductsComponent {
+  @ViewChild('fileInput') private fileInputRef!: ElementRef<HTMLInputElement>;
+
   private auth = inject(AuthService);
   private productService = inject(ProductService);
 
@@ -249,21 +395,38 @@ export class ProductsComponent {
   protected readonly searchQuery = signal('');
   protected readonly activeCategory = signal('all');
 
+  protected readonly showImportPreview = signal(false);
+  protected readonly importRows = signal<ImportRow[]>([]);
+  protected readonly importing = signal(false);
+
+  protected readonly newCount = computed(() => this.importRows().filter((r) => r.isNew).length);
+  protected readonly updateCount = computed(() => this.importRows().filter((r) => !r.isNew).length);
+
   protected readonly activeCategoryLabel = computed(() =>
-    this.categories.find(c => c.value === this.activeCategory())?.label ?? '',
+    this.categories.find((c) => c.value === this.activeCategory())?.label ?? '',
   );
 
   protected readonly filteredProducts = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
     const cat = this.activeCategory();
-    return this.productService.products().filter(p =>
-      (cat === 'all' || p.category === (cat as ProductCategory)) &&
-      (q === '' || p.name.toLowerCase().includes(q)),
+    return this.productService.products().filter(
+      (p) =>
+        (cat === 'all' || p.category === (cat as ProductCategory)) &&
+        (q === '' || p.name.toLowerCase().includes(q)),
     );
   });
 
   constructor() {
-    addIcons({ add, cafeOutline, gridOutline, wineOutline, restaurantOutline, pricetagOutline, personCircleOutline });
+    addIcons({
+      add,
+      cafeOutline,
+      cloudUploadOutline,
+      gridOutline,
+      wineOutline,
+      restaurantOutline,
+      pricetagOutline,
+      personCircleOutline,
+    });
   }
 
   protected categoryIcon(cat: string): string {
@@ -294,5 +457,107 @@ export class ProductsComponent {
     } else {
       this.productService.updateProduct(p.id, { isActive: true });
     }
+  }
+
+  triggerFileSelect(): void {
+    this.fileInputRef.nativeElement.click();
+  }
+
+  async onFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const ab = await file.arrayBuffer();
+    const wb = read(ab);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = utils.sheet_to_json<Record<string, unknown>>(ws);
+
+    const normalizedCurrent = new Map<string, Product>();
+    for (const p of this.productService.products()) {
+      normalizedCurrent.set(this.normalizeStr(p.name), p);
+    }
+
+    const rows: ImportRow[] = [];
+    for (const r of raw) {
+      const name = String(r['name'] ?? '').trim();
+      if (!name) continue;
+
+      const rawCat = String(r['category'] ?? '').toLowerCase().trim();
+      const category = VALID_CATEGORIES.has(rawCat) ? (rawCat as ProductCategory) : 'otros';
+      const basePrice = Number(r['basePrice'] ?? 0);
+      const tipAmount = Number(r['tipAmount'] ?? 0);
+      if (!isFinite(basePrice) || !isFinite(tipAmount)) continue;
+
+      const existing = normalizedCurrent.get(this.normalizeStr(name));
+      rows.push({
+        name,
+        category,
+        basePrice,
+        tipAmount,
+        totalPrice: basePrice + tipAmount,
+        isNew: !existing,
+        existingId: existing?.id ?? null,
+      });
+    }
+
+    if (rows.length === 0) return;
+    this.importRows.set(rows);
+    this.showImportPreview.set(true);
+  }
+
+  downloadTemplate(): void {
+    const templateData = [
+      { name: 'Café Americano', category: 'bebidas', basePrice: 5000, tipAmount: 500 },
+    ];
+    const ws = utils.json_to_sheet(templateData);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Productos');
+    writeFileXLSX(wb, 'plantilla-productos.xlsx');
+  }
+
+  async applyImport(): Promise<void> {
+    if (this.importing()) return;
+    this.importing.set(true);
+    try {
+      await Promise.all(
+        this.importRows().map((row) =>
+          row.isNew
+            ? this.productService.addProduct({
+                name: row.name,
+                category: row.category,
+                basePrice: row.basePrice,
+                tipAmount: row.tipAmount,
+                totalPrice: row.totalPrice,
+                isActive: true,
+              })
+            : this.productService.updateProduct(row.existingId!, {
+                name: row.name,
+                category: row.category,
+                basePrice: row.basePrice,
+                tipAmount: row.tipAmount,
+                totalPrice: row.totalPrice,
+              }),
+        ),
+      );
+      this.cancelImport();
+    } finally {
+      this.importing.set(false);
+    }
+  }
+
+  cancelImport(): void {
+    this.showImportPreview.set(false);
+    this.importRows.set([]);
+  }
+
+  private normalizeStr(s: string): string {
+    return s
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }
