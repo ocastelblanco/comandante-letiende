@@ -9,7 +9,7 @@ import {
   authState,
 } from '@angular/fire/auth';
 import { doc, Firestore, getDoc } from '@angular/fire/firestore';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
@@ -56,6 +56,10 @@ export class AuthService implements OnDestroy {
     const role = userSnap.data()['role'] as string;
     const destination = role === 'admin' ? '/admin' : role === 'waiter' ? '/waiter' : '/barista';
     await this.router.navigate([destination]);
+  }
+
+  ready(): Promise<void> {
+    return firstValueFrom(authState(this.auth)).then(() => undefined);
   }
 
   async signOut(): Promise<void> {
