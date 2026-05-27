@@ -31,25 +31,25 @@ const NAV = [
       flex-direction: row !important;
       justify-content: flex-start !important;
       height: 100%;
-      background: #F7F5F2;
+      background: var(--color-surface);
     }
     /* Sin height explícito, ion-router-outlet queda en 0px y el contenido no aparece */
     ion-router-outlet { display: block !important; height: 100%; }
-    /* text-[#FFE7B3]/55 no genera CSS en Tailwind v4 con colores arbitrarios — usar CSS directo */
-    .nav-link       { color: rgba(255,231,179,0.55); }
-    .nav-link:hover { color: #FFE7B3; background: rgba(255,255,255,0.05); }
+    /* text-cream/55 con colores arbitrarios no genera CSS en Tailwind v4 — usar CSS directo */
+    .nav-link       { color: rgba(var(--ion-color-primary-contrast-rgb), 0.55); }
+    .nav-link:hover { color: var(--ion-color-primary-contrast); background: rgba(255,255,255,0.05); }
     .nav-link.active {
-      color: #FFE7B3 !important;
+      color: var(--ion-color-primary-contrast) !important;
       background: rgba(255,255,255,0.10) !important;
       padding-left: 10px !important;
-      border-left: 2px solid #E8630A;
+      border-left: 2px solid var(--ion-color-secondary);
     }
-    .mobile-nav-item             { color: rgba(255,231,179,0.55); }
-    .mobile-nav-item.mobile-nav-active { color: #E8630A; }
+    .mobile-nav-item             { color: rgba(var(--ion-color-primary-contrast-rgb), 0.55); }
+    .mobile-nav-item.mobile-nav-active { color: var(--ion-color-secondary); }
   `],
   template: `
     <!-- SIDEBAR — desktop only (≥1024px) -->
-    <aside class="hidden lg:flex flex-col w-60 shrink-0 bg-[#230C00]" style="height:100%">
+    <aside class="hidden lg:flex flex-col w-60 shrink-0 bg-espresso" style="height:100%">
       <div class="px-5 pt-7 pb-5 border-b border-white/10">
         <img src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" class="h-[4em] m-auto mb-[1em]">
         <p class="text-(--ion-color-primary-contrast) text-[1.5em] uppercase font-black text-center leading-none">Comandante</p>
@@ -72,15 +72,15 @@ const NAV = [
           <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
                class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/20" />
         } @else {
-          <div class="w-9 h-9 rounded-full bg-[#E8630A] flex items-center justify-center
-                      text-[#230C00] text-sm font-bold shrink-0">
+          <div class="w-9 h-9 rounded-full bg-orange flex items-center justify-center
+                      text-espresso text-sm font-bold shrink-0">
             {{ initials() }}
           </div>
         }
         <div class="flex-1 min-w-0">
-          <p class="text-[#FFE7B3] text-sm font-semibold truncate">{{ displayName() }}</p>
+          <p class="text-cream text-sm font-semibold truncate">{{ displayName() }}</p>
           <button (click)="signOut()"
-                  class="text-[#FFE7B3]/45 text-xs hover:text-[#E8630A] transition-colors">
+                  class="text-cream/45 text-xs hover:text-orange transition-colors">
             Cerrar sesión
           </button>
         </div>
@@ -94,7 +94,7 @@ const NAV = [
     </main>
 
     <!-- BOTTOM NAV — mobile only (<1024px) -->
-    <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#230C00] flex items-stretch"
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-espresso flex items-stretch"
          style="height:calc(64px + env(safe-area-inset-bottom));
                 padding-bottom:env(safe-area-inset-bottom)">
       @for (item of mobileNav; track item.path) {

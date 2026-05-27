@@ -48,7 +48,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
   `],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+      <ion-toolbar>
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
         <ion-title class="text-center">Pedidos</ion-title>
@@ -56,11 +56,11 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
                  style="width:32px;height:32px;border-radius:50%;object-fit:cover;
-                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+                        margin-right:12px;border:2px solid rgba(var(--ion-color-primary-contrast-rgb),.5)">
           } @else {
             <ion-button fill="clear">
               <ion-icon slot="icon-only" name="person-circle-outline"
-                        style="font-size:1.6rem;color:#FFE7B3" />
+                        style="font-size:1.6rem;color:var(--ion-color-primary-contrast)" />
             </ion-button>
           }
         </ion-buttons>
@@ -72,9 +72,9 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
 
         <!-- Desktop page header -->
         <div class="hidden lg:flex items-center gap-3 mb-6">
-          <h1 class="flex-1 text-2xl font-bold text-[#230C00]">Pedidos en curso</h1>
-          <span class="w-2 h-2 rounded-full bg-[#00B7A3] animate-pulse"></span>
-          <span class="text-xs text-[#230C00]/45 font-medium">En tiempo real</span>
+          <h1 class="flex-1 text-2xl font-bold text-espresso">Pedidos en curso</h1>
+          <span class="w-2 h-2 rounded-full bg-teal animate-pulse"></span>
+          <span class="text-xs text-espresso/45 font-medium">En tiempo real</span>
         </div>
 
         <!-- Filter segment -->
@@ -87,8 +87,8 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
           @for (tab of tabs; track tab.value) {
             <ion-segment-button [value]="tab.value"
                                 style="--color:rgba(35,12,0,0.5);
-                                       --color-checked:#FFE7B3;
-                                       --background-checked:#230C00;
+                                       --color-checked:var(--ion-color-primary-contrast);
+                                       --background-checked:var(--ion-color-primary);
                                        --indicator-color:transparent;
                                        --indicator-height:0;
                                        --border-radius:12px;
@@ -105,7 +105,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
         </ion-segment>
 
         <!-- Active filter label — mobile only -->
-        <p class="lg:hidden text-sm font-semibold text-[#230C00] mb-3 px-1">
+        <p class="lg:hidden text-sm font-semibold text-espresso mb-3 px-1">
           {{ activeTabLabel() }}
         </p>
 
@@ -113,7 +113,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
         @if (filteredOrders().length === 0) {
           <div class="bg-white rounded-2xl p-12 text-center
                       shadow-[0_1px_3px_rgba(35,12,0,0.08)]">
-            <p class="text-[#230C00]/35 text-sm">No hay pedidos en este estado.</p>
+            <p class="text-espresso/35 text-sm">No hay pedidos en este estado.</p>
           </div>
         } @else {
           <div class="flex flex-col gap-3">
@@ -125,29 +125,29 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                   <div class="flex items-start justify-between gap-3">
                     <div>
                       <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-base font-bold text-[#230C00]">
+                        <span class="text-base font-bold text-espresso">
                           Pedido: {{ order.tableNumber }}
                         </span>
                         <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide"
                               [style.background]="statusColor(order.status)"
-                              style="color:#230C00">
+                              style="color:var(--ion-color-primary)">
                           {{ statusLabel(order.status) }}
                         </span>
                         @if (order.paid) {
                           <span style="font-size:.625rem;font-weight:700;padding:2px 8px;
                                        border-radius:9999px;text-transform:uppercase;letter-spacing:.05em;
-                                       background:rgba(0,183,163,.15);color:#00B7A3">Pagado</span>
+                                       background:rgba(0,183,163,.15);color:var(--ion-color-tertiary)">Pagado</span>
                         } @else {
                           <span style="font-size:.625rem;font-weight:700;padding:2px 8px;
                                        border-radius:9999px;text-transform:uppercase;letter-spacing:.05em;
-                                       background:rgba(232,99,10,.12);color:#E8630A">Sin cobrar</span>
+                                       background:rgba(232,99,10,.12);color:var(--ion-color-secondary)">Sin cobrar</span>
                         }
                       </div>
-                      <p class="text-xs text-[#230C00]/45 mt-0.5">
+                      <p class="text-xs text-espresso/45 mt-0.5">
                         Mesero: {{ order.waiterName }}
                       </p>
                     </div>
-                    <p class="text-lg font-bold text-[#230C00] shrink-0">
+                    <p class="text-lg font-bold text-espresso shrink-0">
                       &#36;{{ order.total | number:'1.0-0' }}
                     </p>
                   </div>
@@ -155,7 +155,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                   <!-- Items chips -->
                   <div class="mt-3 flex flex-wrap gap-1.5">
                     @for (item of order.items; track item.productId) {
-                      <span class="bg-[#FFE7B3] text-[#230C00] text-xs font-medium
+                      <span class="bg-cream text-espresso text-xs font-medium
                                    px-2.5 py-1 rounded-full">
                         {{ item.quantity }}× {{ item.productName }}
                       </span>
@@ -165,19 +165,19 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                   <!-- Action button -->
                   <div class="mt-4">
                     @if (order.status === 'pending') {
-                      <ion-button expand="block" (click)="updateStatus(order, 'preparing')"
-                                  style="--background:#E8630A;--color:#230C00;--border-radius:12px">
+                      <ion-button expand="block" color="secondary" class="btn-rounded"
+                                  (click)="updateStatus(order, 'preparing')">
                         Marcar como preparando
                       </ion-button>
                     } @else if (order.status === 'preparing') {
-                      <ion-button expand="block" (click)="updateStatus(order, 'ready')"
-                                  style="--background:#00B7A3;--color:#230C00;--border-radius:12px">
+                      <ion-button expand="block" color="tertiary" class="btn-rounded"
+                                  (click)="updateStatus(order, 'ready')">
                         Marcar como lista ✓
                       </ion-button>
                     } @else if (order.status === 'ready') {
-                      <ion-button expand="block" fill="outline" (click)="updateStatus(order, 'delivered')"
-                                  style="--color:rgba(35,12,0,0.45);--border-color:rgba(35,12,0,0.12);
-                                         --border-radius:12px">
+                      <ion-button expand="block" fill="outline" class="btn-rounded"
+                                  style="--color:rgba(var(--ion-color-primary-rgb),0.45);--border-color:rgba(var(--ion-color-primary-rgb),0.12)"
+                                  (click)="updateStatus(order, 'delivered')">
                         Marcar como entregada
                       </ion-button>
                     }
@@ -225,7 +225,9 @@ export class AdminOrdersComponent {
   }
 
   protected statusColor(s: string): string {
-    return s === 'preparing' ? '#E8630A' : s === 'ready' ? '#00B7A3' : '#FFE7B3';
+    return s === 'preparing' ? 'var(--ion-color-secondary)'
+         : s === 'ready'     ? 'var(--ion-color-tertiary)'
+         :                     'var(--ion-color-light)';
   }
   protected statusLabel(s: string): string {
     return s === 'preparing' ? 'Preparando' : s === 'ready' ? 'Lista' : 'Pendiente';

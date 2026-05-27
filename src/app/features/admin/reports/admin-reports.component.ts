@@ -48,19 +48,19 @@ interface OrderRow {
     @media (min-width: 1024px) { ion-header { display: none; } }
     input[type="datetime-local"] {
       padding: 8px 12px;
-      border: 1.5px solid #FFE7B3;
+      border: 1.5px solid var(--ion-color-light);
       border-radius: 10px;
       font-size: .9rem;
-      color: #230C00;
+      color: var(--ion-color-primary);
       background: #fff;
       outline: none;
       cursor: pointer;
     }
-    input[type="datetime-local"]:focus { border-color: #E8630A; }
+    input[type="datetime-local"]:focus { border-color: var(--ion-color-secondary); }
   `],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+      <ion-toolbar>
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
         <ion-title>Reportes</ion-title>
@@ -68,11 +68,11 @@ interface OrderRow {
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
                  style="width:32px;height:32px;border-radius:50%;object-fit:cover;
-                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+                        margin-right:12px;border:2px solid rgba(var(--ion-color-primary-contrast-rgb),.5)">
           } @else {
             <ion-button fill="clear">
               <ion-icon slot="icon-only" name="person-circle-outline"
-                        style="font-size:1.6rem;color:#FFE7B3" />
+                        style="font-size:1.6rem;color:var(--ion-color-primary-contrast)" />
             </ion-button>
           }
         </ion-buttons>
@@ -84,17 +84,17 @@ interface OrderRow {
 
         <!-- Desktop page header -->
         <div class="hidden lg:block" style="margin-bottom:24px">
-          <h1 style="font-size:1.5rem;font-weight:700;color:#230C00">Consolidado de ventas</h1>
+          <h1 style="font-size:1.5rem;font-weight:700;color:var(--ion-color-primary)">Consolidado de ventas</h1>
         </div>
 
         <!-- Range selector -->
         <div style="background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:16px;
                     box-shadow:0 1px 3px rgba(35,12,0,.1)">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <ion-icon name="calendar-outline" style="font-size:1.25rem;color:#E8630A;flex-shrink:0" />
-            <span style="font-size:.875rem;font-weight:600;color:#230C00;flex-shrink:0">Desde</span>
+            <ion-icon name="calendar-outline" style="font-size:1.25rem;color:var(--ion-color-secondary);flex-shrink:0" />
+            <span style="font-size:.875rem;font-weight:600;color:var(--ion-color-primary);flex-shrink:0">Desde</span>
             <input type="datetime-local" [value]="startDatetime()" (change)="onStartChange($event)">
-            <span style="font-size:.875rem;font-weight:600;color:#230C00;flex-shrink:0">Hasta</span>
+            <span style="font-size:.875rem;font-weight:600;color:var(--ion-color-primary);flex-shrink:0">Hasta</span>
             <input type="datetime-local" [value]="endDatetime()" (change)="onEndChange($event)">
           </div>
         </div>
@@ -102,7 +102,7 @@ interface OrderRow {
         <!-- Loading -->
         @if (loading()) {
           <div style="display:flex;justify-content:center;padding:64px 0">
-            <ion-spinner name="crescent" style="--color:#E8630A;width:36px;height:36px" />
+            <ion-spinner name="crescent" style="--color:var(--ion-color-secondary);width:36px;height:36px" />
           </div>
 
         <!-- Error state -->
@@ -111,7 +111,7 @@ interface OrderRow {
                       display:flex;flex-direction:column;align-items:center;justify-content:center;
                       padding:48px 24px;gap:10px">
             <p style="font-size:.875rem;font-weight:600;color:#C0392B;margin:0">Error al cargar el reporte</p>
-            <p style="font-size:.8rem;color:rgba(35,12,0,.5);text-align:center;max-width:320px;margin:0">
+            <p style="font-size:.8rem;color:rgba(var(--ion-color-primary-rgb),.5);text-align:center;max-width:320px;margin:0">
               {{ errorMsg() }}
             </p>
           </div>
@@ -122,9 +122,9 @@ interface OrderRow {
                       display:flex;flex-direction:column;align-items:center;justify-content:center;
                       padding:64px 24px;gap:12px">
             <ion-icon name="bar-chart-outline"
-                      style="font-size:3.5rem;color:rgba(35,12,0,0.18)" />
-            <p style="font-size:1rem;font-weight:600;color:#230C00;margin:0">Sin pedidos en el rango</p>
-            <p style="font-size:.875rem;color:rgba(35,12,0,.4);text-align:center;max-width:260px;margin:0">
+                      style="font-size:3.5rem;color:rgba(var(--ion-color-primary-rgb),0.18)" />
+            <p style="font-size:1rem;font-weight:600;color:var(--ion-color-primary);margin:0">Sin pedidos en el rango</p>
+            <p style="font-size:.875rem;color:rgba(var(--ion-color-primary-rgb),.4);text-align:center;max-width:260px;margin:0">
               No hay pedidos cobrados en el período seleccionado.
             </p>
           </div>
@@ -132,8 +132,8 @@ interface OrderRow {
         <!-- Consolidado table -->
         } @else {
           <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-            <ion-button (click)="exportToExcel()" fill="outline"
-                        style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
+            <ion-button (click)="exportToExcel()" fill="outline" class="btn-rounded"
+                        style="--color:var(--ion-color-primary);--border-color:rgba(var(--ion-color-primary-rgb),0.25)">
               <ion-icon slot="start" name="download-outline" />
               Descargar Excel
             </ion-button>
@@ -142,44 +142,44 @@ interface OrderRow {
             <div style="overflow-x:auto">
               <table style="width:100%;border-collapse:collapse;min-width:700px">
                 <thead>
-                  <tr style="background:#230C00">
+                  <tr style="background:var(--ion-color-primary)">
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Pedido
                     </th>
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3;white-space:nowrap">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast);white-space:nowrap">
                       Hora de cobro
                     </th>
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3;white-space:nowrap">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast);white-space:nowrap">
                       Medio de pago
                     </th>
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Ítems
                     </th>
                     <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Base
                     </th>
                     <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Propina
                     </th>
                     <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                               text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Total
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of orders(); track row.id) {
-                    <tr style="border-bottom:1px solid #FFE7B3">
-                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;font-weight:600">
+                    <tr style="border-bottom:1px solid var(--ion-color-light)">
+                      <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);font-weight:600">
                         {{ row.tableNumber }}
                       </td>
-                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;white-space:nowrap">
+                      <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);white-space:nowrap">
                         {{ row.paidAtLabel }}
                       </td>
                       <td style="padding:10px 16px">
@@ -189,16 +189,16 @@ interface OrderRow {
                           {{ row.paymentLabel }}
                         </span>
                       </td>
-                      <td style="padding:10px 16px;font-size:.8rem;color:#82746c;max-width:220px">
+                      <td style="padding:10px 16px;font-size:.8rem;color:var(--ion-color-medium);max-width:220px">
                         {{ row.itemsLabel }}
                       </td>
-                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;text-align:right;white-space:nowrap">
+                      <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);text-align:right;white-space:nowrap">
                         $ {{ row.base | number:'1.0-0' }}
                       </td>
-                      <td style="padding:10px 16px;font-size:.875rem;color:#251a00;text-align:right;white-space:nowrap">
+                      <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);text-align:right;white-space:nowrap">
                         $ {{ row.tip | number:'1.0-0' }}
                       </td>
-                      <td style="padding:10px 16px;font-size:.875rem;font-weight:700;color:#251a00;
+                      <td style="padding:10px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-dark);
                                  text-align:right;white-space:nowrap">
                         $ {{ row.total | number:'1.0-0' }}
                       </td>
@@ -206,19 +206,19 @@ interface OrderRow {
                   }
                 </tbody>
                 <tfoot>
-                  <tr style="background:#FFF8F1;border-top:2px solid #FFE7B3">
-                    <td colspan="4" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#230C00">
+                  <tr style="background:var(--ion-background-color);border-top:2px solid var(--ion-color-light)">
+                    <td colspan="4" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary)">
                       Total del rango
                     </td>
-                    <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#230C00;
+                    <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary);
                                text-align:right;white-space:nowrap">
                       $ {{ totals().base | number:'1.0-0' }}
                     </td>
-                    <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:#E8630A;
+                    <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-secondary);
                                text-align:right;white-space:nowrap">
                       $ {{ totals().tip | number:'1.0-0' }}
                     </td>
-                    <td style="padding:12px 16px;font-size:1rem;font-weight:700;color:#E8630A;
+                    <td style="padding:12px 16px;font-size:1rem;font-weight:700;color:var(--ion-color-secondary);
                                text-align:right;white-space:nowrap">
                       $ {{ totals().total | number:'1.0-0' }}
                     </td>
@@ -321,10 +321,10 @@ export class AdminReportsComponent {
   }
 
   private paymentColor(method: string | null): string {
-    if (method === 'card') return '#E8630A';
-    if (method === 'cash') return '#00B7A3';
-    if (method === 'nequi' || method === 'daviplata') return '#5C2E91';
-    return '#82746c';
+    if (method === 'card') return 'var(--ion-color-secondary)';
+    if (method === 'cash') return 'var(--ion-color-tertiary)';
+    if (method === 'nequi' || method === 'daviplata') return 'var(--color-purple)';
+    return 'var(--ion-color-medium)';
   }
 
   private paymentLabel(method: string | null): string {
