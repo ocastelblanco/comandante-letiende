@@ -13,9 +13,54 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 0)
+## 2. Tareas Activas (WIP: 2)
 
-_Sin tareas activas — evaluar siguiente ciclo contra PRD._
+### Tarea 12: [FEATURE] Persistencia de Sesión + Logout desde el Avatar
+*   **Origen:** Al recargar el navegador (Chrome macOS y Chrome Android) la sesión se pierde y redirige a `/login`. Adicionalmente, no existe forma de cerrar sesión en las interfaces de mesero, barista ni admin-móvil.
+*   **Causa raíz probable:** El `authGuard` evalúa `isAuthenticated()` de forma sincrónica antes de que Firebase Auth haya restaurado la sesión desde `localStorage`. La solución es aguardar `auth.authStateReady()` en el guard antes de evaluar el estado.
+*   **Archivos a Modificar:**
+    *   `src/app/core/auth/auth.guard.ts` — convertir el guard a función `async`, awaitar `auth.authStateReady()` antes de leer `isAuthenticated()`.
+    *   `src/app/core/auth/auth.service.ts` — exponer `auth` (instancia de Firebase Auth) o un método `ready(): Promise<void>` que wrappee `authStateReady()`.
+    *   `src/app/features/waiter/waiter.component.ts` — al hacer clic sobre el avatar, abrir `IonPopover` con opción "Cerrar sesión"; al confirmar, llamar `authService.signOut()`.
+    *   `src/app/features/barista/barista.component.ts` — mismo popover de logout en avatar.
+    *   `src/app/features/admin/admin.component.ts` — logout en el avatar del toolbar móvil (el sidebar de escritorio ya puede tener su propio enlace de salida).
+*   **Definición de Done (Checklist):**
+    - `[ ]` Recargar la página en Chrome macOS mantiene la sesión y lleva al usuario a su vista correcta.
+    - `[ ]` Recargar en Chrome Android mantiene la sesión.
+    - `[ ]` Clic sobre el avatar del mesero muestra popover con "Cerrar sesión".
+    - `[ ]` Clic sobre el avatar del barista muestra popover con "Cerrar sesión".
+    - `[ ]` Admin en móvil tiene acceso a "Cerrar sesión" desde el avatar.
+    - `[ ]` `signOut()` limpia el estado y redirige a `/login`.
+    - `[ ]` `npm run build` sin errores.
+
+### Tarea 13: [INFRA] Reparar `deploy_live` en GitHub Actions
+*   **Origen:** La GitHub Action `deploy_live` falla con `403 Permission denied to get service [firestore.googleapis.com]` al intentar hacer `firebase deploy --only firestore:rules`. El subdominio `https://comandante.letiende.co` no puede publicarse hasta resolverlo.
+*   **Causa raíz probable:** La cuenta de servicio usada en el secreto de GitHub Actions (`FIREBASE_SERVICE_ACCOUNT` o equivalente) no posee el rol `roles/serviceusage.serviceUsageConsumer` (necesario para que `firebase-tools` verifique APIs habilitadas) ni los permisos de Firestore/Hosting para hacer el deploy.
+*   **Archivos a Revisar / Modificar:**
+    *   `.github/workflows/deploy_live.yml` — revisar qué secreto usa, qué comando ejecuta y qué proyecto destino.
+    *   Google Cloud IAM (consola) — añadir a la cuenta de servicio los roles: `Firebase Admin SDK Administrator Service Agent` (o `Editor`) + `Service Usage Consumer`.
+    *   Si el secreto contiene el JSON de una cuenta de servicio equivocada, regenerar y actualizar el secreto en GitHub → Settings → Secrets.
+*   **Definición de Done (Checklist):**
+    - `[ ]` `deploy_live` corre sin errores en GitHub Actions al hacer push a `main`.
+    - `[ ]` Las reglas de Firestore y el hosting se despliegan correctamente al entorno de producción (`comandante-letiende`).
+    - `[ ]` El secreto de GitHub Actions está actualizado si fue necesario rotarlo.
+
+---
+
+## 2.5. Cola de Tareas (siguiente ciclo)
+
+### Tarea 14: [INFRA] Apuntar `comandante.letiende.co` → Firebase Hosting (Route 53)
+*   **Origen:** El subdominio de producción no está conectado. Depende conceptualmente de que `deploy_live` esté operativo (Tarea 13).
+*   **Pasos:**
+    1. En Firebase Hosting (consola) → Add custom domain → `comandante.letiende.co` → Firebase entrega los registros DNS (TXT de verificación + CNAME/A de enrutamiento).
+    2. En AWS Route 53, zona `letiende.co` → crear los registros que Firebase indique.
+    3. Aguardar propagación y verificar certificado SSL automático de Firebase.
+*   **Archivos a Revisar:** `firebase.json` (targets de hosting si hay multi-site).
+
+### Tarea 15: [REFACTOR] Migración de estilos inline → Tailwind semántico + variables CSS del tema
+*   **Origen:** La app mezcla `style="..."` inline con clases Tailwind de forma inconsistente. Los colores están hardcodeados (`#230C00`, `#E8630A`) en lugar de usar las variables del tema Ionic (`var(--ion-color-primary)`, etc.).
+*   **Alcance:** Todos los componentes de `src/app/features/` y los shared. Establecer primero las variables en `src/theme/variables.css`, luego reemplazar color-hardcodes en los templates.
+*   **Definición de Done:** Cero ocurrencias de colores hexadecimales hardcodeados en templates de Angular; todas las instancias de `style="color:#..."` y `style="background:#..."` eliminadas y sustituidas por clases Tailwind o variables CSS.
 
 ---
 
@@ -94,3 +139,4 @@ _Sin tareas activas — evaluar siguiente ciclo contra PRD._
 | 2026-05-26 | Tarea 10 completada. Consolidado de ventas operativo: selector de fecha, tabla por producto con discriminación base/propina/total, totales del día. Flujo completo Fase 1 cerrado: mesero toma pedido → barista prepara → mesero entrega y cobra → admin cuadra caja. Evaluar PRD para siguiente ciclo de mejoras. | WIP baja a 0. Fase 1 del producto completada. |
 | 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
 | 2026-05-26 | Tarea 11 completada. Modelo, servicio, reglas, índices, mesero y reporte del admin actualizados. Índice `(paid ASC, paidAt ASC)` desplegado a staging. Build verde. El flujo completo ahora registra medio de pago y timestamp exacto de cobro, y el admin puede cuadrar caja para eventos que cruzan medianoche. Evaluar PRD para siguiente ciclo. | WIP baja a 0. |
+| 2026-05-27 | Feedback operativo post-merge de `feature/sales-consolidado`: (1) sesión no persiste al recargar navegador en macOS ni Android — bug crítico de usabilidad; (2) sin opción de cerrar sesión en waiter/barista/admin-móvil; (3) GitHub Action `deploy_live` falla con 403 en IAM — bloquea publicación en producción; (4) DNS de `comandante.letiende.co` sin configurar en Route 53; (5) estilos inline caóticos — hardcoded hex en lugar de variables del tema. Cuatro tareas agrupadas en dos activas + dos en cola. | WIP sube a 2. Tareas 12 (sesión+logout) y 13 (deploy_live) como activas. Tareas 14 (Route 53) y 15 (Tailwind refactor) en cola. |
