@@ -13,9 +13,9 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 2)
+## 2. Tareas Activas (WIP: 1)
 
-### Tarea 12: [FEATURE] Persistencia de Sesión + Logout desde el Avatar
+### ✅ Tarea 12: [FEATURE] Persistencia de Sesión + Logout desde el Avatar
 *   **Origen:** Al recargar el navegador (Chrome macOS y Chrome Android) la sesión se pierde y redirige a `/login`. Adicionalmente, no existe forma de cerrar sesión en las interfaces de mesero, barista ni admin-móvil.
 *   **Causa raíz probable:** El `authGuard` evalúa `isAuthenticated()` de forma sincrónica antes de que Firebase Auth haya restaurado la sesión desde `localStorage`. La solución es aguardar `auth.authStateReady()` en el guard antes de evaluar el estado.
 *   **Archivos a Modificar:**
@@ -139,4 +139,5 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-26 | Tarea 10 completada. Consolidado de ventas operativo: selector de fecha, tabla por producto con discriminación base/propina/total, totales del día. Flujo completo Fase 1 cerrado: mesero toma pedido → barista prepara → mesero entrega y cobra → admin cuadra caja. Evaluar PRD para siguiente ciclo de mejoras. | WIP baja a 0. Fase 1 del producto completada. |
 | 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
 | 2026-05-26 | Tarea 11 completada. Modelo, servicio, reglas, índices, mesero y reporte del admin actualizados. Índice `(paid ASC, paidAt ASC)` desplegado a staging. Build verde. El flujo completo ahora registra medio de pago y timestamp exacto de cobro, y el admin puede cuadrar caja para eventos que cruzan medianoche. Evaluar PRD para siguiente ciclo. | WIP baja a 0. |
+| 2026-05-27 | Tarea 12 completada. `AuthService.ready()` añadido usando `firstValueFrom(authState)` — el guard ahora awaita la inicialización de Firebase antes de evaluar `isAuthenticated()`, eliminando el falso redirect a `/login` al recargar. Logout desde avatar implementado en mesero (ActionSheet existente) y barista (ActionSheetController inyectado); admin móvil tiene botón "Salir" en bottom nav. PR #16 abierto. Build verde. | WIP baja a 1. Tarea 13 (deploy_live) queda como única activa. |
 | 2026-05-27 | Feedback operativo post-merge de `feature/sales-consolidado`: (1) sesión no persiste al recargar navegador en macOS ni Android — bug crítico de usabilidad; (2) sin opción de cerrar sesión en waiter/barista/admin-móvil; (3) GitHub Action `deploy_live` falla con 403 en IAM — bloquea publicación en producción; (4) DNS de `comandante.letiende.co` sin configurar en Route 53; (5) estilos inline caóticos — hardcoded hex en lugar de variables del tema. Cuatro tareas agrupadas en dos activas + dos en cola. | WIP sube a 2. Tareas 12 (sesión+logout) y 13 (deploy_live) como activas. Tareas 14 (Route 53) y 15 (Tailwind refactor) en cola. |

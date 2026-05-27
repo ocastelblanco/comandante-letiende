@@ -31,6 +31,7 @@ import {
   arrowBackOutline,
   closeOutline,
   filterOutline,
+  logOutOutline,
   notificationsOutline,
   personCircleOutline,
   removeCircleOutline,
@@ -102,9 +103,11 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
           <ion-title class="text-center">Comandante</ion-title>
           <ion-buttons slot="end">
             @if (authService.currentUser()?.photoURL; as photoURL) {
-              <img [src]="photoURL" alt="avatar" referrerpolicy="no-referrer" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+              <img [src]="photoURL" alt="avatar" referrerpolicy="no-referrer"
+                   (click)="openUserMenu()"
+                   style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5);cursor:pointer">
             } @else {
-              <ion-button fill="clear">
+              <ion-button fill="clear" (click)="openUserMenu()">
                 <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:#FFE7B3" />
               </ion-button>
             }
@@ -448,6 +451,7 @@ export class WaiterComponent {
       arrowBackOutline,
       closeOutline,
       filterOutline,
+      logOutOutline,
       notificationsOutline,
       personCircleOutline,
       timeOutline,
@@ -506,6 +510,22 @@ export class WaiterComponent {
 
   async markDelivered(order: Order): Promise<void> {
     await this.orderService.updateOrderStatus(order.id, 'delivered');
+  }
+
+  async openUserMenu(): Promise<void> {
+    const sheet = await this.actionSheetCtrl.create({
+      header: this.authService.currentUser()?.displayName ?? 'Usuario',
+      buttons: [
+        {
+          text: 'Cerrar sesión',
+          role: 'destructive',
+          icon: 'log-out-outline',
+          handler: () => { void this.authService.signOut(); },
+        },
+        { text: 'Cancelar', role: 'cancel' },
+      ],
+    });
+    await sheet.present();
   }
 
   async markPaid(order: Order): Promise<void> {

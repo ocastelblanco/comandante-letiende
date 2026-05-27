@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import {
+  ActionSheetController,
   IonButton,
   IonButtons,
   IonContent,
@@ -10,7 +11,7 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personCircleOutline } from 'ionicons/icons';
+import { logOutOutline, personCircleOutline } from 'ionicons/icons';
 import { AuthService } from '../../core/auth/auth.service';
 import { OrderService } from '../../core/db/order.service';
 import { Order } from '../../core/models/order.model';
@@ -29,10 +30,11 @@ import { Order } from '../../core/models/order.model';
         <ion-buttons slot="end">
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
+                 (click)="openUserMenu()"
                  style="width:32px;height:32px;border-radius:50%;object-fit:cover;
-                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+                        margin-right:12px;border:2px solid rgba(255,231,179,.5);cursor:pointer">
           } @else {
-            <ion-button fill="clear">
+            <ion-button fill="clear" (click)="openUserMenu()">
               <ion-icon slot="icon-only" name="person-circle-outline"
                         style="font-size:1.6rem;color:#FFE7B3" />
             </ion-button>
@@ -171,6 +173,7 @@ import { Order } from '../../core/models/order.model';
 export class BaristaComponent {
   private auth = inject(AuthService);
   private orderService = inject(OrderService);
+  private actionSheetCtrl = inject(ActionSheetController);
 
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly pendingOrders = computed(() =>
@@ -181,7 +184,23 @@ export class BaristaComponent {
   );
 
   constructor() {
-    addIcons({ personCircleOutline });
+    addIcons({ logOutOutline, personCircleOutline });
+  }
+
+  async openUserMenu(): Promise<void> {
+    const sheet = await this.actionSheetCtrl.create({
+      header: this.auth.currentUser()?.displayName ?? 'Usuario',
+      buttons: [
+        {
+          text: 'Cerrar sesión',
+          role: 'destructive',
+          icon: 'log-out-outline',
+          handler: () => { void this.auth.signOut(); },
+        },
+        { text: 'Cancelar', role: 'cancel' },
+      ],
+    });
+    await sheet.present();
   }
 
   startPreparing(order: Order): void {

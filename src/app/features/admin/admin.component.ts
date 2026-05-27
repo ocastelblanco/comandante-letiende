@@ -6,6 +6,7 @@ import {
   appsOutline,
   barChartOutline,
   cubeOutline,
+  logOutOutline,
   peopleOutline,
   receiptOutline,
 } from 'ionicons/icons';
@@ -105,6 +106,13 @@ const NAV = [
           {{ item.label }}
         </a>
       }
+      <button (click)="signOut()"
+              class="mobile-nav-item flex-1 flex flex-col items-center justify-center gap-1
+                     text-[10px] font-semibold tracking-wide min-h-[48px]"
+              style="background:none;border:none;cursor:pointer">
+        <ion-icon name="log-out-outline" class="text-2xl" />
+        Salir
+      </button>
     </nav>
   `,
 })
@@ -121,7 +129,7 @@ export class AdminComponent {
   );
 
   constructor() {
-    addIcons({ appsOutline, receiptOutline, cubeOutline, peopleOutline, barChartOutline });
+    addIcons({ appsOutline, receiptOutline, cubeOutline, peopleOutline, barChartOutline, logOutOutline });
   }
 
   async signOut(): Promise<void> {
