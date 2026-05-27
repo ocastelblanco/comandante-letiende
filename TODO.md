@@ -15,29 +15,34 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2. Tareas Activas (WIP: 1)
 
-### Tarea 13: [INFRA] Reparar `deploy_live` en GitHub Actions
-*   **Origen:** La GitHub Action `deploy_live` falla con `403 Permission denied to get service [firestore.googleapis.com]` al intentar hacer `firebase deploy --only firestore:rules`. El subdominio `https://comandante.letiende.co` no puede publicarse hasta resolverlo.
-*   **Causa raíz probable:** La cuenta de servicio usada en el secreto de GitHub Actions (`FIREBASE_SERVICE_ACCOUNT` o equivalente) no posee el rol `roles/serviceusage.serviceUsageConsumer` (necesario para que `firebase-tools` verifique APIs habilitadas) ni los permisos de Firestore/Hosting para hacer el deploy.
-*   **Archivos a Revisar / Modificar:**
-    *   `.github/workflows/deploy_live.yml` — revisar qué secreto usa, qué comando ejecuta y qué proyecto destino.
-    *   Google Cloud IAM (consola) — añadir a la cuenta de servicio los roles: `Firebase Admin SDK Administrator Service Agent` (o `Editor`) + `Service Usage Consumer`.
-    *   Si el secreto contiene el JSON de una cuenta de servicio equivocada, regenerar y actualizar el secreto en GitHub → Settings → Secrets.
-*   **Definición de Done (Checklist):**
-    - `[ ]` `deploy_live` corre sin errores en GitHub Actions al hacer push a `main`.
-    - `[ ]` Las reglas de Firestore y el hosting se despliegan correctamente al entorno de producción (`comandante-letiende`).
-    - `[ ]` El secreto de GitHub Actions está actualizado si fue necesario rotarlo.
-
----
-
-## 2.5. Cola de Tareas (siguiente ciclo)
-
 ### Tarea 14: [INFRA] Apuntar `comandante.letiende.co` → Firebase Hosting (Route 53)
-*   **Origen:** El subdominio de producción no está conectado. Depende conceptualmente de que `deploy_live` esté operativo (Tarea 13).
+*   **Origen:** El subdominio de producción no está conectado. Firebase Hosting ya despliega correctamente el hosting en cada push a `main` (solo el step de Firestore rules da 403, no el de hosting). La propagación DNS puede tardar hasta 48 h — se ejecuta antes que Tarea 13 para aprovechar ese tiempo.
 *   **Pasos:**
     1. En Firebase Hosting (consola) → Add custom domain → `comandante.letiende.co` → Firebase entrega los registros DNS (TXT de verificación + CNAME/A de enrutamiento).
     2. En AWS Route 53, zona `letiende.co` → crear los registros que Firebase indique.
     3. Aguardar propagación y verificar certificado SSL automático de Firebase.
 *   **Archivos a Revisar:** `firebase.json` (targets de hosting si hay multi-site).
+*   **Definición de Done (Checklist):**
+    - `[ ]` Dominio `comandante.letiende.co` agregado en Firebase Hosting console.
+    - `[ ]` Registros TXT y CNAME/A creados en Route 53 zona `letiende.co`.
+    - `[ ]` Firebase verifica el dominio y emite el certificado SSL.
+    - `[ ]` `https://comandante.letiende.co` carga la app correctamente.
+
+---
+
+## 2.5. Cola de Tareas (siguiente ciclo)
+
+### Tarea 13: [INFRA] Reparar step `Deploy Firestore rules` en GitHub Actions
+*   **Origen:** El step `Deploy Firestore rules` del workflow `deploy-hosting.yml` falla con `403 Permission denied to get service [firestore.googleapis.com]`. El hosting se despliega correctamente (paso anterior usa la Action de Firebase); solo el step que ejecuta `npx firebase-tools deploy --only firestore:rules` con `GOOGLE_APPLICATION_CREDENTIALS` directo falla. Se ejecuta después de Tarea 14 para aprovechar la espera de propagación DNS.
+*   **Causa raíz probable:** La cuenta de servicio `FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE` no posee `roles/serviceusage.serviceUsageConsumer` ni permisos de Firestore para hacer el deploy vía CLI.
+*   **Archivos a Revisar / Modificar:**
+    *   `.github/workflows/deploy-hosting.yml` — step `Deploy Firestore rules`.
+    *   Google Cloud IAM (consola) — añadir a la cuenta de servicio los roles: `Firebase Admin SDK Administrator Service Agent` + `Service Usage Consumer`.
+    *   Si el secreto contiene el JSON de una cuenta de servicio equivocada, regenerar y actualizar el secreto en GitHub → Settings → Secrets.
+*   **Definición de Done (Checklist):**
+    - `[ ]` Step `Deploy Firestore rules` corre sin errores al hacer push a `main`.
+    - `[ ]` Las reglas de Firestore se despliegan correctamente al proyecto `comandante-letiende`.
+    - `[ ]` El secreto de GitHub Actions está actualizado si fue necesario rotarlo.
 
 ### Tarea 15: [REFACTOR] Migración de estilos inline → Tailwind semántico + variables CSS del tema
 *   **Origen:** La app mezcla `style="..."` inline con clases Tailwind de forma inconsistente. Los colores están hardcodeados (`#230C00`, `#E8630A`) en lugar de usar las variables del tema Ionic (`var(--ion-color-primary)`, etc.).
@@ -127,5 +132,6 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
 | 2026-05-26 | Tarea 11 completada. Modelo, servicio, reglas, índices, mesero y reporte del admin actualizados. Índice `(paid ASC, paidAt ASC)` desplegado a staging. Build verde. El flujo completo ahora registra medio de pago y timestamp exacto de cobro, y el admin puede cuadrar caja para eventos que cruzan medianoche. Evaluar PRD para siguiente ciclo. | WIP baja a 0. |
 | 2026-05-27 | Tarea 12 completada. `AuthService.ready()` añadido usando `firstValueFrom(authState)` — el guard ahora awaita la inicialización de Firebase antes de evaluar `isAuthenticated()`, eliminando el falso redirect a `/login` al recargar. Logout desde avatar implementado en mesero (ActionSheet existente) y barista (ActionSheetController inyectado); admin móvil tiene botón "Salir" en bottom nav. PR #16 abierto. Build verde. | WIP baja a 1. Tarea 13 (deploy_live) queda como única activa. |
+| 2026-05-27 | Análisis de dependencias Tarea 13 vs 14: el step de hosting del workflow ya funciona (usa la GitHub Action); solo el step de Firestore rules da 403. El dominio personalizado no necesita CI verde — solo que el hosting exista. DNS puede tardar 48 h → iniciar antes ahorra tiempo. Orden invertido: 14 (DNS) → 13 (IAM fix). | Tarea 14 pasa a activa. Tarea 13 pasa a cola. WIP se mantiene en 1. |
 | 2026-05-27 | PR #16 (`fix/session-persistence`) fusionado a `main`. Repo local limpiado: `main` actualizado con fast-forward (3 commits), rama local `fix/session-persistence` eliminada. Única tarea activa restante: Tarea 13 (deploy_live 403). | WIP se mantiene en 1. Tarea 13 es la próxima a ejecutar. |
 | 2026-05-27 | Feedback operativo post-merge de `feature/sales-consolidado`: (1) sesión no persiste al recargar navegador en macOS ni Android — bug crítico de usabilidad; (2) sin opción de cerrar sesión en waiter/barista/admin-móvil; (3) GitHub Action `deploy_live` falla con 403 en IAM — bloquea publicación en producción; (4) DNS de `comandante.letiende.co` sin configurar en Route 53; (5) estilos inline caóticos — hardcoded hex en lugar de variables del tema. Cuatro tareas agrupadas en dos activas + dos en cola. | WIP sube a 2. Tareas 12 (sesión+logout) y 13 (deploy_live) como activas. Tareas 14 (Route 53) y 15 (Tailwind refactor) en cola. |
