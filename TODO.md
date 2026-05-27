@@ -13,19 +13,7 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 1)
-
-### Tarea 13: [INFRA] Reparar step `Deploy Firestore rules` en GitHub Actions
-*   **Origen:** El step `Deploy Firestore rules` del workflow `deploy-hosting.yml` falla con `403 Permission denied to get service [firestore.googleapis.com]`. El hosting se despliega correctamente (paso anterior usa la Action de Firebase); solo el step que ejecuta `npx firebase-tools deploy --only firestore:rules` con `GOOGLE_APPLICATION_CREDENTIALS` directo falla.
-*   **Causa raíz probable:** La cuenta de servicio `FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE` no posee `roles/serviceusage.serviceUsageConsumer` ni permisos de Firestore para hacer el deploy vía CLI.
-*   **Archivos a Revisar / Modificar:**
-    *   `.github/workflows/deploy-hosting.yml` — step `Deploy Firestore rules`.
-    *   Google Cloud IAM (consola) — añadir a la cuenta de servicio los roles: `Firebase Admin SDK Administrator Service Agent` + `Service Usage Consumer`.
-    *   Si el secreto contiene el JSON de una cuenta de servicio equivocada, regenerar y actualizar el secreto en GitHub → Settings → Secrets.
-*   **Definición de Done (Checklist):**
-    - `[ ]` Step `Deploy Firestore rules` corre sin errores al hacer push a `main`.
-    - `[ ]` Las reglas de Firestore se despliegan correctamente al proyecto `comandante-letiende`.
-    - `[ ]` El secreto de GitHub Actions está actualizado si fue necesario rotarlo.
+## 2. Tareas Activas (WIP: 0)
 
 ---
 
@@ -39,6 +27,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 13: [INFRA] Reparar step `Deploy Firestore rules` en GitHub Actions
+*   **Completada:** 2026-05-27
+*   **Causa raíz real:** La SA `firebase-adminsdk-fbsvc@comandante-letiende.iam.gserviceaccount.com` carecía de dos roles: (1) `roles/serviceusage.serviceUsageConsumer` — necesario para que `firebase-tools` verifique que `firestore.googleapis.com` está habilitada vía `serviceusage.services.get`; (2) `roles/firebaserules.admin` — necesario para compilar y publicar las reglas vía `firebaserules.googleapis.com/v1/projects/:test`. Ambos roles añadidos vía Cloud Resource Manager REST API usando el token OAuth del Firebase CLI local.
+*   **Resultado:** Todos los steps del workflow `deploy-hosting.yml` pasan en verde: `Instalar dependencias ✓ → Build de producción ✓ → Deploy al canal live ✓ → Deploy Firestore rules ✓`. CI completamente operativo en cada push a `main`.
 
 ### ✅ Tarea 14: [INFRA] Apuntar `comandante.letiende.co` → Firebase Hosting (Route 53)
 *   **Completada:** 2026-05-27
@@ -123,6 +116,7 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
 | 2026-05-26 | Tarea 11 completada. Modelo, servicio, reglas, índices, mesero y reporte del admin actualizados. Índice `(paid ASC, paidAt ASC)` desplegado a staging. Build verde. El flujo completo ahora registra medio de pago y timestamp exacto de cobro, y el admin puede cuadrar caja para eventos que cruzan medianoche. Evaluar PRD para siguiente ciclo. | WIP baja a 0. |
 | 2026-05-27 | Tarea 12 completada. `AuthService.ready()` añadido usando `firstValueFrom(authState)` — el guard ahora awaita la inicialización de Firebase antes de evaluar `isAuthenticated()`, eliminando el falso redirect a `/login` al recargar. Logout desde avatar implementado en mesero (ActionSheet existente) y barista (ActionSheetController inyectado); admin móvil tiene botón "Salir" en bottom nav. PR #16 abierto. Build verde. | WIP baja a 1. Tarea 13 (deploy_live) queda como única activa. |
+| 2026-05-27 | Tarea 13 completada. SA `firebase-adminsdk-fbsvc` carecía de `roles/serviceusage.serviceUsageConsumer` (error 1) y `roles/firebaserules.admin` (error 2). Ambos roles añadidos vía Cloud Resource Manager API en dos iteraciones. CI verde: todos los steps pasan. WIP baja a 0. Única tarea en cola: Tarea 15 (Tailwind refactor). | WIP = 0. Fase de estabilización completa. |
 | 2026-05-27 | Tarea 14 completada. Dominio `comandante.letiende.co` agregado en Firebase Hosting via REST API. Registros `A → 199.36.158.100` y `TXT _acme-challenge` creados en Route 53. DNS propagado al instante. Firebase emitiendo certificado SSL (`CERT_PENDING`). Tarea 13 (IAM fix para Firestore rules en CI) pasa a ser la única activa. | WIP se mantiene en 1. |
 | 2026-05-27 | Análisis de dependencias Tarea 13 vs 14: el step de hosting del workflow ya funciona (usa la GitHub Action); solo el step de Firestore rules da 403. El dominio personalizado no necesita CI verde — solo que el hosting exista. DNS puede tardar 48 h → iniciar antes ahorra tiempo. Orden invertido: 14 (DNS) → 13 (IAM fix). | Tarea 14 pasa a activa. Tarea 13 pasa a cola. WIP se mantiene en 1. |
 | 2026-05-27 | PR #16 (`fix/session-persistence`) fusionado a `main`. Repo local limpiado: `main` actualizado con fast-forward (3 commits), rama local `fix/session-persistence` eliminada. Única tarea activa restante: Tarea 13 (deploy_live 403). | WIP se mantiene en 1. Tarea 13 es la próxima a ejecutar. |
