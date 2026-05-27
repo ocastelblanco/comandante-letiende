@@ -262,6 +262,7 @@ const CATEGORY_ICONS: Record<string, string> = {
             <ion-button (click)="triggerFileSelect()" fill="outline"
                         style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
               <ion-icon slot="start" name="cloud-upload-outline" />
+              &nbsp;
               Cargar Excel
             </ion-button>
             <ion-button (click)="openAdd()"
@@ -525,20 +526,20 @@ export class ProductsComponent {
         this.importRows().map((row) =>
           row.isNew
             ? this.productService.addProduct({
-                name: row.name,
-                category: row.category,
-                basePrice: row.basePrice,
-                tipAmount: row.tipAmount,
-                totalPrice: row.totalPrice,
-                isActive: true,
-              })
+              name: row.name,
+              category: row.category,
+              basePrice: row.basePrice,
+              tipAmount: row.tipAmount,
+              totalPrice: row.totalPrice,
+              isActive: true,
+            })
             : this.productService.updateProduct(row.existingId!, {
-                name: row.name,
-                category: row.category,
-                basePrice: row.basePrice,
-                tipAmount: row.tipAmount,
-                totalPrice: row.totalPrice,
-              }),
+              name: row.name,
+              category: row.category,
+              basePrice: row.basePrice,
+              tipAmount: row.tipAmount,
+              totalPrice: row.totalPrice,
+            }),
         ),
       );
       this.cancelImport();
