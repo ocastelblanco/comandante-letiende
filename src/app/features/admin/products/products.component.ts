@@ -20,6 +20,9 @@ import {
   add,
   cafeOutline,
   cloudUploadOutline,
+  createOutline,
+  eyeOffOutline,
+  eyeOutline,
   gridOutline,
   personCircleOutline,
   pricetagOutline,
@@ -307,18 +310,55 @@ const CATEGORY_ICONS: Record<string, string> = {
           {{ activeCategoryLabel() }}
         </p>
 
-        <!-- Product grid: 2 cols mobile, 3 cols desktop -->
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+        <!-- Mobile: lista de productos -->
+        <div class="lg:hidden flex flex-col gap-2 pb-32">
+          @for (p of filteredProducts(); track p.id) {
+            <div class="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)]"
+                 [class.opacity-50]="!p.isActive">
+              <div class="w-9 h-9 rounded-full bg-cream/60 flex items-center justify-center shrink-0">
+                <ion-icon [name]="categoryIcon(p.category)"
+                          style="font-size:1.2rem;color:rgba(var(--ion-color-primary-rgb),0.35)" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-espresso truncate leading-tight">{{ p.name }}</p>
+                <p class="text-sm font-bold text-espresso">&#36;{{ p.totalPrice | number:'1.0-0' }}</p>
+              </div>
+              @if (!p.isActive) {
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full
+                             bg-espresso/8 text-espresso/40 uppercase shrink-0">
+                  Archivado
+                </span>
+              }
+              <div class="flex items-center shrink-0">
+                <ion-button fill="clear" size="small" (click)="openEdit(p)">
+                  <ion-icon slot="icon-only" name="create-outline"
+                            style="color:var(--ion-color-primary)" />
+                </ion-button>
+                <ion-button fill="clear" size="small" (click)="toggleActive(p)">
+                  <ion-icon slot="icon-only"
+                            [name]="p.isActive ? 'eye-outline' : 'eye-off-outline'"
+                            [style.color]="p.isActive ? 'var(--ion-color-tertiary)' : 'rgba(var(--ion-color-primary-rgb),0.3)'" />
+                </ion-button>
+              </div>
+            </div>
+          } @empty {
+            <div class="bg-white rounded-xl py-14 text-center
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/35 text-sm">
+              No hay productos que coincidan.
+            </div>
+          }
+        </div>
+
+        <!-- Desktop: grid de cards -->
+        <div class="hidden lg:grid lg:grid-cols-3 gap-4">
           @for (p of filteredProducts(); track p.id) {
             <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)]
                         overflow-hidden relative flex flex-col">
-              <!-- Category icon -->
-              <div class="h-28 lg:h-36 bg-cream/60 flex items-center justify-center">
+              <div class="h-36 bg-cream/60 flex items-center justify-center">
                 <ion-icon [name]="categoryIcon(p.category)"
                           style="font-size:3rem;color:rgba(var(--ion-color-primary-rgb),0.22)" />
               </div>
-
-              <!-- Archived overlay -->
               @if (!p.isActive) {
                 <div (click)="toggleActive(p)"
                      style="position:absolute;inset:0;background:rgba(35,12,0,0.55);
@@ -330,18 +370,15 @@ const CATEGORY_ICONS: Record<string, string> = {
                     Archivado
                   </span>
                   <span style="color:rgba(var(--ion-color-primary-contrast-rgb),.55);font-size:.65rem">
-                    Toca para activar
+                    Clic para activar
                   </span>
                 </div>
               }
-
               <div class="p-3 flex-1 flex flex-col">
                 <h3 class="text-sm font-semibold text-espresso leading-snug">{{ p.name }}</h3>
                 <p class="text-base font-bold text-espresso mt-1">
                   &#36;{{ p.totalPrice | number:'1.0-0' }}
                 </p>
-
-                <!-- Actions -->
                 <div class="flex gap-2 mt-auto pt-3">
                   <ion-button (click)="openEdit(p)" fill="outline" size="small" expand="block"
                               class="flex-1"
@@ -361,7 +398,7 @@ const CATEGORY_ICONS: Record<string, string> = {
               </div>
             </div>
           } @empty {
-            <div class="col-span-2 lg:col-span-3 bg-white rounded-2xl py-14 text-center
+            <div class="col-span-3 bg-white rounded-2xl py-14 text-center
                         shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/35 text-sm">
               No hay productos que coincidan.
             </div>
@@ -420,6 +457,9 @@ export class ProductsComponent {
       add,
       cafeOutline,
       cloudUploadOutline,
+      createOutline,
+      eyeOffOutline,
+      eyeOutline,
       gridOutline,
       wineOutline,
       restaurantOutline,
