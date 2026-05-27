@@ -20,6 +20,9 @@ import {
   add,
   cafeOutline,
   cloudUploadOutline,
+  createOutline,
+  eyeOffOutline,
+  eyeOutline,
   gridOutline,
   personCircleOutline,
   pricetagOutline,
@@ -96,15 +99,15 @@ const CATEGORY_ICONS: Record<string, string> = {
           <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(35,12,0,0.08);
                       display:flex;align-items:center;justify-content:space-between">
             <div>
-              <h2 style="font-size:1rem;font-weight:700;color:#230C00;margin:0">
+              <h2 style="font-size:1rem;font-weight:700;color:var(--ion-color-primary);margin:0">
                 Previsualización de carga
               </h2>
-              <p style="font-size:.8rem;color:#82746c;margin:4px 0 0">
+              <p style="font-size:.8rem;color:var(--ion-color-medium);margin:4px 0 0">
                 {{ newCount() }} nuevos · {{ updateCount() }} a actualizar
               </p>
             </div>
             <button (click)="cancelImport()"
-                    style="color:rgba(35,12,0,.45);background:none;border:none;
+                    style="color:rgba(var(--ion-color-primary-rgb),.45);background:none;border:none;
                            font-size:1.2rem;cursor:pointer;width:32px;height:32px;
                            border-radius:50%;display:flex;align-items:center;justify-content:center">
               ✕
@@ -114,51 +117,51 @@ const CATEGORY_ICONS: Record<string, string> = {
           <div style="flex:1;overflow:auto">
             <table style="width:100%;border-collapse:collapse;min-width:560px">
               <thead>
-                <tr style="background:#230C00;position:sticky;top:0">
+                <tr style="background:var(--ion-color-primary);position:sticky;top:0">
                   <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Nombre
                   </th>
                   <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Categoría
                   </th>
                   <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Base
                   </th>
                   <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Propina
                   </th>
                   <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Total
                   </th>
                   <th style="text-align:center;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:#FFE7B3">
+                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Estado
                   </th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of importRows(); track row.name) {
-                  <tr style="border-bottom:1px solid #FFE7B3">
-                    <td style="padding:10px 16px;font-size:.875rem;color:#251a00;font-weight:500">
+                  <tr style="border-bottom:1px solid var(--ion-color-light)">
+                    <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);font-weight:500">
                       {{ row.name }}
                     </td>
-                    <td style="padding:10px 16px;font-size:.875rem;color:#82746c">
+                    <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-medium)">
                       {{ row.category }}
                     </td>
-                    <td style="padding:10px 16px;font-size:.875rem;color:#251a00;
+                    <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);
                                text-align:right;white-space:nowrap">
                       $ {{ row.basePrice | number:'1.0-0' }}
                     </td>
-                    <td style="padding:10px 16px;font-size:.875rem;color:#251a00;
+                    <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);
                                text-align:right;white-space:nowrap">
                       $ {{ row.tipAmount | number:'1.0-0' }}
                     </td>
-                    <td style="padding:10px 16px;font-size:.875rem;font-weight:700;color:#251a00;
+                    <td style="padding:10px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-dark);
                                text-align:right;white-space:nowrap">
                       $ {{ row.totalPrice | number:'1.0-0' }}
                     </td>
@@ -166,13 +169,13 @@ const CATEGORY_ICONS: Record<string, string> = {
                       @if (row.isNew) {
                         <span style="padding:3px 10px;border-radius:9999px;font-size:.72rem;
                                      font-weight:700;background:rgba(0,183,163,0.12);
-                                     color:#00B7A3;white-space:nowrap">
+                                     color:var(--ion-color-tertiary);white-space:nowrap">
                           Nuevo
                         </span>
                       } @else {
                         <span style="padding:3px 10px;border-radius:9999px;font-size:.72rem;
                                      font-weight:700;background:rgba(232,99,10,0.12);
-                                     color:#E8630A;white-space:nowrap">
+                                     color:var(--ion-color-secondary);white-space:nowrap">
                           Actualizar
                         </span>
                       }
@@ -185,12 +188,12 @@ const CATEGORY_ICONS: Record<string, string> = {
           <!-- Footer -->
           <div style="padding:16px 24px;border-top:1px solid rgba(35,12,0,0.08);
                       display:flex;align-items:center;justify-content:flex-end;gap:12px">
-            <ion-button fill="outline" (click)="cancelImport()"
-                        style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
+            <ion-button fill="outline" (click)="cancelImport()" class="btn-rounded"
+                        style="--color:var(--ion-color-primary);--border-color:rgba(var(--ion-color-primary-rgb),0.25)">
               Cancelar
             </ion-button>
             <ion-button (click)="applyImport()" [disabled]="importing()"
-                        style="--background:#E8630A;--color:#230C00;--border-radius:12px">
+                        color="secondary" class="btn-rounded">
               {{ importing() ? 'Aplicando...' : 'Aceptar (' + importRows().length + ')' }}
             </ion-button>
           </div>
@@ -205,14 +208,14 @@ const CATEGORY_ICONS: Record<string, string> = {
            class="lg:items-center">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
           <div class="flex items-center justify-between px-5 py-4
-                      border-b border-[#230C00]/8">
-            <h2 class="font-semibold text-[#230C00]">
+                      border-b border-espresso/8">
+            <h2 class="font-semibold text-espresso">
               {{ editingProduct() ? 'Editar producto' : 'Nuevo producto' }}
             </h2>
             <button (click)="showForm.set(false)"
-                    class="text-[#230C00]/45 hover:text-[#230C00] text-xl leading-none
+                    class="text-espresso/45 hover:text-espresso text-xl leading-none
                            w-8 h-8 flex items-center justify-center rounded-full
-                           hover:bg-[#230C00]/8 transition-colors">
+                           hover:bg-espresso/8 transition-colors">
               ✕
             </button>
           </div>
@@ -227,7 +230,7 @@ const CATEGORY_ICONS: Record<string, string> = {
     }
 
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+      <ion-toolbar>
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
         <ion-title class="text-center">Productos</ion-title>
@@ -235,11 +238,11 @@ const CATEGORY_ICONS: Record<string, string> = {
           @if (photoURL()) {
             <img [src]="photoURL()!" alt="avatar" referrerpolicy="no-referrer"
                  style="width:32px;height:32px;border-radius:50%;object-fit:cover;
-                        margin-right:12px;border:2px solid rgba(255,231,179,.5)">
+                        margin-right:12px;border:2px solid rgba(var(--ion-color-primary-contrast-rgb),.5)">
           } @else {
             <ion-button fill="clear">
               <ion-icon slot="icon-only" name="person-circle-outline"
-                        style="font-size:1.6rem;color:#FFE7B3" />
+                        style="font-size:1.6rem;color:var(--ion-color-primary-contrast)" />
             </ion-button>
           }
         </ion-buttons>
@@ -251,22 +254,21 @@ const CATEGORY_ICONS: Record<string, string> = {
 
         <!-- Desktop page header -->
         <div class="hidden lg:flex items-center justify-between mb-6">
-          <h1 class="text-2xl font-bold text-[#230C00]">Productos</h1>
+          <h1 class="text-2xl font-bold text-espresso">Productos</h1>
           <div style="display:flex;align-items:center;gap:12px">
             <button (click)="downloadTemplate()"
-                    style="font-size:.8rem;color:#E8630A;cursor:pointer;background:none;
+                    style="font-size:.8rem;color:var(--ion-color-secondary);cursor:pointer;background:none;
                            border:none;text-decoration:underline;text-underline-offset:3px;
                            padding:0;font-family:inherit">
               Descargar plantilla
             </button>
-            <ion-button (click)="triggerFileSelect()" fill="outline"
-                        style="--color:#230C00;--border-color:rgba(35,12,0,0.25);--border-radius:12px">
+            <ion-button (click)="triggerFileSelect()" fill="outline" class="btn-rounded"
+                        style="--color:var(--ion-color-primary);--border-color:rgba(var(--ion-color-primary-rgb),0.25)">
               <ion-icon slot="start" name="cloud-upload-outline" />
               &nbsp;
               Cargar Excel
             </ion-button>
-            <ion-button (click)="openAdd()"
-                        style="--background:#E8630A;--color:#230C00;--border-radius:12px">
+            <ion-button (click)="openAdd()" color="secondary" class="btn-rounded">
               + Agregar producto
             </ion-button>
           </div>
@@ -277,9 +279,9 @@ const CATEGORY_ICONS: Record<string, string> = {
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
           placeholder="Buscar producto..."
-          class="w-full bg-white border-0 rounded-xl px-4 py-3 text-sm text-[#230C00]
+          class="w-full bg-white border-0 rounded-xl px-4 py-3 text-sm text-espresso
                  shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-3
-                 focus:outline-none focus:ring-2 focus:ring-[#E8630A]/25" />
+                 focus:outline-none focus:ring-2 focus:ring-orange/25" />
 
         <!-- Category segment -->
         <ion-segment class="mt-[1em]" [value]="activeCategory()" (ionChange)="onCategoryChange($event)"
@@ -291,8 +293,8 @@ const CATEGORY_ICONS: Record<string, string> = {
           @for (cat of categories; track cat.value) {
             <ion-segment-button class="min-w-[4em]" [value]="cat.value"
                                 style="--color:rgba(35,12,0,0.5);
-                                       --color-checked:#FFE7B3;
-                                       --background-checked:#230C00;
+                                       --color-checked:var(--ion-color-primary-contrast);
+                                       --background-checked:var(--ion-color-primary);
                                        --indicator-color:transparent;
                                        --indicator-height:0;
                                        --border-radius:12px;
@@ -304,49 +306,83 @@ const CATEGORY_ICONS: Record<string, string> = {
         </ion-segment>
 
         <!-- Active category label — mobile only -->
-        <p class="lg:hidden text-sm font-semibold text-[#230C00] mb-3 px-1">
+        <p class="lg:hidden text-sm font-semibold text-espresso mb-3 px-1">
           {{ activeCategoryLabel() }}
         </p>
 
-        <!-- Product grid: 2 cols mobile, 3 cols desktop -->
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+        <!-- Mobile: lista de productos -->
+        <div class="lg:hidden flex flex-col gap-2 pb-32">
+          @for (p of filteredProducts(); track p.id) {
+            <div class="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)]"
+                 [class.opacity-50]="!p.isActive">
+              <div class="w-9 h-9 rounded-full bg-cream/60 flex items-center justify-center shrink-0">
+                <ion-icon [name]="categoryIcon(p.category)"
+                          style="font-size:1.2rem;color:rgba(var(--ion-color-primary-rgb),0.35)" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-espresso truncate leading-tight">{{ p.name }}</p>
+                <p class="text-sm font-bold text-espresso">&#36;{{ p.totalPrice | number:'1.0-0' }}</p>
+              </div>
+              @if (!p.isActive) {
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full
+                             bg-espresso/8 text-espresso/40 uppercase shrink-0">
+                  Archivado
+                </span>
+              }
+              <div class="flex items-center shrink-0">
+                <ion-button fill="clear" size="small" (click)="openEdit(p)">
+                  <ion-icon slot="icon-only" name="create-outline"
+                            style="color:var(--ion-color-primary)" />
+                </ion-button>
+                <ion-button fill="clear" size="small" (click)="toggleActive(p)">
+                  <ion-icon slot="icon-only"
+                            [name]="p.isActive ? 'eye-outline' : 'eye-off-outline'"
+                            [style.color]="p.isActive ? 'var(--ion-color-tertiary)' : 'rgba(var(--ion-color-primary-rgb),0.3)'" />
+                </ion-button>
+              </div>
+            </div>
+          } @empty {
+            <div class="bg-white rounded-xl py-14 text-center
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/35 text-sm">
+              No hay productos que coincidan.
+            </div>
+          }
+        </div>
+
+        <!-- Desktop: grid de cards -->
+        <div class="hidden lg:grid lg:grid-cols-3 gap-4">
           @for (p of filteredProducts(); track p.id) {
             <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)]
                         overflow-hidden relative flex flex-col">
-              <!-- Category icon -->
-              <div class="h-28 lg:h-36 bg-[#FFE7B3]/60 flex items-center justify-center">
+              <div class="h-36 bg-cream/60 flex items-center justify-center">
                 <ion-icon [name]="categoryIcon(p.category)"
-                          style="font-size:3rem;color:rgba(35,12,0,0.22)" />
+                          style="font-size:3rem;color:rgba(var(--ion-color-primary-rgb),0.22)" />
               </div>
-
-              <!-- Archived overlay -->
               @if (!p.isActive) {
                 <div (click)="toggleActive(p)"
                      style="position:absolute;inset:0;background:rgba(35,12,0,0.55);
                             border-radius:16px;display:flex;flex-direction:column;
                             align-items:center;justify-content:center;
                             cursor:pointer;gap:4px">
-                  <span style="color:#FFE7B3;font-size:.7rem;font-weight:700;
+                  <span style="color:var(--ion-color-primary-contrast);font-size:.7rem;font-weight:700;
                                letter-spacing:.1em;text-transform:uppercase">
                     Archivado
                   </span>
-                  <span style="color:rgba(255,231,179,.55);font-size:.65rem">
-                    Toca para activar
+                  <span style="color:rgba(var(--ion-color-primary-contrast-rgb),.55);font-size:.65rem">
+                    Clic para activar
                   </span>
                 </div>
               }
-
               <div class="p-3 flex-1 flex flex-col">
-                <h3 class="text-sm font-semibold text-[#230C00] leading-snug">{{ p.name }}</h3>
-                <p class="text-base font-bold text-[#230C00] mt-1">
+                <h3 class="text-sm font-semibold text-espresso leading-snug">{{ p.name }}</h3>
+                <p class="text-base font-bold text-espresso mt-1">
                   &#36;{{ p.totalPrice | number:'1.0-0' }}
                 </p>
-
-                <!-- Actions -->
                 <div class="flex gap-2 mt-auto pt-3">
                   <ion-button (click)="openEdit(p)" fill="outline" size="small" expand="block"
                               class="flex-1"
-                              style="--color:#230C00;--border-color:rgba(35,12,0,0.2);
+                              style="--color:var(--ion-color-primary);--border-color:rgba(var(--ion-color-primary-rgb),0.2);
                                      --border-radius:10px;--border-width:1px;
                                      --border-style:solid;margin:0">
                     Editar
@@ -354,7 +390,7 @@ const CATEGORY_ICONS: Record<string, string> = {
                   <ion-button (click)="toggleActive(p)" fill="solid" size="small" expand="block"
                               class="flex-1"
                               [style.--background]="p.isActive ? 'rgba(0,183,163,0.12)' : 'rgba(35,12,0,0.08)'"
-                              [style.--color]="p.isActive ? '#00B7A3' : 'rgba(35,12,0,0.4)'"
+                              [style.--color]="p.isActive ? 'var(--ion-color-tertiary)' : 'rgba(var(--ion-color-primary-rgb),0.4)'"
                               style="--border-radius:10px;--box-shadow:none;margin:0">
                     {{ p.isActive ? 'Activo' : 'Inactivo' }}
                   </ion-button>
@@ -362,8 +398,8 @@ const CATEGORY_ICONS: Record<string, string> = {
               </div>
             </div>
           } @empty {
-            <div class="col-span-2 lg:col-span-3 bg-white rounded-2xl py-14 text-center
-                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-[#230C00]/35 text-sm">
+            <div class="col-span-3 bg-white rounded-2xl py-14 text-center
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/35 text-sm">
               No hay productos que coincidan.
             </div>
           }
@@ -374,10 +410,9 @@ const CATEGORY_ICONS: Record<string, string> = {
 
     <!-- Mobile FAB -->
     <ion-fab slot="fixed" vertical="bottom" horizontal="end" class="lg:hidden"
-             style="margin-bottom:calc(64px + env(safe-area-inset-bottom))">
-      <ion-fab-button (click)="openAdd()"
-                      style="--background:#E8630A;--color:#230C00;
-                             --box-shadow:0 4px 12px rgba(35,12,0,0.20)">
+             style="margin-bottom:env(safe-area-inset-bottom)">
+      <ion-fab-button (click)="openAdd()" color="secondary"
+                      style="--box-shadow:0 4px 12px rgba(35,12,0,0.20)">
         <ion-icon name="add" />
       </ion-fab-button>
     </ion-fab>
@@ -422,6 +457,9 @@ export class ProductsComponent {
       add,
       cafeOutline,
       cloudUploadOutline,
+      createOutline,
+      eyeOffOutline,
+      eyeOutline,
       gridOutline,
       wineOutline,
       restaurantOutline,

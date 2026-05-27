@@ -1,6 +1,19 @@
 /* Estilos globales — Tailwind CSS v4 activado mediante @tailwindcss/postcss */
 @import "tailwindcss";
 
+@theme {
+  --color-espresso: #230c00;
+  --color-orange:   #e8630a;
+  --color-teal:     #00b7a3;
+  --color-cream:    #ffe7b3;
+  --color-surface:  #f7f5f2;
+  --color-purple:   #5c2e91;
+}
+
+ion-button.btn-rounded {
+  --border-radius: 12px;
+}
+
 /*
  * Propagar altura a través de toda la cadena del layout de Ionic.
  * ion-app y ion-router-outlet reciben height:100% via shadow :host, pero

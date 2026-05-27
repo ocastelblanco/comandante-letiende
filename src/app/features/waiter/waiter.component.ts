@@ -56,11 +56,11 @@ interface OrderLine {
 }
 
 const STATUS_BADGE: Record<OrderStatus, { bg: string; text: string }> = {
-  pending: { bg: '#FFE7B3', text: '#230C00' },
-  preparing: { bg: '#E8630A', text: '#230C00' },
-  ready: { bg: '#00B7A3', text: '#230C00' },
-  delivered: { bg: '#82746c', text: '#ffffff' },
-  cancelled: { bg: '#C0392B', text: '#ffffff' },
+  pending:   { bg: 'var(--ion-color-light)',     text: 'var(--ion-color-primary)' },
+  preparing: { bg: 'var(--ion-color-secondary)', text: 'var(--ion-color-primary)' },
+  ready:     { bg: 'var(--ion-color-tertiary)',  text: 'var(--ion-color-primary)' },
+  delivered: { bg: 'var(--ion-color-medium)',    text: '#ffffff' },
+  cancelled: { bg: '#C0392B',                   text: '#ffffff' },
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -105,10 +105,10 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
             @if (authService.currentUser()?.photoURL; as photoURL) {
               <img [src]="photoURL" alt="avatar" referrerpolicy="no-referrer"
                    (click)="openUserMenu()"
-                   style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(255,231,179,.5);cursor:pointer">
+                   style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px;border:2px solid rgba(var(--ion-color-primary-contrast-rgb),.5);cursor:pointer">
             } @else {
               <ion-button fill="clear" (click)="openUserMenu()">
-                <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:#FFE7B3" />
+                <ion-icon slot="icon-only" name="person-circle-outline" style="font-size:1.6rem;color:var(--ion-color-primary-contrast)" />
               </ion-button>
             }
           </ion-buttons>
@@ -117,23 +117,23 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 
       <ion-content>
         @for (alert of visibleReadyAlerts(); track alert.id) {
-          <div style="background:#E8630A;color:#230C00;padding:10px 16px;display:flex;align-items:center;gap:8px">
+          <div style="background:var(--ion-color-secondary);color:var(--ion-color-primary);padding:10px 16px;display:flex;align-items:center;gap:8px">
             <ion-icon name="notifications-outline" style="font-size:1.1rem;flex-shrink:0" />
             <span style="flex:1;font-size:.875rem;font-weight:600">
               ¡"{{ alert.tableNumber }}" listo para entregar!
             </span>
-            <ion-button fill="clear" size="small" (click)="dismissAlert(alert.id)" style="--color:#230C00;flex-shrink:0">
+            <ion-button fill="clear" size="small" (click)="dismissAlert(alert.id)" style="--color:var(--ion-color-primary);flex-shrink:0">
               <ion-icon slot="icon-only" name="close-outline" />
             </ion-button>
           </div>
         }
 
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px">
-          <span style="font-size:1rem;font-weight:700;color:#251a00">
+          <span style="font-size:1rem;font-weight:700;color:var(--ion-color-dark)">
             {{ filterReady() ? 'Listos para entregar' : 'Pedidos Activos' }}
           </span>
           <ion-button fill="clear" size="small" (click)="filterReady.update(v => !v)"
-                      [style.--color]="filterReady() ? '#E8630A' : 'rgba(37,26,0,0.4)'">
+                      [style.--color]="filterReady() ? 'var(--ion-color-secondary)' : 'rgba(var(--ion-color-primary-rgb),0.4)'">
             <ion-icon slot="icon-only" name="filter-outline" />
           </ion-button>
         </div>
@@ -153,7 +153,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
               <ion-card button (click)="toggleExpand(order.id)" style="margin:0;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
                 <ion-card-content style="padding:14px 16px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                    <span style="font-size:1rem;font-weight:700;color:#251a00">{{ order.tableNumber }}</span>
+                    <span style="font-size:1rem;font-weight:700;color:var(--ion-color-dark)">{{ order.tableNumber }}</span>
                     <div style="display:flex;align-items:center;gap:6px">
                       <span
                         style="padding:4px 12px;border-radius:9999px;font-size:.75rem;font-weight:600;line-height:1"
@@ -163,25 +163,25 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                       @if (order.paid) {
                         <span style="padding:4px 10px;border-radius:9999px;font-size:.7rem;
                                      font-weight:700;line-height:1;
-                                     background:rgba(0,183,163,.15);color:#00B7A3">
+                                     background:rgba(0,183,163,.15);color:var(--ion-color-tertiary)">
                           ✓ Pagado
                         </span>
                       } @else {
                         <span (click)="markPaid(order); $event.stopPropagation()"
                               style="padding:4px 10px;border-radius:9999px;font-size:.7rem;
                                      font-weight:700;line-height:1;cursor:pointer;
-                                     background:rgba(232,99,10,.12);color:#E8630A">
+                                     background:rgba(232,99,10,.12);color:var(--ion-color-secondary)">
                           Cobrar
                         </span>
                       }
                     </div>
                   </div>
-                  <div style="display:flex;align-items:center;gap:4px;font-size:.8rem;color:#82746c">
+                  <div style="display:flex;align-items:center;gap:4px;font-size:.8rem;color:var(--ion-color-medium)">
                     <ion-icon name="time-outline" style="font-size:.9rem" />
                     <span>{{ timeAgo(order.createdAt) }}</span>
                   </div>
                   @if (expandedOrderId() === order.id) {
-                    <div style="margin-top:10px;border-top:1px solid #FFE7B3;padding-top:8px">
+                    <div style="margin-top:10px;border-top:1px solid var(--ion-color-light);padding-top:8px">
                       @for (item of order.items; track item.productId) {
                         <div
                           style="display:flex;justify-content:space-between;font-size:.8rem;padding:2px 0"
@@ -194,29 +194,29 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                           <span>$ {{ item.unitPrice * item.quantity | number:'1.0-0' }}</span>
                         </div>
                       }
-                      <div style="border-top:1px solid rgba(255,231,179,.6);margin:6px 0 4px"></div>
-                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#82746c;padding:2px 0">
+                      <div style="border-top:1px solid rgba(var(--ion-color-primary-contrast-rgb),.6);margin:6px 0 4px"></div>
+                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
                         <span>Subtotal (base)</span>
                         <span>$ {{ orderSubtotalFor(order) | number:'1.0-0' }}</span>
                       </div>
-                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#82746c;padding:2px 0">
+                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
                         <span>Propina</span>
                         <span>$ {{ orderTipFor(order) | number:'1.0-0' }}</span>
                       </div>
-                      <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:700;color:#251a00;padding:4px 0 2px">
+                      <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:700;color:var(--ion-color-dark);padding:4px 0 2px">
                         <span>Total</span>
                         <span>$ {{ order.total | number:'1.0-0' }}</span>
                       </div>
                       @if (order.status === 'ready') {
-                        <ion-button expand="block" size="small"
+                        <ion-button expand="block" size="small" color="tertiary"
                                     (click)="markDelivered(order); $event.stopPropagation()"
-                                    style="margin-top:10px;--background:#00B7A3;--color:#230C00;--border-radius:10px">
+                                    style="margin-top:10px;--border-radius:10px">
                           Entregar ✓
                         </ion-button>
                       }
                     </div>
                   } @else {
-                    <div style="font-size:.8rem;color:#82746c;margin-top:4px">
+                    <div style="font-size:.8rem;color:var(--ion-color-medium);margin-top:4px">
                       {{ order.items.length }} ítem{{ order.items.length !== 1 ? 's' : '' }}
                       · $ {{ order.total | number:'1.0-0' }}
                     </div>
@@ -240,7 +240,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
         <ion-toolbar>
           <ion-buttons slot="start">
             <ion-button fill="clear" (click)="cancelNewOrder()">
-              <ion-icon slot="icon-only" name="arrow-back-outline" style="color:#FFE7B3" />
+              <ion-icon slot="icon-only" name="arrow-back-outline" style="color:var(--ion-color-primary-contrast)" />
             </ion-button>
           </ion-buttons>
           <ion-title>Nuevo pedido</ion-title>
@@ -265,18 +265,18 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
             @if (line.selectedProduct) {
               <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;margin-bottom:8px;background:#ffffff;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
                 <div style="flex:1;min-width:0">
-                  <div style="font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#251a00">
+                  <div style="font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ion-color-dark)">
                     {{ line.selectedProduct.name }}
                   </div>
-                  <div style="font-size:.75rem;color:#82746c;margin-top:2px">
+                  <div style="font-size:.75rem;color:var(--ion-color-medium);margin-top:2px">
                     $ {{ line.selectedProduct.totalPrice | number:'1.0-0' }} c/u
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:2px;background:#FFE7B3;border-radius:9999px;padding:2px">
+                <div style="display:flex;align-items:center;gap:2px;background:var(--ion-color-light);border-radius:9999px;padding:2px">
                   <ion-button fill="clear" size="small" [disabled]="line.quantity <= 1" (click)="decrementLine(line.id)">
                     <ion-icon slot="icon-only" name="remove-circle-outline" />
                   </ion-button>
-                  <span style="min-width:1.5rem;text-align:center;font-weight:700;font-size:.9rem;color:#230C00">
+                  <span style="min-width:1.5rem;text-align:center;font-weight:700;font-size:.9rem;color:var(--ion-color-primary)">
                     {{ line.quantity }}
                   </span>
                   <ion-button fill="clear" size="small" (click)="incrementLine(line.id)">
@@ -304,11 +304,11 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                   <div style="background:#ffffff;border-radius:8px;margin-top:4px;overflow:hidden;box-shadow:0 2px 8px rgba(35,12,0,.1)">
                     @for (p of line.filteredProducts; track p.id) {
                       <div
-                        style="padding:10px 16px;font-size:.875rem;cursor:pointer;border-bottom:1px solid #FFE7B3"
+                        style="padding:10px 16px;font-size:.875rem;cursor:pointer;border-bottom:1px solid var(--ion-color-light)"
                         (click)="selectProduct(line.id, p)"
                       >
-                        <span style="color:#251a00;font-weight:500">{{ p.name }}</span>
-                        <span style="color:#82746c"> — $ {{ p.totalPrice | number:'1.0-0' }}</span>
+                        <span style="color:var(--ion-color-dark);font-weight:500">{{ p.name }}</span>
+                        <span style="color:var(--ion-color-medium)"> — $ {{ p.totalPrice | number:'1.0-0' }}</span>
                       </div>
                     }
                   </div>
@@ -327,27 +327,27 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 
         @if (hasSelectedProducts()) {
           <div style="margin:8px 16px 100px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(35,12,0,.08)">
-            <div style="padding:14px 16px 4px;font-size:.75rem;font-weight:600;color:#82746c;letter-spacing:.05em;text-transform:uppercase">
+            <div style="padding:14px 16px 4px;font-size:.75rem;font-weight:600;color:var(--ion-color-medium);letter-spacing:.05em;text-transform:uppercase">
               Resumen
             </div>
             @for (line of orderLines(); track line.id) {
               @if (line.selectedProduct) {
-                <div style="display:flex;justify-content:space-between;padding:4px 16px;font-size:.875rem;color:#251a00">
+                <div style="display:flex;justify-content:space-between;padding:4px 16px;font-size:.875rem;color:var(--ion-color-dark)">
                   <span>{{ line.selectedProduct.name }} ×{{ line.quantity }}</span>
                   <span>$ {{ line.selectedProduct.totalPrice * line.quantity | number:'1.0-0' }}</span>
                 </div>
               }
             }
-            <div style="border-top:1px solid #FFE7B3;margin:8px 16px 0"></div>
-            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:#82746c">
+            <div style="border-top:1px solid var(--ion-color-light);margin:8px 16px 0"></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:var(--ion-color-medium)">
               <span>Subtotal (base)</span>
               <span>$ {{ orderSubtotal() | number:'1.0-0' }}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:#82746c">
+            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:var(--ion-color-medium)">
               <span>Propina</span>
               <span>$ {{ orderTip() | number:'1.0-0' }}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:10px 16px 14px;font-size:1rem;font-weight:700;color:#251a00">
+            <div style="display:flex;justify-content:space-between;padding:10px 16px 14px;font-size:1rem;font-weight:700;color:var(--ion-color-dark)">
               <span>Total a cobrar</span>
               <span>$ {{ orderTotal() | number:'1.0-0' }}</span>
             </div>
@@ -356,7 +356,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       </ion-content>
 
       <ion-footer>
-        <ion-toolbar style="--background:#fff8f1;--border-color:#FFE7B3">
+        <ion-toolbar style="--background:var(--ion-background-color);--border-color:var(--ion-color-light)">
           @if (submitError()) {
             <ion-note color="danger" style="display:block;padding:4px 16px;font-size:.85rem;text-align:center">
               {{ submitError() }}

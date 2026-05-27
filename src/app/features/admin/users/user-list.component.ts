@@ -50,7 +50,7 @@ import { UserRole } from '../../../core/models/user.model';
   `],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar style="--background:#230C00;--color:#FFE7B3">
+      <ion-toolbar>
         <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
              style="height:24px;margin-left:16px">
         <ion-title class="text-center">Usuarios</ion-title>
@@ -62,7 +62,7 @@ import { UserRole } from '../../../core/models/user.model';
           } @else {
             <ion-button fill="clear">
               <ion-icon slot="icon-only" name="person-circle-outline"
-                        style="font-size:1.6rem;color:#FFE7B3" />
+                        style="font-size:1.6rem;color:var(--ion-color-primary-contrast)" />
             </ion-button>
           }
         </ion-buttons>
