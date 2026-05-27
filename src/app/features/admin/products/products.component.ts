@@ -410,7 +410,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
     <!-- Mobile FAB -->
     <ion-fab slot="fixed" vertical="bottom" horizontal="end" class="lg:hidden"
-             style="margin-bottom:calc(64px + env(safe-area-inset-bottom))">
+             style="margin-bottom:env(safe-area-inset-bottom)">
       <ion-fab-button (click)="openAdd()" color="secondary"
                       style="--box-shadow:0 4px 12px rgba(35,12,0,0.20)">
         <ion-icon name="add" />
