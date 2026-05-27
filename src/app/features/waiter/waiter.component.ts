@@ -2,6 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
+  ActionSheetController,
   IonButton,
   IonButtons,
   IonCard,
@@ -40,7 +41,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { OrderService } from '../../core/db/order.service';
 import { ProductService } from '../../core/db/product.service';
 import { OrderItem } from '../../core/models/order-item.model';
-import { Order, OrderStatus } from '../../core/models/order.model';
+import { Order, OrderStatus, PaymentMethod } from '../../core/models/order.model';
 import { Product } from '../../core/models/product.model';
 
 type View = 'dashboard' | 'new-order';
@@ -377,6 +378,7 @@ export class WaiterComponent {
   readonly orderService = inject(OrderService);
   private readonly productService = inject(ProductService);
   private readonly toastCtrl = inject(ToastController);
+  private readonly actionSheetCtrl = inject(ActionSheetController);
 
   readonly statusBadge = STATUS_BADGE;
   readonly statusLabels = STATUS_LABELS;
@@ -507,7 +509,20 @@ export class WaiterComponent {
   }
 
   async markPaid(order: Order): Promise<void> {
-    await this.orderService.markOrderPaid(order.id);
+    const sheet = await this.actionSheetCtrl.create({
+      header: 'Medio de pago',
+      buttons: [
+        { text: '💳 Datáfono', data: { method: 'card' as PaymentMethod } },
+        { text: '💵 Efectivo', data: { method: 'cash' as PaymentMethod } },
+        { text: '📱 Nequi', data: { method: 'nequi' as PaymentMethod } },
+        { text: '📱 Daviplata', data: { method: 'daviplata' as PaymentMethod } },
+        { text: 'Cancelar', role: 'cancel' },
+      ],
+    });
+    await sheet.present();
+    const { data, role } = await sheet.onWillDismiss<{ method: PaymentMethod }>();
+    if (role === 'cancel' || !data) return;
+    await this.orderService.markOrderPaid(order.id, data.method);
   }
 
   timeAgo(timestamp: Timestamp): string {

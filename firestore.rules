@@ -53,7 +53,7 @@ service cloud.firestore {
 
     // Los meseros solo pueden marcar un pedido como pagado (false → true).
     function onlyMarksPaid() {
-      let allowed = ['paid', 'updatedAt'];
+      let allowed = ['paid', 'paidAt', 'paymentMethod', 'updatedAt'];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
           && resource.data.paid == false
           && request.resource.data.paid == true;

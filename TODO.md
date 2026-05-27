@@ -13,29 +13,23 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 1)
+## 2. Tareas Activas (WIP: 0)
 
-### Tarea 10: [FEATURE] Consolidado de Ventas del Administrador
-*   **Origen:** PRD §5.3 — La sección "Reportes" del admin existe como placeholder. Sin ella, el administrador no puede cuadrar caja al cierre de la jornada.
-*   **Archivos a Modificar:**
-    *   `src/app/features/admin/reports/admin-reports.component.ts` — Reemplazar placeholder con la vista funcional.
-    *   `src/app/core/db/order.service.ts` — Añadir método `getOrdersByDate(date: Date): Promise<Order[]>` que consulte Firestore filtrando por `status == 'delivered'` y rango de timestamps del día seleccionado.
-    *   `firestore.indexes.json` — Añadir índice compuesto `(status ASC, createdAt ASC)` requerido por la consulta.
-*   **Qué construir:**
-    1. Selector de fecha (input `type="date"` con valor por defecto = hoy).
-    2. Al cambiar la fecha, ejecutar `getOrdersByDate()` y mostrar un spinner mientras carga.
-    3. Tabla resumen agrupada por producto: columnas Producto | Cantidad | Base | Propina | Total.
-    4. Fila de totales: suma de Base, Propina y Total de todos los productos.
-    5. Estado vacío si no hay ventas en esa fecha.
-*   **Definición de Done (Checklist):**
-    - `[ ]` El administrador puede seleccionar una fecha y ver el consolidado de órdenes entregadas.
-    - `[ ]` Los totales de Consumo y Propina son correctos y coinciden con la suma de los pedidos.
-    - `[ ]` El índice Firestore está declarado en `firestore.indexes.json` y desplegado.
-    - `[ ]` `npm run build` compila sin errores.
+_Sin tareas activas — evaluar siguiente ciclo contra PRD._
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 11: [FEATURE] Reporte Detallado por Pedido con Medio de Pago y Rango Fecha/Hora
+*   **Completada:** 2026-05-26
+*   **Branch:** `feature/sales-consolidado`
+*   **Resultado:** `PaymentMethod` type (`card|cash|nequi|daviplata`) y campos `paidAt: Timestamp | null` / `paymentMethod: PaymentMethod | null` añadidos a `Order`. `markOrderPaid()` actualizado para recibir `paymentMethod` y escribir `paidAt: serverTimestamp()`. `getOrdersByDate` reemplazado por `getOrdersByRange(start, end)` filtrando `paid == true` + rango de `paidAt` con `orderBy('paidAt', 'asc')`. Índice `(paid ASC, paidAt ASC)` añadido a `firestore.indexes.json` y desplegado a staging. `onlyMarksPaid()` en reglas actualizado para permitir `paidAt` y `paymentMethod`. Waiter: chip "Cobrar" abre `IonActionSheet` con 4 opciones antes de confirmar cobro. Admin reports: selector de rango con dos `<input type="datetime-local">` (default hoy 00:00–23:59); tabla nueva con una fila por pedido — Pedido | Hora de cobro (`dd/MM HH:mm`, "—" para legados) | Medio de pago (badge coloreado) | Ítems (lista compacta) | Base | Propina | Total. Fila de totales del rango. Build verde: `admin-reports-component` 10.55 kB, `waiter-component` 20.63 kB.
+
+### ✅ Tarea 10: [FEATURE] Consolidado de Ventas del Administrador
+*   **Completada:** 2026-05-26
+*   **PR:** `feature/sales-consolidado` (#15)
+*   **Resultado:** `OrderService.getOrdersByDate()` añadido: consulta Firestore filtrando `status == 'delivered'` + rango de timestamps del día en zona horaria local; usa índice compuesto `(status ASC, createdAt ASC)` ya existente en `firestore.indexes.json`. `AdminReportsComponent` reemplaza placeholder con vista funcional: selector de fecha (default hoy), spinner de carga, tabla agrupada por producto (Producto | Cant. | Base | Propina | Total), fila de totales con propina y total en naranja Le Tiende, estado vacío para días sin ventas. Agrupación por `productId` con sort alfabético `localeCompare('es')`. Build verde: admin-reports-component 8.35 kB lazy.
 
 ### ✅ Tarea 9: [FEATURE] Indicador de Pago + Cobro Discriminado en Vista del Mesero
 *   **Completada:** 2026-05-26
@@ -97,3 +91,6 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-25 | Decisión de producto: aplicar identidad visual oficial de Le Tiende antes de continuar con nuevas funcionalidades. Sistema de diseño disponible en Google Stitch (proyecto "Sistema de Diseño Comandante"). Pantallas de referencia: Dashboard de Mesero v2 y Crear Nuevo Pedido v2. | Tarea 7 redefinida como adaptación visual (CRÍTICO). Tarea de barista renumerada a Tarea 8. WIP sube a 2: visual blocking, barista en cola. |
 | 2026-05-26 | Tareas 7 y 8 completadas. Estilo visual Le Tiende aplicado a toda la app. Módulo de barista operativo con bug crítico de Firestore rules resuelto (`&&` retornaba bool). Ciclo completo mesero→barista→entrega funcional. Brechas restantes de Fase 1: pantalla de cobro con discriminación datáfono (§5.1, core diferenciador) y consolidado de ventas del admin (§5.3, cierre de jornada). | Tarea 9 (pantalla de cobro) y Tarea 10 (consolidado) son las dos tareas activas. Tarea 9 es prioridad porque completa el flujo de pago, que es el valor central del producto. |
 | 2026-05-26 | Tarea 9 completada (redefinida). Decisión de producto: no crear pantalla separada de cobro; el desglose discriminado (base + propina + total) se integra inline en el card expandido del mesero. Indicador Pagado/Sin cobrar disponible en las tres interfaces. Ciclo de pago completo sin interrumpir el flujo de pedidos. Única brecha restante de Fase 1: consolidado de ventas del admin para cierre de jornada. | WIP baja a 1. Tarea 10 (consolidado de ventas) es la única tarea activa. |
+| 2026-05-26 | Tarea 10 completada. Consolidado de ventas operativo: selector de fecha, tabla por producto con discriminación base/propina/total, totales del día. Flujo completo Fase 1 cerrado: mesero toma pedido → barista prepara → mesero entrega y cobra → admin cuadra caja. Evaluar PRD para siguiente ciclo de mejoras. | WIP baja a 0. Fase 1 del producto completada. |
+| 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
+| 2026-05-26 | Tarea 11 completada. Modelo, servicio, reglas, índices, mesero y reporte del admin actualizados. Índice `(paid ASC, paidAt ASC)` desplegado a staging. Build verde. El flujo completo ahora registra medio de pago y timestamp exacto de cobro, y el admin puede cuadrar caja para eventos que cruzan medianoche. Evaluar PRD para siguiente ciclo. | WIP baja a 0. |

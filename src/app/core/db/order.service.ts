@@ -4,14 +4,17 @@ import {
   collection,
   doc,
   Firestore,
+  getDocs,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
 } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
-import { Order, OrderStatus } from '../models/order.model';
+import { Order, OrderStatus, PaymentMethod } from '../models/order.model';
 import { OrderItem } from '../models/order-item.model';
 
 @Injectable({ providedIn: 'root' })
@@ -37,9 +40,11 @@ export class OrderService {
     inject(DestroyRef).onDestroy(unsubscribe);
   }
 
-  markOrderPaid(orderId: string): Promise<void> {
+  markOrderPaid(orderId: string, paymentMethod: PaymentMethod): Promise<void> {
     return updateDoc(doc(this.firestore, 'orders', orderId), {
       paid: true,
+      paymentMethod,
+      paidAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   }
@@ -59,6 +64,18 @@ export class OrderService {
       payload['preparedAt'] = serverTimestamp();
     }
     return updateDoc(doc(this.firestore, 'orders', orderId), payload);
+  }
+
+  async getOrdersByRange(start: Date, end: Date): Promise<Order[]> {
+    const q = query(
+      this.colRef,
+      where('paid', '==', true),
+      where('paidAt', '>=', Timestamp.fromDate(start)),
+      where('paidAt', '<=', Timestamp.fromDate(end)),
+      orderBy('paidAt', 'asc'),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
   }
 
   createOrder(tableNumber: string, items: OrderItem[]): Promise<unknown> {
