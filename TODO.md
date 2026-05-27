@@ -15,24 +15,6 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2. Tareas Activas (WIP: 1)
 
-### ✅ Tarea 12: [FEATURE] Persistencia de Sesión + Logout desde el Avatar
-*   **Origen:** Al recargar el navegador (Chrome macOS y Chrome Android) la sesión se pierde y redirige a `/login`. Adicionalmente, no existe forma de cerrar sesión en las interfaces de mesero, barista ni admin-móvil.
-*   **Causa raíz probable:** El `authGuard` evalúa `isAuthenticated()` de forma sincrónica antes de que Firebase Auth haya restaurado la sesión desde `localStorage`. La solución es aguardar `auth.authStateReady()` en el guard antes de evaluar el estado.
-*   **Archivos a Modificar:**
-    *   `src/app/core/auth/auth.guard.ts` — convertir el guard a función `async`, awaitar `auth.authStateReady()` antes de leer `isAuthenticated()`.
-    *   `src/app/core/auth/auth.service.ts` — exponer `auth` (instancia de Firebase Auth) o un método `ready(): Promise<void>` que wrappee `authStateReady()`.
-    *   `src/app/features/waiter/waiter.component.ts` — al hacer clic sobre el avatar, abrir `IonPopover` con opción "Cerrar sesión"; al confirmar, llamar `authService.signOut()`.
-    *   `src/app/features/barista/barista.component.ts` — mismo popover de logout en avatar.
-    *   `src/app/features/admin/admin.component.ts` — logout en el avatar del toolbar móvil (el sidebar de escritorio ya puede tener su propio enlace de salida).
-*   **Definición de Done (Checklist):**
-    - `[ ]` Recargar la página en Chrome macOS mantiene la sesión y lleva al usuario a su vista correcta.
-    - `[ ]` Recargar en Chrome Android mantiene la sesión.
-    - `[ ]` Clic sobre el avatar del mesero muestra popover con "Cerrar sesión".
-    - `[ ]` Clic sobre el avatar del barista muestra popover con "Cerrar sesión".
-    - `[ ]` Admin en móvil tiene acceso a "Cerrar sesión" desde el avatar.
-    - `[ ]` `signOut()` limpia el estado y redirige a `/login`.
-    - `[ ]` `npm run build` sin errores.
-
 ### Tarea 13: [INFRA] Reparar `deploy_live` en GitHub Actions
 *   **Origen:** La GitHub Action `deploy_live` falla con `403 Permission denied to get service [firestore.googleapis.com]` al intentar hacer `firebase deploy --only firestore:rules`. El subdominio `https://comandante.letiende.co` no puede publicarse hasta resolverlo.
 *   **Causa raíz probable:** La cuenta de servicio usada en el secreto de GitHub Actions (`FIREBASE_SERVICE_ACCOUNT` o equivalente) no posee el rol `roles/serviceusage.serviceUsageConsumer` (necesario para que `firebase-tools` verifique APIs habilitadas) ni los permisos de Firestore/Hosting para hacer el deploy.
@@ -65,6 +47,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 12: [FEATURE] Persistencia de Sesión + Logout desde el Avatar
+*   **Completada:** 2026-05-27
+*   **PR:** `fix/session-persistence` (#16)
+*   **Resultado:** `AuthService.ready()` añadido usando `firstValueFrom(authState(this.auth)).then(() => undefined)` — espera el primer evento de Firebase antes de retornar. `authGuard` convertido a `async` y awaita `ready()` antes de evaluar `isAuthenticated()`, eliminando el falso redirect a `/login` al recargar en Chrome macOS y Chrome Android. Logout desde avatar implementado en mesero y barista mediante `IonActionSheet` ("Cerrar sesión" + Cancelar). Admin móvil: botón "Salir" con `log-out-outline` añadido al bottom nav. Build verde: 6 archivos modificados.
 
 ### ✅ Tarea 11: [FEATURE] Reporte Detallado por Pedido con Medio de Pago y Rango Fecha/Hora
 *   **Completada:** 2026-05-26
@@ -140,4 +127,5 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-05-26 | Feedback operativo post-Fase 1: eventos nocturnos cruzan medianoche (el filtro por día no alcanza), el admin necesita saber cuándo y cómo se pagó cada pedido, y el mesero debe registrar el medio de pago al cobrar. Tres mejoras acopladas: rango datetime libre + tabla por pedido + ActionSheet de medio de pago. Plan documentado en `docs/aumento-detalle-reportes.md`. | Tarea 11 redactada como única tarea activa. |
 | 2026-05-26 | Tarea 11 completada. Modelo, servicio, reglas, índices, mesero y reporte del admin actualizados. Índice `(paid ASC, paidAt ASC)` desplegado a staging. Build verde. El flujo completo ahora registra medio de pago y timestamp exacto de cobro, y el admin puede cuadrar caja para eventos que cruzan medianoche. Evaluar PRD para siguiente ciclo. | WIP baja a 0. |
 | 2026-05-27 | Tarea 12 completada. `AuthService.ready()` añadido usando `firstValueFrom(authState)` — el guard ahora awaita la inicialización de Firebase antes de evaluar `isAuthenticated()`, eliminando el falso redirect a `/login` al recargar. Logout desde avatar implementado en mesero (ActionSheet existente) y barista (ActionSheetController inyectado); admin móvil tiene botón "Salir" en bottom nav. PR #16 abierto. Build verde. | WIP baja a 1. Tarea 13 (deploy_live) queda como única activa. |
+| 2026-05-27 | PR #16 (`fix/session-persistence`) fusionado a `main`. Repo local limpiado: `main` actualizado con fast-forward (3 commits), rama local `fix/session-persistence` eliminada. Única tarea activa restante: Tarea 13 (deploy_live 403). | WIP se mantiene en 1. Tarea 13 es la próxima a ejecutar. |
 | 2026-05-27 | Feedback operativo post-merge de `feature/sales-consolidado`: (1) sesión no persiste al recargar navegador en macOS ni Android — bug crítico de usabilidad; (2) sin opción de cerrar sesión en waiter/barista/admin-móvil; (3) GitHub Action `deploy_live` falla con 403 en IAM — bloquea publicación en producción; (4) DNS de `comandante.letiende.co` sin configurar en Route 53; (5) estilos inline caóticos — hardcoded hex en lugar de variables del tema. Cuatro tareas agrupadas en dos activas + dos en cola. | WIP sube a 2. Tareas 12 (sesión+logout) y 13 (deploy_live) como activas. Tareas 14 (Route 53) y 15 (Tailwind refactor) en cola. |
