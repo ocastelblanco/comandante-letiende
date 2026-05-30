@@ -54,6 +54,12 @@ export class AuthService implements OnDestroy {
     }
 
     const role = userSnap.data()['role'] as string;
+
+    if (role === 'inactive') {
+      await signOut(this.auth);
+      throw new Error('Tu cuenta está inactiva para esta jornada. Contacta al administrador.');
+    }
+
     const destination = role === 'admin' ? '/admin' : role === 'waiter' ? '/waiter' : '/barista';
     await this.router.navigate([destination]);
   }

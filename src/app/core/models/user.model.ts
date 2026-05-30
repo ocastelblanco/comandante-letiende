@@ -1,6 +1,6 @@
 import { Timestamp } from '@angular/fire/firestore';
 
-export type UserRole = 'admin' | 'waiter' | 'barista';
+export type UserRole = 'admin' | 'waiter' | 'barista' | 'inactive';
 
 export interface AppUser {
   email: string;
