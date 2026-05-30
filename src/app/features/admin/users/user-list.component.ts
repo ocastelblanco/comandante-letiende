@@ -86,6 +86,7 @@ import { UserRole } from '../../../core/models/user.model';
               <ion-select-option value="admin">Admin</ion-select-option>
               <ion-select-option value="waiter">Mesero</ion-select-option>
               <ion-select-option value="barista">Barista</ion-select-option>
+              <ion-select-option value="inactive">Inactivo</ion-select-option>
             </ion-select>
           </ion-item>
         } @empty {
@@ -111,6 +112,7 @@ import { UserRole } from '../../../core/models/user.model';
               <ion-select-option value="admin">Admin</ion-select-option>
               <ion-select-option value="waiter">Mesero</ion-select-option>
               <ion-select-option value="barista">Barista</ion-select-option>
+              <ion-select-option value="inactive">Inactivo</ion-select-option>
             </ion-select>
           </ion-item>
           @if (addError()) {
