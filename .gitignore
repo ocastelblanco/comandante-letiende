@@ -51,5 +51,13 @@ coverage/
 .omc/
 .tolaria-rename-txn
 
+# Configuración local de Claude Code: `settings.local.json` guarda la lista de
+# permisos aprobados en ESTA máquina (incluye rutas absolutas del home) y
+# `skills/` contiene utilidades personales del desarrollador. Nada de esto es
+# compartible ni reproducible en otro equipo. Si en el futuro se necesita
+# configuración compartida por el equipo, versionar `.claude/settings.json`
+# explícitamente con `git add -f`.
+.claude/
+
 # ─── Logs genéricos ──────────────────────────────────────────────────────────
 *.log
