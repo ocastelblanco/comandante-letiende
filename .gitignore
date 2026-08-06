@@ -61,3 +61,7 @@ coverage/
 
 # ─── Logs genéricos ──────────────────────────────────────────────────────────
 *.log
+
+# ─── Herramientas locales de administración (no versionar) ──────────────────
+# Script manual de limpieza de Firestore + credenciales + respaldos + node_modules
+scripts/firestore-admin/
