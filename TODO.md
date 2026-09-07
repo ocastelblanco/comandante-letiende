@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 20: [SEO] robots.txt inválido — coordinado desde letiende.co (OPT-2)
+*   **Completada:** 2026-09-07
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0021 en su `TODO.md`; tarea OPT-2 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse reportaba "robots.txt is not valid" con 16 errores en `https://comandante.letiende.co/robots.txt`. Verificado con curl: no existía ningún archivo `robots.txt`, así que el rewrite catch-all de `firebase.json` (`"source": "**" -> "/index.html"`) servía el propio `index.html` de la SPA como respuesta — cada línea del HTML (doctype, meta tags, comentarios, bloque `<style>`, scripts) se interpretaba como una directiva inválida, de ahí los 16 errores. Se agregó `public/robots.txt` con `User-agent: *` / `Disallow: /`: Comandante es un sistema de punto de venta interno (meseros, baristas, administradores), sin ninguna sección SEO en su documentación y todas sus rutas salvo `/login` exigen sesión — no hay contenido público que indexar. Verificado en local con `firebase serve --only hosting` real: `/robots.txt` responde `200 text/plain` con el contenido esperado, sin pasar por la SPA. PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 19: [SEO] Meta description faltante — coordinado desde letiende.co (OPT-1)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0019 en su `TODO.md`; tarea OPT-1 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
