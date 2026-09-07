@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 23: [ACCESIBILIDAD] Contraste de color (WCAG) — coordinado desde letiende.co (OPT-6)
+*   **Completada:** 2026-09-07
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0024 en su `docs/TODO.md`; tarea OPT-6 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse (`color-contrast`, `/admin/dashboard`, 07/09/2026) marcaba 9 elementos reprobados, los tres con el mismo defecto de fondo: `text-espresso/45` (3.04:1), `text-espresso/40` (2.62:1) y `text-espresso/35` (2.28:1) — la variable `--color-espresso` (`#230C00`) con el modificador de opacidad de Tailwind usada para jerarquía de texto secundario, ninguna llegaba al 4.5:1 exigido a texto normal. `DESIGN.md` nunca documentó esta variante (solo el color a opacidad plena). Verificado el mismo patrón, sin auditar todavía por Lighthouse, en otras tres vistas del mismo repositorio (`products.component.ts`, `admin-orders.component.ts`, `barista.component.ts`) — corregido en las cuatro para no dejar el mismo defecto esperando el próximo escaneo. Con la fórmula real de contraste relativo de WCAG (no aproximada, incluida la variante sobre `bg-espresso/8` de `products.component.ts:329`, más exigente que sobre blanco puro), se recalculó la opacidad mínima por nivel preservando la jerarquía relativa: `/30→/62`, `/35→/64`, `/40→/68`, `/45→/70` (5.32:1 a 7.11:1 sobre blanco). `DESIGN.md` §"Ratios de contraste aprobados" documenta la tabla nueva. Build de producción y 1/1 pruebas verificados (repositorio sin script de lint). PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 22: [SEO] Crear llms.txt — coordinado desde letiende.co (OPT-3)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0023 en su `TODO.md`; tarea OPT-3 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).

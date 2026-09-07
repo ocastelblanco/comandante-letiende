@@ -74,7 +74,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
         <div class="hidden lg:flex items-center gap-3 mb-6">
           <h1 class="flex-1 text-2xl font-bold text-espresso">Pedidos en curso</h1>
           <span class="w-2 h-2 rounded-full bg-teal animate-pulse"></span>
-          <span class="text-xs text-espresso/45 font-medium">En tiempo real</span>
+          <span class="text-xs text-espresso/70 font-medium">En tiempo real</span>
         </div>
 
         <!-- Filter segment -->
@@ -113,7 +113,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
         @if (filteredOrders().length === 0) {
           <div class="bg-white rounded-2xl p-12 text-center
                       shadow-[0_1px_3px_rgba(35,12,0,0.08)]">
-            <p class="text-espresso/35 text-sm">No hay pedidos en este estado.</p>
+            <p class="text-espresso/64 text-sm">No hay pedidos en este estado.</p>
           </div>
         } @else {
           <div class="flex flex-col gap-3">
@@ -143,7 +143,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                                        background:rgba(232,99,10,.12);color:var(--ion-color-secondary)">Sin cobrar</span>
                         }
                       </div>
-                      <p class="text-xs text-espresso/45 mt-0.5">
+                      <p class="text-xs text-espresso/70 mt-0.5">
                         Mesero: {{ order.waiterName }}
                       </p>
                     </div>

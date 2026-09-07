@@ -50,7 +50,7 @@ import { OrderService } from '../../../core/db/order.service';
         <div class="hidden lg:flex items-baseline justify-between mb-8">
           <div>
             <h1 class="text-2xl font-bold text-espresso">Hola, {{ firstName() }}</h1>
-            <p class="text-espresso/45 text-sm mt-0.5 capitalize">{{ today }}</p>
+            <p class="text-espresso/70 text-sm mt-0.5 capitalize">{{ today }}</p>
           </div>
         </div>
 
@@ -59,13 +59,13 @@ import { OrderService } from '../../../core/db/order.service';
           @for (kpi of kpis(); track kpi.label) {
             <div class="bg-white rounded-2xl p-4 lg:p-5
                         shadow-[0_1px_3px_rgba(35,12,0,0.12)]">
-              <p class="text-espresso/45 text-[11px] font-semibold tracking-wider uppercase">
+              <p class="text-espresso/70 text-[11px] font-semibold tracking-wider uppercase">
                 {{ kpi.label }}
               </p>
               <p class="text-orange text-3xl font-bold mt-1 leading-none">
                 {{ kpi.value }}
               </p>
-              <p class="text-espresso/40 text-xs mt-1.5">{{ kpi.sub }}</p>
+              <p class="text-espresso/68 text-xs mt-1.5">{{ kpi.sub }}</p>
             </div>
           }
         </div>
@@ -80,7 +80,7 @@ import { OrderService } from '../../../core/db/order.service';
           </div>
 
           @if (activeOrders().length === 0) {
-            <div class="px-5 py-12 text-center text-espresso/35 text-sm">
+            <div class="px-5 py-12 text-center text-espresso/64 text-sm">
               No hay pedidos activos en este momento.
             </div>
           } @else {
@@ -93,10 +93,10 @@ import { OrderService } from '../../../core/db/order.service';
                       <span class="text-sm font-semibold text-espresso">
                         Pedido: {{ order.tableNumber }}
                       </span>
-                      <span class="text-espresso/30 text-xs">·</span>
-                      <span class="text-espresso/45 text-xs truncate">{{ order.waiterName }}</span>
+                      <span class="text-espresso/62 text-xs">·</span>
+                      <span class="text-espresso/70 text-xs truncate">{{ order.waiterName }}</span>
                     </div>
-                    <p class="text-xs text-espresso/45 mt-0.5">
+                    <p class="text-xs text-espresso/70 mt-0.5">
                       {{ order.items.length }} ítem{{ order.items.length !== 1 ? 's' : '' }}
                     </p>
                   </div>
