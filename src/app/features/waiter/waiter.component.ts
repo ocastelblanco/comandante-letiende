@@ -99,7 +99,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
       <!-- ── Dashboard ──────────────────────────────────────────────────── -->
       <ion-header>
         <ion-toolbar>
-          <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" style="height:26px;margin-left:16px">
+          <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" width="59" height="26" style="height:26px;margin-left:16px">
           <ion-title class="text-center">Comandante</ion-title>
           <ion-buttons slot="end">
             @if (authService.currentUser()?.photoURL; as photoURL) {

@@ -231,7 +231,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
     <ion-header class="ion-no-border">
       <ion-toolbar>
-        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
+        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" width="55" height="24"
              style="height:24px;margin-left:16px">
         <ion-title class="text-center">Productos</ion-title>
         <ion-buttons slot="end">
