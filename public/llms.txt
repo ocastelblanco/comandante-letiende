@@ -1,0 +1,9 @@
+# Comandante
+
+> Comandante es un sistema de punto de venta interno para el centro cultural Le Tiende (Bogotá, Colombia): toma de pedidos para meseros, cola de preparación en barra para baristas, cálculo de discriminación de propina para datáfonos, y consolidación diaria de ventas para administración.
+
+No tiene contenido público que indexar o consultar: todas sus rutas, salvo `/login`, exigen sesión autenticada (ver `robots.txt` — `Disallow: /`). El acceso está restringido al personal de Le Tiende.
+
+## Docs
+
+- [Repositorio en GitHub](https://github.com/ocastelblanco/comandante-letiende): código fuente, README y documentación técnica del proyecto.
