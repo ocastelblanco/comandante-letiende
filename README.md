@@ -5,10 +5,12 @@
 **A production point-of-sale system for a cultural venue — architected through AI agent orchestration, ~60% of it directed from a phone, running at $0 USD/month.**
 
 [![Live](https://img.shields.io/badge/live-comandante.letiende.co-E8630A?style=flat-square)](https://comandante.letiende.co)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Angular](https://img.shields.io/badge/Angular-21.2-DD0031?style=flat-square&logo=angular&logoColor=white)](https://angular.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Spark_free_tier-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com)
 [![OPEX](https://img.shields.io/badge/monthly_OPEX-%240_USD-00B7A3?style=flat-square)](#zero-cost-architecture)
 [![Mobile orchestrated](https://img.shields.io/badge/~60%25_orchestrated_from-a_phone-5C2E91?style=flat-square&logo=android&logoColor=white)](#orchestrated-from-a-phone)
+[![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue?style=flat-square)](https://nasa-ammos.github.io/slim/)
 [![Español](https://img.shields.io/badge/leer_en-Español-FFCA28?style=flat-square)](./README.es.md)
 
 <br/>

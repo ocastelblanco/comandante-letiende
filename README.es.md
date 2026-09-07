@@ -5,10 +5,12 @@
 **Un sistema de punto de venta en producción para un centro cultural — arquitecturado mediante orquestación de agentes de IA, ~60% dirigido desde un celular, operando a $0 USD/mes.**
 
 [![Live](https://img.shields.io/badge/en_producción-comandante.letiende.co-E8630A?style=flat-square)](https://comandante.letiende.co)
+[![Licencia](https://img.shields.io/badge/licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Angular](https://img.shields.io/badge/Angular-21.2-DD0031?style=flat-square&logo=angular&logoColor=white)](https://angular.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-plan_Spark_gratuito-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com)
 [![OPEX](https://img.shields.io/badge/OPEX_mensual-%240_USD-00B7A3?style=flat-square)](#arquitectura-de-costo-cero)
 [![Orquestado desde el celular](https://img.shields.io/badge/~60%25_orquestado_desde-un_celular-5C2E91?style=flat-square&logo=android&logoColor=white)](#orquestado-desde-un-celular)
+[![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue?style=flat-square)](https://nasa-ammos.github.io/slim/)
 [![English](https://img.shields.io/badge/read_in-English-FFCA28?style=flat-square)](./README.md)
 
 <br/>
