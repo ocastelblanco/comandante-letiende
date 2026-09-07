@@ -51,7 +51,7 @@ const NAV = [
     <!-- SIDEBAR — desktop only (≥1024px) -->
     <aside class="hidden lg:flex flex-col w-60 shrink-0 bg-espresso" style="height:100%">
       <div class="px-5 pt-7 pb-5 border-b border-white/10">
-        <img src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" class="h-[4em] m-auto mb-[1em]">
+        <img src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" width="146" height="64" class="h-[4em] m-auto mb-[1em]">
         <p class="text-(--ion-color-primary-contrast) text-[1.5em] uppercase font-black text-center leading-none">Comandante</p>
       </div>
 

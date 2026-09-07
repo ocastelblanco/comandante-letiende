@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 24: [RENDIMIENTO] Logo sin width/height explícitos — coordinado desde letiende.co (OPT-7)
+*   **Completada:** 2026-09-07
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0025 en su `docs/TODO.md`; tarea OPT-7 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse (`unsized-images`, `/admin/dashboard`) marcaba el logo del toolbar sin dimensiones explícitas — causa real de *layout shift*, no cosmético. Se agregó `width`/`height` (proporción real del viewBox del SVG, 525.26×230.56) en las 9 instancias del logo en el repositorio, no solo la auditada: `width="55" height="24"` en los 5 toolbars con `height:24px` (`products`, `user-list`, `admin-orders`, `admin-dashboard`, `admin-reports`), `width="59" height="26"` en los 2 con `height:26px` (`barista`, `waiter`), `width="140" height="61"` en el logo de login y `width="146" height="64"` en el del sidebar de administración (`h-[4em]`). El tamaño visible lo sigue controlando el `style`/clase existente en cada uno. Build de producción y 1/1 pruebas verificados (repositorio sin script de lint). PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 23: [ACCESIBILIDAD] Contraste de color (WCAG) — coordinado desde letiende.co (OPT-6)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0024 en su `docs/TODO.md`; tarea OPT-6 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).

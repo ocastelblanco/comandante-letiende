@@ -24,7 +24,7 @@ import { Order } from '../../core/models/order.model';
   template: `
     <ion-header class="ion-no-border">
       <ion-toolbar>
-        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende"
+        <img slot="start" src="/logo_blanco_sin_fondo.svg" alt="Le Tiende" width="59" height="26"
              style="height:26px;margin-left:16px">
         <ion-title style="text-align:center">Barra</ion-title>
         <ion-buttons slot="end">
