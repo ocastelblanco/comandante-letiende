@@ -62,7 +62,7 @@ import { Order } from '../../core/models/order.model';
             @if (pendingOrders().length === 0) {
               <div class="bg-white rounded-2xl py-12 text-center
                           shadow-[0_1px_3px_rgba(35,12,0,0.08)]">
-                <p class="text-espresso/35 text-sm">Sin pedidos pendientes.</p>
+                <p class="text-espresso/64 text-sm">Sin pedidos pendientes.</p>
               </div>
             } @else {
               <div class="flex flex-col gap-3">
@@ -120,7 +120,7 @@ import { Order } from '../../core/models/order.model';
             @if (preparingOrders().length === 0) {
               <div class="bg-white rounded-2xl py-12 text-center
                           shadow-[0_1px_3px_rgba(35,12,0,0.08)]">
-                <p class="text-espresso/35 text-sm">Nada en preparación.</p>
+                <p class="text-espresso/64 text-sm">Nada en preparación.</p>
               </div>
             } @else {
               <div class="flex flex-col gap-3">

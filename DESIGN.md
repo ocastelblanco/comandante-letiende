@@ -202,6 +202,30 @@ La paleta de cuatro colores de Le Tiende se usa sin alteración.
 
 > **Nunca** texto blanco (`#FFFFFF`) sobre naranja (`#E8630A`) — el ratio es ~2.6:1, reprueba WCAG AA.
 
+### Texto atenuado: `text-espresso/<opacidad>` sobre blanco
+
+Esta tabla nunca documentó la variante real que usa el código para jerarquía de texto secundario:
+`--color-espresso` (`#230C00`) con el modificador de opacidad de Tailwind (`text-espresso/45`,
+`/40`, `/35`, `/30`). Auditoría real de Lighthouse (07/09/2026, `/admin/dashboard`) encontró que las
+cuatro opacidades usadas en el código (`products.component.ts`, `admin-dashboard.component.ts`,
+`admin-orders.component.ts`, `barista.component.ts`) reprueban `color-contrast`: `/45` da 3.04:1,
+`/40` da 2.62:1, `/35` da 2.28:1 — todas por debajo del 4.5:1 que exige texto normal. Fue deuda no
+escrita, no un desvío documentado.
+
+**Opacidades mínimas verificadas** (fórmula de contraste WCAG real, no aproximada, incluida la
+variante sobre `bg-espresso/8` de `products.component.ts:329`, más exigente que sobre blanco puro):
+
+| Antes | Ahora | Contraste sobre blanco | Contraste sobre `bg-espresso/8` |
+|---|---|---|---|
+| `/30` | `/62` | 5.32:1 | 4.50:1 |
+| `/35` | `/64` | 5.71:1 | 4.83:1 |
+| `/40` | `/68` | 6.60:1 | 5.58:1 |
+| `/45` | `/70` | 7.11:1 | 6.01:1 |
+
+Se preservó el orden relativo de la jerarquía (más opacidad = más énfasis), no un valor único: el
+suelo de 4.5:1 comprime el rango disponible frente a la escala original, así que la diferencia entre
+niveles es más sutil que antes — aceptable, porque legibilidad real gana sobre matiz visual.
+
 ## Typography
 
 Dos familias, dos propósitos.

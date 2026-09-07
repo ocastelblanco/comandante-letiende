@@ -213,7 +213,7 @@ const CATEGORY_ICONS: Record<string, string> = {
               {{ editingProduct() ? 'Editar producto' : 'Nuevo producto' }}
             </h2>
             <button (click)="showForm.set(false)"
-                    class="text-espresso/45 hover:text-espresso text-xl leading-none
+                    class="text-espresso/70 hover:text-espresso text-xl leading-none
                            w-8 h-8 flex items-center justify-center rounded-full
                            hover:bg-espresso/8 transition-colors">
               ✕
@@ -326,7 +326,7 @@ const CATEGORY_ICONS: Record<string, string> = {
               </div>
               @if (!p.isActive) {
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full
-                             bg-espresso/8 text-espresso/40 uppercase shrink-0">
+                             bg-espresso/8 text-espresso/68 uppercase shrink-0">
                   Archivado
                 </span>
               }
@@ -344,7 +344,7 @@ const CATEGORY_ICONS: Record<string, string> = {
             </div>
           } @empty {
             <div class="bg-white rounded-xl py-14 text-center
-                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/35 text-sm">
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/64 text-sm">
               No hay productos que coincidan.
             </div>
           }
@@ -399,7 +399,7 @@ const CATEGORY_ICONS: Record<string, string> = {
             </div>
           } @empty {
             <div class="col-span-3 bg-white rounded-2xl py-14 text-center
-                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/35 text-sm">
+                        shadow-[0_1px_3px_rgba(35,12,0,0.08)] text-espresso/64 text-sm">
               No hay productos que coincidan.
             </div>
           }
