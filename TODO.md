@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 22: [SEO] Crear llms.txt — coordinado desde letiende.co (OPT-3)
+*   **Completada:** 2026-09-07
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0023 en su `TODO.md`; tarea OPT-3 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse (auditoría `agentic-browsing`/`llms-txt`) marcaba "llms-txt does not follow recommendations" — no existía `/llms.txt`. Se agregó `public/llms.txt` (mismo mecanismo estático que `robots.txt`, Tarea 20), con contenido basado en la convención real de `llmstxt.org` (H1 + blockquote de resumen + sección H2 con link Markdown): Comandante es un sistema de punto de venta interno, sin ninguna ruta pública (mismo criterio que `robots.txt`: `Disallow: /`), así que el único link real es al repositorio público en GitHub — no se inventó contenido público que no existe. Verificado con el build de producción real + `firebase serve --only hosting`: `/llms.txt` responde `200 text/plain` con el contenido esperado, sin pasar por el rewrite catch-all de la SPA. PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 20: [SEO] robots.txt inválido — coordinado desde letiende.co (OPT-2)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0021 en su `TODO.md`; tarea OPT-2 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
