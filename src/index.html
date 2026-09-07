@@ -6,6 +6,11 @@
   <title>Comandante - Le Tiende</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Estático (OPT-1, letiende.co/docs/optimizacion-aplicaciones.md): Comandante no tiene SSR ni MetaService,
+       y todas sus rutas salvo /login exigen sesión (authGuard), así que un `Meta.updateTag()` dentro de un
+       componente protegido nunca llegaría a ejecutarse para un visitante sin sesión (como Lighthouse). El
+       texto reutiliza la descripción real del propio README.es.md, no una genérica. -->
+  <meta name="description" content="Comandante, el sistema de punto de venta del centro cultural Le Tiende en Bogotá: toma de pedidos, cálculo de propinas y cola de preparación en barra.">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

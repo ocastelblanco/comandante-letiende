@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 19: [SEO] Meta description faltante — coordinado desde letiende.co (OPT-1)
+*   **Completada:** 2026-09-07
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0019 en su `TODO.md`; tarea OPT-1 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse marcaba "Document does not have a meta description" en `https://comandante.letiende.co/admin/dashboard`. Este repositorio no tiene SSR ni ningún servicio de SEO/Meta, y todas sus rutas salvo `/login` exigen sesión (`authGuard`) — un `Meta.updateTag()` dentro de un componente protegido nunca se ejecutaría para un visitante sin sesión (como Lighthouse). Se agregó un `<meta name="description">` estático en `src/index.html`, con el texto real que ya usa `README.es.md` para describir la app. PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 18: [DOCS] Relicenciar a Apache 2.0 — coordinado desde letiende.co (OPT-18)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0018, ampliada, en su `TODO.md`; tarea OPT-18 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). Surgió directamente del hallazgo reportado en la Tarea 17: este repositorio no tenía ningún archivo `LICENSE`. Consultado el humano dueño del proyecto, decisión explícita: unificar los cuatro repositorios de Le Tiende en Apache License 2.0. No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
