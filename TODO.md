@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 25: [RENDIMIENTO] Activar sourceMap en producción — coordinado desde letiende.co (OPT-8)
+*   **Completada:** 2026-09-07
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0026 en su `docs/TODO.md`; tarea OPT-8 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse (`valid-source-maps`, `/admin/dashboard`) marcaba el bundle principal sin mapa de fuentes. Se agregó `"sourceMap": true` a la configuración `production` de `angular.json` (ya existía en `development`). **Evaluado antes de fusionar**, como pedía el DoD: a diferencia de Babel (Lambda, con límite de tamaño real), este repositorio despliega a Firebase Hosting sin Lambda propia — la asimetría que el DoD pedía verificar antes de aplicar el mismo cambio a ciegas. `dist/comandante-letiende` pasó de ~2 MB a 11 MB (49 archivos `.map` nuevos), sin ningún límite de tamaño real que ese crecimiento pueda cruzar. Build de producción y 1/1 pruebas verificados (repositorio sin script de lint). PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 24: [RENDIMIENTO] Logo sin width/height explícitos — coordinado desde letiende.co (OPT-7)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0025 en su `docs/TODO.md`; tarea OPT-7 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
