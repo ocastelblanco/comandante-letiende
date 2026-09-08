@@ -25,6 +25,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 26: [RENDIMIENTO] Cache-Control eficiente en Firebase Hosting — coordinado desde letiende.co (OPT-12)
+*   **Completada:** 2026-09-08
+*   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0030 en su `docs/TODO.md`; tarea OPT-12 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
+*   **Resultado:** Lighthouse (`cache-insight`) marcaba los bundles JS/CSS propios (hasheados por `outputHashing: all`) con solo 1 hora de `cacheLifetimeMs` — sin ninguna regla de `Cache-Control` en `firebase.json`, Firebase Hosting aplica su valor por defecto. Se agregó una regla nueva al arreglo `headers` de `firebase.json`, con el patrón `**/*.@(js|css)` (mismo formato de extglob que documenta la propia guía oficial de Firebase Hosting) y `Cache-Control: public, max-age=31536000, immutable`. **Deliberadamente NO se aplicó a imágenes ni al logo** (`icon-192.png`, `logo_blanco_sin_fondo.svg`): esos archivos viven en `public/` sin hash de contenido en el nombre, así que cachearlos por un año sería inseguro — un cambio real de logo tardaría hasta un año en verse para un visitante que ya lo tenía en caché. Verificado que JSON es válido; verificación real contra producción pendiente tras el despliegue (`curl -I` contra un `.js` real). PR abierto en `comandante-letiende`, sin fusionar todavía.
+
 ### ✅ Tarea 25: [RENDIMIENTO] Activar sourceMap en producción — coordinado desde letiende.co (OPT-8)
 *   **Completada:** 2026-09-07
 *   **Origen:** tarea externa al roadmap de este repositorio, coordinada desde el proyecto contenedor `letiende.co` (T-0026 en su `docs/TODO.md`; tarea OPT-8 de `docs/optimizacion-aplicaciones.md`, roadmap de deuda técnica compartido entre los 4 repos de Le Tiende). No consumió ningún slot del motor JIT (WIP se mantuvo en 0).
