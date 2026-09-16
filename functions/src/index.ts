@@ -1,54 +1,69 @@
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, type DocumentSnapshot } from 'firebase-admin/firestore';
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import { onRequest, type Request, type Response } from 'firebase-functions/v2/https';
 
 initializeApp();
 
 /**
- * Subconjunto público de un producto, expuesto en `/publicMenu` para que el
- * sitio web público (letiende.co) pueda mostrar el menú sin autenticación.
- * NO incluye `basePrice` ni `tipAmount`: son desglose interno de negocio.
+ * Subconjunto público de un producto, expuesto en la respuesta JSON de
+ * `publicMenu` para que el sitio web público (letiende.co) pueda mostrar el
+ * menú sin autenticación. NO incluye `basePrice`, `tipAmount`, `id`,
+ * `createdAt` ni `updatedAt`: son desglose interno de negocio.
  */
 interface PublicMenuItem {
   name: string;
   category: string;
   subcategory: string | null;
   totalPrice: number;
-  isActive: true;
+}
+
+interface PublicMenuResponse {
+  updatedAt: string;
+  items: PublicMenuItem[];
 }
 
 /**
- * Espeja los productos activos de `/products` hacia la colección pública de
- * solo lectura `/publicMenu`, consumida por el sitio web público letiende.co
- * (repositorio separado, sin autenticación).
- *
- * - Si el producto fue borrado o quedó inactivo (`isActive !== true`), se
- *   elimina el espejo correspondiente en `/publicMenu` (si existe).
- * - Si el producto existe y está activo, se sobreescribe completo el
- *   documento espejo con únicamente los campos públicos permitidos.
+ * Cloud Function HTTPS (Gen2) que genera el menú público como JSON
+ * on-demand, consultando `/products` con el Admin SDK (no consume cuota del
+ * cliente). Se expone en Hosting bajo `/menu.json` con `Cache-Control`
+ * apuntado al CDN de Firebase Hosting, de modo que la gran mayoría de las
+ * peticiones del sitio público letiende.co se sirven desde caché y casi
+ * ninguna llega a Firestore.
  */
-export const syncPublicMenu = onDocumentWritten('products/{productId}', async (event) => {
-  const productId = event.params.productId;
-  const db = getFirestore();
-  const publicMenuRef = db.collection('publicMenu').doc(productId);
+export const publicMenu = onRequest(
+  { region: 'us-central1', maxInstances: 10 },
+  async (req: Request, res: Response) => {
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method Not Allowed' });
+      return;
+    }
 
-  const after: DocumentSnapshot | undefined = event.data?.after;
-  const afterData = after?.data();
+    try {
+      const db = getFirestore();
+      const snapshot = await db.collection('products').where('isActive', '==', true).get();
 
-  if (!after?.exists || !afterData || afterData['isActive'] !== true) {
-    await publicMenuRef.delete().catch(() => {
-      // El documento espejo ya no existe (o nunca existió); no es un error.
-    });
-    return;
+      const items: PublicMenuItem[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          name: data['name'] as string,
+          category: data['category'] as string,
+          subcategory: (data['subcategory'] as string | null | undefined) ?? null,
+          totalPrice: data['totalPrice'] as number,
+        };
+      });
+
+      const body: PublicMenuResponse = {
+        updatedAt: new Date().toISOString(),
+        items,
+      };
+
+      res.set('Content-Type', 'application/json');
+      res.set('Cache-Control', 'public, max-age=300, s-maxage=300');
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(200).json(body);
+    } catch (error) {
+      console.error('Error al generar el menú público:', error);
+      res.status(500).json({ error: 'Error interno al generar el menú público' });
+    }
   }
-
-  const publicItem: PublicMenuItem = {
-    name: afterData['name'] as string,
-    category: afterData['category'] as string,
-    subcategory: (afterData['subcategory'] as string | null | undefined) ?? null,
-    totalPrice: afterData['totalPrice'] as number,
-    isActive: true,
-  };
-
-  await publicMenuRef.set(publicItem);
-});
+);

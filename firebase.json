@@ -50,6 +50,13 @@
     ],
     "rewrites": [
       {
+        "source": "/menu.json",
+        "function": {
+          "functionId": "publicMenu",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
