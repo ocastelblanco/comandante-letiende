@@ -47,7 +47,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE }}' > /tmp/sa.json
-          npx firebase-tools deploy --only firestore:rules,functions --project comandante-letiende
+          npx firebase-tools deploy --only firestore:rules,functions --project comandante-letiende --force
           rm /tmp/sa.json
 
   # ── Preview: genera URL única y la comenta en la PR automáticamente ──────
