@@ -29,7 +29,7 @@ export const CATEGORY_TREE: readonly CategoryTreeNode[] = [
   },
   {
     value: 'cocteles',
-    label: 'Cócteles',
+    label: 'Cocteles',
     icon: 'wine-outline',
     subcategories: [
       { value: 'clasicos', label: 'Clásicos' },

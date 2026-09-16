@@ -173,5 +173,5 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
 - **Datáfono:** Terminal de punto de venta (tarjeta de crédito/débito, POS terminal) utilizado en Colombia para procesar pagos electrónicos.
 - **Propina (Exenta):** Suma de dinero voluntaria que el cliente otorga por el servicio. En la legislación tributaria colombiana, las propinas no forman parte de la base gravable del Impuesto Nacional al Consumo (INC) ni del IVA, por lo que es mandatorio cobrarlas y registrarlas de forma separada del valor de los productos consumidos.
 - **POS (Point of Sale):** Sistema de caja registradora y facturación física principal del establecimiento Le Tiende donde se asienta la contabilidad y se emiten los tiquetes fiscales.
-- **Barista:** Personal encargado de preparar café, cócteles, licores y comidas rápidas en la barra.
+- **Barista:** Personal encargado de preparar café, cocteles, licores y comidas rápidas en la barra.
 - **Parkway:** Sector del barrio La Soledad/Teusaquillo en Bogotá, caracterizado por ser un corredor cultural y comercial de alta afluencia.
