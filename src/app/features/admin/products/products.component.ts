@@ -18,12 +18,15 @@ import {
 import { addIcons } from 'ionicons';
 import {
   add,
+  beerOutline,
   cafeOutline,
   cloudUploadOutline,
   createOutline,
   eyeOffOutline,
   eyeOutline,
+  flaskOutline,
   gridOutline,
+  iceCreamOutline,
   personCircleOutline,
   pricetagOutline,
   restaurantOutline,
@@ -31,12 +34,20 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ProductService } from '../../../core/db/product.service';
-import { Product, ProductCategory } from '../../../core/models/product.model';
+import { Product, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
+import {
+  CATEGORY_SEGMENT_OPTIONS,
+  categoryRequiresSubcategory,
+  getCategoryNode,
+  isValidCategory,
+  isValidSubcategory,
+} from '../../../core/models/category-tree';
 import { ProductFormComponent } from './product-form.component';
 
 interface ImportRow {
   name: string;
   category: ProductCategory;
+  subcategory: ProductSubcategory | null;
   basePrice: number;
   tipAmount: number;
   totalPrice: number;
@@ -44,21 +55,10 @@ interface ImportRow {
   existingId: string | null;
 }
 
-const VALID_CATEGORIES = new Set<string>(['bebidas', 'licores', 'comida', 'otros']);
-
-const CATEGORIES: { value: string; label: string; icon: string }[] = [
-  { value: 'all', label: 'Todos', icon: 'grid-outline' },
-  { value: 'bebidas', label: 'Bebidas', icon: 'cafe-outline' },
-  { value: 'licores', label: 'Licores', icon: 'wine-outline' },
-  { value: 'comida', label: 'Comida', icon: 'restaurant-outline' },
-  { value: 'otros', label: 'Otros', icon: 'pricetag-outline' },
-];
-
-const CATEGORY_ICONS: Record<string, string> = {
-  bebidas: 'cafe-outline',
-  licores: 'wine-outline',
-  comida: 'restaurant-outline',
-};
+interface ImportError {
+  row: number;
+  reason: string;
+}
 
 @Component({
   selector: 'app-products',
@@ -87,6 +87,50 @@ const CATEGORY_ICONS: Record<string, string> = {
     <!-- Hidden file input for Excel import (desktop only) -->
     <input #fileInput type="file" accept=".xlsx,.xls" style="display:none"
            (change)="onFileSelected($event)">
+
+    <!-- Import errors overlay -->
+    @if (importErrors().length > 0) {
+      <div style="position:fixed;inset:0;z-index:1002;background:rgba(35,12,0,0.55);
+                  display:flex;align-items:center;justify-content:center;padding:24px">
+        <div style="background:white;border-radius:20px;width:100%;max-width:600px;
+                    max-height:80vh;display:flex;flex-direction:column;overflow:hidden;
+                    box-shadow:0 8px 32px rgba(35,12,0,0.25)">
+          <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(35,12,0,0.08);
+                      display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h2 style="font-size:1rem;font-weight:700;color:var(--ion-color-primary);margin:0">
+                Errores en el archivo
+              </h2>
+              <p style="font-size:.8rem;color:var(--ion-color-medium);margin:4px 0 0">
+                No se aplicó ningún cambio. Corrige las filas indicadas y vuelve a cargar el archivo.
+              </p>
+            </div>
+            <button (click)="importErrors.set([])"
+                    style="color:rgba(var(--ion-color-primary-rgb),.45);background:none;border:none;
+                           font-size:1.2rem;cursor:pointer;width:32px;height:32px;
+                           border-radius:50%;display:flex;align-items:center;justify-content:center">
+              ✕
+            </button>
+          </div>
+          <div style="flex:1;overflow:auto">
+            <ul style="margin:0;padding:0;list-style:none">
+              @for (err of importErrors(); track err.row) {
+                <li style="padding:10px 24px;border-bottom:1px solid var(--ion-color-light);
+                           font-size:.85rem;color:var(--ion-color-dark)">
+                  <strong>Fila {{ err.row }}:</strong> {{ err.reason }}
+                </li>
+              }
+            </ul>
+          </div>
+          <div style="padding:16px 24px;border-top:1px solid rgba(35,12,0,0.08);
+                      display:flex;justify-content:flex-end">
+            <ion-button (click)="importErrors.set([])" color="secondary" class="btn-rounded">
+              Cerrar
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- Import preview overlay -->
     @if (showImportPreview()) {
@@ -151,7 +195,7 @@ const CATEGORY_ICONS: Record<string, string> = {
                       {{ row.name }}
                     </td>
                     <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-medium)">
-                      {{ row.category }}
+                      {{ row.category }}{{ row.subcategory ? ' / ' + row.subcategory : '' }}
                     </td>
                     <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);
                                text-align:right;white-space:nowrap">
@@ -424,7 +468,7 @@ export class ProductsComponent {
   private auth = inject(AuthService);
   private productService = inject(ProductService);
 
-  protected readonly categories = CATEGORIES;
+  protected readonly categories = CATEGORY_SEGMENT_OPTIONS;
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly showForm = signal(false);
   protected readonly editingProduct = signal<Product | undefined>(undefined);
@@ -433,6 +477,7 @@ export class ProductsComponent {
 
   protected readonly showImportPreview = signal(false);
   protected readonly importRows = signal<ImportRow[]>([]);
+  protected readonly importErrors = signal<ImportError[]>([]);
   protected readonly importing = signal(false);
 
   protected readonly newCount = computed(() => this.importRows().filter((r) => r.isNew).length);
@@ -455,12 +500,15 @@ export class ProductsComponent {
   constructor() {
     addIcons({
       add,
+      beerOutline,
       cafeOutline,
       cloudUploadOutline,
       createOutline,
       eyeOffOutline,
       eyeOutline,
+      flaskOutline,
       gridOutline,
+      iceCreamOutline,
       wineOutline,
       restaurantOutline,
       pricetagOutline,
@@ -469,7 +517,7 @@ export class ProductsComponent {
   }
 
   protected categoryIcon(cat: string): string {
-    return CATEGORY_ICONS[cat] ?? 'pricetag-outline';
+    return getCategoryNode(cat)?.icon ?? 'pricetag-outline';
   }
 
   onCategoryChange(ev: Event): void {
@@ -519,26 +567,63 @@ export class ProductsComponent {
     }
 
     const rows: ImportRow[] = [];
+    const errors: ImportError[] = [];
+    let rowNumber = 1; // fila 1 = encabezado; los datos empiezan en la fila 2
     for (const r of raw) {
+      rowNumber++;
       const name = String(r['name'] ?? '').trim();
       if (!name) continue;
 
-      const rawCat = String(r['category'] ?? '').toLowerCase().trim();
-      const category = VALID_CATEGORIES.has(rawCat) ? (rawCat as ProductCategory) : 'otros';
+      const rawCategory = String(r['category'] ?? '').toLowerCase().trim();
+      if (!isValidCategory(rawCategory)) {
+        errors.push({ row: rowNumber, reason: `Categoría inválida: "${r['category'] ?? ''}"` });
+        continue;
+      }
+      const category = rawCategory;
+
+      const rawSubcategory = String(r['subcategory'] ?? '').toLowerCase().trim();
+      let subcategory: ProductSubcategory | null = null;
+      if (categoryRequiresSubcategory(category)) {
+        if (!rawSubcategory) {
+          errors.push({ row: rowNumber, reason: `La categoría "${category}" requiere una subcategoría` });
+          continue;
+        }
+        if (!isValidSubcategory(category, rawSubcategory)) {
+          errors.push({
+            row: rowNumber,
+            reason: `Subcategoría inválida "${r['subcategory']}" para la categoría "${category}"`,
+          });
+          continue;
+        }
+        subcategory = rawSubcategory as ProductSubcategory;
+      } else if (rawSubcategory) {
+        errors.push({ row: rowNumber, reason: `La categoría "${category}" no admite subcategoría` });
+        continue;
+      }
+
       const basePrice = Number(r['basePrice'] ?? 0);
       const tipAmount = Number(r['tipAmount'] ?? 0);
-      if (!isFinite(basePrice) || !isFinite(tipAmount)) continue;
+      if (!isFinite(basePrice) || !isFinite(tipAmount)) {
+        errors.push({ row: rowNumber, reason: 'Precio base o propina inválidos' });
+        continue;
+      }
 
       const existing = normalizedCurrent.get(this.normalizeStr(name));
       rows.push({
         name,
         category,
+        subcategory,
         basePrice,
         tipAmount,
         totalPrice: basePrice + tipAmount,
         isNew: !existing,
         existingId: existing?.id ?? null,
       });
+    }
+
+    if (errors.length > 0) {
+      this.importErrors.set(errors);
+      return;
     }
 
     if (rows.length === 0) return;
@@ -548,7 +633,13 @@ export class ProductsComponent {
 
   downloadTemplate(): void {
     const templateData = [
-      { name: 'Café Americano', category: 'bebidas', basePrice: 5000, tipAmount: 500 },
+      { name: 'Café Americano', category: 'bebidas', subcategory: 'de_cafe', basePrice: 5000, tipAmount: 500 },
+      { name: 'Mojito', category: 'cocteles', subcategory: 'clasicos', basePrice: 18000, tipAmount: 1800 },
+      { name: 'Aguardiente (trago)', category: 'licores', subcategory: 'trago', basePrice: 6000, tipAmount: 600 },
+      { name: 'Cerveza Club Colombia', category: 'cervezas', subcategory: 'nacionales', basePrice: 8000, tipAmount: 800 },
+      { name: 'Hamburguesa', category: 'comida', subcategory: '', basePrice: 22000, tipAmount: 2200 },
+      { name: 'Brownie', category: 'reposteria', subcategory: '', basePrice: 9000, tipAmount: 900 },
+      { name: 'Combo pareja', category: 'ofertas', subcategory: 'combos', basePrice: 45000, tipAmount: 4500 },
     ];
     const ws = utils.json_to_sheet(templateData);
     const wb = utils.book_new();
@@ -566,6 +657,7 @@ export class ProductsComponent {
             ? this.productService.addProduct({
               name: row.name,
               category: row.category,
+              subcategory: row.subcategory,
               basePrice: row.basePrice,
               tipAmount: row.tipAmount,
               totalPrice: row.totalPrice,
@@ -574,6 +666,7 @@ export class ProductsComponent {
             : this.productService.updateProduct(row.existingId!, {
               name: row.name,
               category: row.category,
+              subcategory: row.subcategory,
               basePrice: row.basePrice,
               tipAmount: row.tipAmount,
               totalPrice: row.totalPrice,

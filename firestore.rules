@@ -37,6 +37,32 @@ service cloud.firestore {
       return userRole() == 'barista';
     }
 
+    // Subcategorías válidas para cada categoría raíz de producto.
+    // 'comida' y 'reposteria' no tienen subcategorías (lista vacía).
+    function productSubcategoriesFor(category) {
+      return category == 'bebidas' ? ['de_cafe', 'calientes', 'frias']
+          : category == 'cocteles' ? ['clasicos', 'de_autor', 'premium']
+          : category == 'licores' ? ['trago', 'botella']
+          : category == 'cervezas' ? ['nacionales', 'importadas', 'artesanales']
+          : category == 'ofertas' ? ['combos', 'promociones']
+          : [];
+    }
+
+    // Valida que `category` sea una de las 7 categorías raíz permitidas y que
+    // `subcategory` sea una combinación válida para esa categoría: ausente o
+    // null si la categoría no tiene subcategorías, o un valor exacto de su
+    // lista si sí las tiene.
+    function isValidProductData(data) {
+      let category = data.category;
+      let allowedSubcategories = productSubcategoriesFor(category);
+      return category in ['bebidas', 'cocteles', 'licores', 'cervezas', 'comida', 'reposteria', 'ofertas']
+          && (
+            allowedSubcategories.size() == 0
+              ? (!('subcategory' in data) || data.subcategory == null)
+              : (('subcategory' in data) && data.subcategory in allowedSubcategories)
+          );
+    }
+
     // Los baristas solo pueden tocar campos de estado al actualizar un pedido.
     // 'items' se incluye para que puedan marcar itemStatus de cada ítem como 'ready'.
     function onlyUpdatesOrderStatus() {
@@ -73,7 +99,8 @@ service cloud.firestore {
     // Escrituras solo para administradores.
     match /products/{productId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin() && isValidProductData(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     // ── Colección: orders ───────────────────────────────────────────────────
