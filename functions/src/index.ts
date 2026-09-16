@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { onRequest, type Request, type Response } from 'firebase-functions/v2/https';
 
 initializeApp();
@@ -42,7 +42,7 @@ export const publicMenu = onRequest(
       const db = getFirestore();
       const snapshot = await db.collection('products').where('isActive', '==', true).get();
 
-      const items: PublicMenuItem[] = snapshot.docs.map((doc) => {
+      const items: PublicMenuItem[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
         const data = doc.data();
         return {
           name: data['name'] as string,
