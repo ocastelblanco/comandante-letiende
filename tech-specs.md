@@ -349,3 +349,64 @@ Las llaves de configuración de Firebase no son consideradas secretos de alto ri
 | **Toma de Pedidos (Mesero)**| `src/app/features/waiter/*`, `src/app/shared/components/*`| Ionic components, Tailwind, Signals |
 | **Cola de Comandas (Barista)**| `src/app/features/barista/*` | Firestore realtime updates (`onSnapshot`) |
 | **Consolidado & ABM (Admin)**| `src/app/features/admin/*` | Formularios reactivos de Angular |
+
+---
+
+## 12. Endpoint público `/menu.json` (integración con letiende.co)
+
+### Propósito
+
+El sitio web público **letiende.co** (repositorio separado, fuera de este proyecto) necesita mostrar el menú del centro cultural sin autenticación ni acceso a la colección privada `/products` (que requiere sesión y contiene desglose interno de negocio como `basePrice` y `tipAmount`).
+
+En vez de exponer una colección de Firestore de lectura pública abierta (riesgo: queries anónimas ilimitadas contra la cuota gratuita compartida con el POS), el menú se sirve como **JSON generado on-demand por una Cloud Function HTTPS, cacheado por el CDN de Firebase Hosting**. Así, casi ninguna petición real del sitio público llega a Firestore.
+
+### Cómo funciona
+
+- **Endpoint:** `GET https://comandante.letiende.co/menu.json` (o el dominio de Hosting que corresponda).
+- **Rewrite de Hosting** (`firebase.json`) enruta `/menu.json` hacia la Cloud Function HTTPS Gen2 `publicMenu` (`functions/src/index.ts`, región `us-central1`), definido ANTES del rewrite catch-all `**` → `/index.html`.
+- La función consulta `/products` con el **Admin SDK** (`getFirestore()`, no cuenta contra la cuota del cliente) filtrando `isActive == true`, y arma el JSON de respuesta en cada invocación (no hay colección espejo ni sincronización previa).
+- **Caché:** la respuesta incluye `Cache-Control: public, max-age=300, s-maxage=300` (5 minutos), por lo que el CDN de Firebase Hosting sirve la gran mayoría de las peticiones sin invocar la función ni tocar Firestore.
+- **CORS:** `Access-Control-Allow-Origin: *` — es data intencionalmente pública, sin autenticación.
+- **Métodos:** solo `GET`; cualquier otro método responde `405`.
+- **Errores:** ante una falla de Firestore, responde `500` con un JSON de error simple.
+
+### Formato de la respuesta
+
+```json
+{
+  "updatedAt": "2026-09-15T18:30:00.000Z",
+  "items": [
+    {
+      "name": "Cerveza Artesanal",
+      "category": "cervezas",
+      "subcategory": "artesanales",
+      "totalPrice": 15000
+    }
+  ]
+}
+```
+
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `updatedAt` | `string` (ISO 8601) | Momento exacto en que se generó la respuesta. |
+| `items` | `array` | Lista de productos activos. |
+| `items[].name` | `string` | Nombre del producto. |
+| `items[].category` | `string` | Categoría raíz (`bebidas`, `cocteles`, `licores`, `cervezas`, `comida`, `reposteria`, `ofertas`). |
+| `items[].subcategory` | `string \| null` | Subcategoría, o `null` si la categoría no aplica subcategorías. |
+| `items[].totalPrice` | `number` | Precio final a cobrar (ya incluye propina discriminada). |
+
+**Campos deliberadamente excluidos:** `basePrice`, `tipAmount`, `id`, `createdAt`, `updatedAt` por ítem, o cualquier otro campo interno de `/products`.
+
+### Consumo desde letiende.co
+
+El sitio público debe consumir el endpoint con un `fetch` simple, sin autenticación ni credenciales:
+
+```js
+const res = await fetch('https://comandante.letiende.co/menu.json');
+const { updatedAt, items } = await res.json();
+```
+
+### Permisos
+
+No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colección de Firestore, sino una función HTTPS que consulta `/products` con el Admin SDK (que ignora las reglas de seguridad del cliente).
+Lectura pública sin autenticación. Ninguna escritura de cliente está permitida; el único escritor válido es el Admin SDK desde la Cloud Function `syncPublicMenu`, que opera con privilegios administrativos e ignora las reglas de seguridad.

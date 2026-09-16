@@ -3,6 +3,24 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.log",
+        "**/*.spec.*",
+        "**/*.test.*"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
   "hosting": {
     "public": "dist/comandante-letiende/browser",
     "ignore": [
@@ -31,6 +49,13 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/menu.json",
+        "function": {
+          "functionId": "publicMenu",
+          "region": "us-central1"
+        }
+      },
       {
         "source": "**",
         "destination": "/index.html"
