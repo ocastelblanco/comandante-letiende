@@ -4,11 +4,16 @@ import {
   collection,
   doc,
   Firestore,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from '@angular/fire/firestore';
 import { Product } from '../models/product.model';
+
+/** Límite máximo de operaciones por lote impuesto por Firestore. */
+const FIRESTORE_BATCH_LIMIT = 500;
 
 type ProductInput = Omit<Product, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -50,5 +55,26 @@ export class ProductService {
       isActive: false,
       updatedAt: serverTimestamp(),
     });
+  }
+
+  /**
+   * Borra TODOS los documentos de la colección /products.
+   * Trocea las eliminaciones en lotes de máx. 500 operaciones (límite de Firestore).
+   * Retorna la cantidad de productos eliminados.
+   */
+  async deleteAllProducts(): Promise<number> {
+    const snap = await getDocs(this.colRef);
+    const docs = snap.docs;
+
+    for (let i = 0; i < docs.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = docs.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = writeBatch(this.firestore);
+      for (const d of chunk) {
+        batch.delete(d.ref);
+      }
+      await batch.commit();
+    }
+
+    return docs.length;
   }
 }

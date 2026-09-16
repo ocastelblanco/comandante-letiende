@@ -2,6 +2,7 @@ import { Component, computed, ElementRef, inject, signal, ViewChild } from '@ang
 import { DecimalPipe } from '@angular/common';
 import { read, utils, writeFileXLSX } from 'xlsx';
 import {
+  AlertController,
   IonButton,
   IonButtons,
   IonContent,
@@ -14,6 +15,7 @@ import {
   IonSegmentButton,
   IonTitle,
   IonToolbar,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -30,6 +32,7 @@ import {
   personCircleOutline,
   pricetagOutline,
   restaurantOutline,
+  trashOutline,
   wineOutline,
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -449,6 +452,24 @@ interface ImportError {
           }
         </div>
 
+        <!-- Zona peligrosa: borrado masivo de productos -->
+        <div class="mt-10 pb-24 lg:pb-0" style="border:1px dashed rgba(var(--ion-color-danger-rgb),0.35);
+                    border-radius:16px;padding:16px 20px;background:rgba(var(--ion-color-danger-rgb),0.04)">
+          <h2 style="font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+                     color:var(--ion-color-danger);margin:0 0 4px">
+            Zona peligrosa
+          </h2>
+          <p style="font-size:.8rem;color:var(--ion-color-medium);margin:0 0 12px">
+            Borra todo el catálogo para empezar desde cero. Esta acción no se puede deshacer.
+          </p>
+          <ion-button (click)="confirmDeleteAll()" [disabled]="deletingAll()"
+                      color="danger" fill="outline" class="btn-rounded">
+            <ion-icon slot="start" name="trash-outline" />
+            &nbsp;
+            {{ deletingAll() ? 'Borrando...' : 'Borrar todos los productos' }}
+          </ion-button>
+        </div>
+
       </div>
     </ion-content>
 
@@ -467,6 +488,8 @@ export class ProductsComponent {
 
   private auth = inject(AuthService);
   private productService = inject(ProductService);
+  private alertCtrl = inject(AlertController);
+  private toastCtrl = inject(ToastController);
 
   protected readonly categories = CATEGORY_SEGMENT_OPTIONS;
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
@@ -479,6 +502,7 @@ export class ProductsComponent {
   protected readonly importRows = signal<ImportRow[]>([]);
   protected readonly importErrors = signal<ImportError[]>([]);
   protected readonly importing = signal(false);
+  protected readonly deletingAll = signal(false);
 
   protected readonly newCount = computed(() => this.importRows().filter((r) => r.isNew).length);
   protected readonly updateCount = computed(() => this.importRows().filter((r) => !r.isNew).length);
@@ -513,6 +537,7 @@ export class ProductsComponent {
       restaurantOutline,
       pricetagOutline,
       personCircleOutline,
+      trashOutline,
     });
   }
 
@@ -682,6 +707,56 @@ export class ProductsComponent {
   cancelImport(): void {
     this.showImportPreview.set(false);
     this.importRows.set([]);
+  }
+
+  async confirmDeleteAll(): Promise<void> {
+    const count = this.productService.products().length;
+    if (count === 0) {
+      this.toastCtrl
+        .create({ message: 'No hay productos para borrar.', duration: 3000, position: 'top', color: 'medium' })
+        .then((t) => t.present());
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: 'Borrar todos los productos',
+      message: `Se eliminarán los ${count} productos del catálogo. Esta acción no se puede deshacer.`,
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Borrar todo',
+          role: 'destructive',
+          handler: () => this.deleteAllProducts(),
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async deleteAllProducts(): Promise<void> {
+    this.deletingAll.set(true);
+    try {
+      const deletedCount = await this.productService.deleteAllProducts();
+      this.toastCtrl
+        .create({
+          message: `Se eliminaron ${deletedCount} productos.`,
+          duration: 4000,
+          position: 'top',
+          color: 'success',
+        })
+        .then((t) => t.present());
+    } catch {
+      this.toastCtrl
+        .create({
+          message: 'Ocurrió un error al borrar los productos. Intenta nuevamente.',
+          duration: 5000,
+          position: 'top',
+          color: 'danger',
+        })
+        .then((t) => t.present());
+    } finally {
+      this.deletingAll.set(false);
+    }
   }
 
   private normalizeStr(s: string): string {
