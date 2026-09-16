@@ -58,6 +58,37 @@ export class ProductService {
   }
 
   /**
+   * Aplica un lote de creaciones/actualizaciones de productos (import de Excel)
+   * usando `writeBatch`, en vez de N operaciones sueltas: si una fila del lote
+   * falla, ninguna de las escrituras de ese lote queda aplicada (evita duplicados
+   * en un reintento, algo que sí podía pasar con `addDoc` individuales).
+   * Trocea en lotes de máx. 500 operaciones (límite de Firestore).
+   */
+  async importProducts(
+    rows: { isNew: boolean; existingId: string | null; data: Partial<ProductInput> }[],
+  ): Promise<void> {
+    for (let i = 0; i < rows.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = rows.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = writeBatch(this.firestore);
+      for (const row of chunk) {
+        if (row.isNew) {
+          batch.set(doc(this.colRef), {
+            ...row.data,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          batch.update(doc(this.firestore, 'products', row.existingId!), {
+            ...row.data,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+      await batch.commit();
+    }
+  }
+
+  /**
    * Borra TODOS los documentos de la colección /products.
    * Trocea las eliminaciones en lotes de máx. 500 operaciones (límite de Firestore).
    * Retorna la cantidad de productos eliminados.

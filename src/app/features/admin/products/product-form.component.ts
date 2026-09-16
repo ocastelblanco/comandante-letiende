@@ -11,6 +11,7 @@ import {
   IonSelectOption,
   IonSpinner,
   IonText,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { DecimalPipe } from '@angular/common';
 import { ProductService } from '../../../core/db/product.service';
@@ -95,6 +96,7 @@ import { CATEGORY_TREE, categoryRequiresSubcategory, getCategoryNode } from '../
 export class ProductFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private productService = inject(ProductService);
+  private toastCtrl = inject(ToastController);
 
   @Input() product?: Product;
   saved = output<void>();
@@ -190,6 +192,17 @@ export class ProductFormComponent implements OnInit {
         await this.productService.addProduct(data);
       }
       this.saved.emit();
+    } catch {
+      // No se emite `saved` ni se cierra el modal: el usuario puede corregir
+      // los datos y reintentar (ej. rechazo de firestore.rules).
+      this.toastCtrl
+        .create({
+          message: 'No se pudo guardar el producto. Verifica los datos e intenta de nuevo.',
+          duration: 5000,
+          position: 'top',
+          color: 'danger',
+        })
+        .then((t) => t.present());
     } finally {
       this.saving.set(false);
     }

@@ -48,6 +48,7 @@ import {
 import { ProductFormComponent } from './product-form.component';
 
 interface ImportRow {
+  key: string;
   name: string;
   category: ProductCategory;
   subcategory: ProductSubcategory | null;
@@ -192,7 +193,7 @@ interface ImportError {
                 </tr>
               </thead>
               <tbody>
-                @for (row of importRows(); track row.name) {
+                @for (row of importRows(); track row.key) {
                   <tr style="border-bottom:1px solid var(--ion-color-light)">
                     <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);font-weight:500">
                       {{ row.name }}
@@ -563,11 +564,22 @@ export class ProductsComponent {
     this.showForm.set(false);
   }
 
-  toggleActive(p: Product): void {
-    if (p.isActive) {
-      this.productService.archiveProduct(p.id);
-    } else {
-      this.productService.updateProduct(p.id, { isActive: true });
+  async toggleActive(p: Product): Promise<void> {
+    try {
+      if (p.isActive) {
+        await this.productService.archiveProduct(p.id);
+      } else {
+        await this.productService.updateProduct(p.id, { isActive: true });
+      }
+    } catch {
+      this.toastCtrl
+        .create({
+          message: 'No se pudo actualizar el producto. Intenta nuevamente.',
+          duration: 5000,
+          position: 'top',
+          color: 'danger',
+        })
+        .then((t) => t.present());
     }
   }
 
@@ -588,7 +600,7 @@ export class ProductsComponent {
 
     const normalizedCurrent = new Map<string, Product>();
     for (const p of this.productService.products()) {
-      normalizedCurrent.set(this.normalizeStr(p.name), p);
+      normalizedCurrent.set(this.dedupeKey(p.name, p.category, p.subcategory ?? null), p);
     }
 
     const rows: ImportRow[] = [];
@@ -633,8 +645,10 @@ export class ProductsComponent {
         continue;
       }
 
-      const existing = normalizedCurrent.get(this.normalizeStr(name));
+      const key = this.dedupeKey(name, category, subcategory);
+      const existing = normalizedCurrent.get(key);
       rows.push({
+        key,
         name,
         category,
         subcategory,
@@ -676,29 +690,36 @@ export class ProductsComponent {
     if (this.importing()) return;
     this.importing.set(true);
     try {
-      await Promise.all(
-        this.importRows().map((row) =>
-          row.isNew
-            ? this.productService.addProduct({
-              name: row.name,
-              category: row.category,
-              subcategory: row.subcategory,
-              basePrice: row.basePrice,
-              tipAmount: row.tipAmount,
-              totalPrice: row.totalPrice,
-              isActive: true,
-            })
-            : this.productService.updateProduct(row.existingId!, {
-              name: row.name,
-              category: row.category,
-              subcategory: row.subcategory,
-              basePrice: row.basePrice,
-              tipAmount: row.tipAmount,
-              totalPrice: row.totalPrice,
-            }),
-        ),
+      await this.productService.importProducts(
+        this.importRows().map((row) => ({
+          isNew: row.isNew,
+          existingId: row.existingId,
+          data: {
+            name: row.name,
+            category: row.category,
+            subcategory: row.subcategory,
+            basePrice: row.basePrice,
+            tipAmount: row.tipAmount,
+            totalPrice: row.totalPrice,
+            // Solo los productos nuevos se marcan activos; los existentes
+            // conservan su `isActive` actual (no se reactivan productos
+            // archivados como efecto secundario de un reintento de import).
+            ...(row.isNew ? { isActive: true } : {}),
+          },
+        })),
       );
       this.cancelImport();
+    } catch {
+      // No se cierra el modal para que el usuario pueda reintentar sin
+      // perder la previsualización de la carga.
+      this.toastCtrl
+        .create({
+          message: 'No se pudo aplicar la carga. Verifica los datos e intenta nuevamente.',
+          duration: 5000,
+          position: 'top',
+          color: 'danger',
+        })
+        .then((t) => t.present());
     } finally {
       this.importing.set(false);
     }
@@ -766,5 +787,19 @@ export class ProductsComponent {
       .toLowerCase()
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  /**
+   * Clave de deduplicación para el import de Excel: el nombre solo no basta
+   * porque, con la jerarquía de categorías, dos productos pueden compartir
+   * nombre en categorías/subcategorías distintas (ej. "Aguardiente" en
+   * licores/trago vs. licores/botella) y no deben colisionar.
+   */
+  private dedupeKey(
+    name: string,
+    category: ProductCategory,
+    subcategory: ProductSubcategory | null,
+  ): string {
+    return `${this.normalizeStr(name)}|${category}|${subcategory ?? ''}`;
   }
 }
