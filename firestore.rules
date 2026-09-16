@@ -115,5 +115,15 @@ service cloud.firestore {
           || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid()));
       allow delete: if isAdmin();
     }
+
+    // ── Colección: publicMenu ───────────────────────────────────────────────
+    // Espejo de solo lectura pública de los productos activos, poblado
+    // automáticamente por la Cloud Function `syncPublicMenu` (Admin SDK,
+    // que ignora estas reglas) para el sitio web público letiende.co.
+    // El cliente nunca debe poder escribir aquí directamente.
+    match /publicMenu/{productId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

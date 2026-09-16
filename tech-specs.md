@@ -349,3 +349,42 @@ Las llaves de configuración de Firebase no son consideradas secretos de alto ri
 | **Toma de Pedidos (Mesero)**| `src/app/features/waiter/*`, `src/app/shared/components/*`| Ionic components, Tailwind, Signals |
 | **Cola de Comandas (Barista)**| `src/app/features/barista/*` | Firestore realtime updates (`onSnapshot`) |
 | **Consolidado & ABM (Admin)**| `src/app/features/admin/*` | Formularios reactivos de Angular |
+
+---
+
+## 12. Colección pública `/publicMenu` (integración con letiende.co)
+
+### Propósito
+
+`/publicMenu` es una colección de Firestore **pública y de solo lectura**, pensada para que el sitio web público **letiende.co** (repositorio separado, fuera de este proyecto) pueda mostrar el menú del centro cultural sin necesitar autenticación ni acceso a la colección privada `/products` (que requiere sesión y contiene desglose interno de negocio como `basePrice` y `tipAmount`).
+
+### Cómo se puebla
+
+Automáticamente, vía la Cloud Function `syncPublicMenu` (`functions/src/index.ts`), un trigger `onDocumentWritten` (Firestore, 2nd gen) sobre `products/{productId}`. No se escribe manualmente: cualquier alta, edición o borrado de un producto en `/products` dispara la sincronización.
+
+Reglas de sincronización:
+- Si el producto se borra, o si `isActive` no es `true`: se elimina el documento espejo correspondiente en `publicMenu/{productId}` (si existe).
+- Si el producto existe y `isActive === true`: se sobreescribe completo `publicMenu/{productId}` con únicamente los campos públicos (ver esquema abajo). El ID del documento espejo es el mismo `productId` del producto de origen.
+
+### Esquema de cada documento (`publicMenu/{productId}`)
+
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `name` | `string` | Nombre del producto. |
+| `category` | `string` | Categoría raíz (`bebidas`, `cocteles`, `licores`, `cervezas`, `comida`, `reposteria`, `ofertas`). |
+| `subcategory` | `string \| null` | Subcategoría, o `null` si la categoría no aplica subcategorías. |
+| `totalPrice` | `number` | Precio final a cobrar (ya incluye propina discriminada). |
+| `isActive` | `true` | Siempre `true` — los productos inactivos no tienen documento espejo. |
+
+**Campos deliberadamente excluidos:** `basePrice`, `tipAmount`, `createdAt`, `updatedAt`, o cualquier otro campo interno de `/products`. No deben leerse ni asumirse presentes en `/publicMenu`.
+
+### Permisos
+
+Definidos en `firestore.rules`:
+```
+match /publicMenu/{productId} {
+  allow read: if true;
+  allow write: if false;
+}
+```
+Lectura pública sin autenticación. Ninguna escritura de cliente está permitida; el único escritor válido es el Admin SDK desde la Cloud Function `syncPublicMenu`, que opera con privilegios administrativos e ignora las reglas de seguridad.
