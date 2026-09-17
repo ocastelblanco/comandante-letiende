@@ -672,13 +672,28 @@ export class ProductsComponent {
 
   downloadTemplate(): void {
     const templateData = [
+      // bebidas
       { name: 'Café Americano', category: 'bebidas', subcategory: 'de_cafe', basePrice: 5000, tipAmount: 500 },
+      { name: 'Chocolate Caliente', category: 'bebidas', subcategory: 'calientes', basePrice: 6000, tipAmount: 600 },
+      { name: 'Limonada Natural', category: 'bebidas', subcategory: 'frias', basePrice: 6000, tipAmount: 600 },
+      // cocteles
       { name: 'Mojito', category: 'cocteles', subcategory: 'clasicos', basePrice: 18000, tipAmount: 1800 },
+      { name: 'Sunset Le Tiende', category: 'cocteles', subcategory: 'de_autor', basePrice: 22000, tipAmount: 2200 },
+      { name: 'Old Fashioned', category: 'cocteles', subcategory: 'premium', basePrice: 28000, tipAmount: 2800 },
+      // licores
       { name: 'Aguardiente (trago)', category: 'licores', subcategory: 'trago', basePrice: 6000, tipAmount: 600 },
+      { name: 'Aguardiente (botella)', category: 'licores', subcategory: 'botella', basePrice: 60000, tipAmount: 6000 },
+      // cervezas
       { name: 'Cerveza Club Colombia', category: 'cervezas', subcategory: 'nacionales', basePrice: 8000, tipAmount: 800 },
+      { name: 'Cerveza Heineken', category: 'cervezas', subcategory: 'importadas', basePrice: 10000, tipAmount: 1000 },
+      { name: 'Cerveza BBC Golden', category: 'cervezas', subcategory: 'artesanales', basePrice: 12000, tipAmount: 1200 },
+      // comida (sin subcategoría)
       { name: 'Hamburguesa', category: 'comida', subcategory: '', basePrice: 22000, tipAmount: 2200 },
+      // reposteria (sin subcategoría)
       { name: 'Brownie', category: 'reposteria', subcategory: '', basePrice: 9000, tipAmount: 900 },
+      // ofertas
       { name: 'Combo pareja', category: 'ofertas', subcategory: 'combos', basePrice: 45000, tipAmount: 4500 },
+      { name: '2x1 Cervezas', category: 'ofertas', subcategory: 'promociones', basePrice: 14000, tipAmount: 1400 },
     ];
     const ws = utils.json_to_sheet(templateData);
     const wb = utils.book_new();
