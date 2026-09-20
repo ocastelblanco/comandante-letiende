@@ -37,7 +37,7 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ProductService } from '../../../core/db/product.service';
-import { Product, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
+import { Product, ProductAddition, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
 import {
   CATEGORY_SEGMENT_OPTIONS,
   categoryRequiresSubcategory,
@@ -45,16 +45,19 @@ import {
   isValidCategory,
   isValidSubcategory,
 } from '../../../core/models/category-tree';
+import { buildAdditions, findDuplicate, parseBoolean, parseList, parsePriceList } from './import-parsers';
 import { ProductFormComponent } from './product-form.component';
 
 interface ImportRow {
   key: string;
   name: string;
+  description: string | null;
   category: ProductCategory;
   subcategory: ProductSubcategory | null;
+  variants: string[];
+  additions: ProductAddition[];
   basePrice: number;
-  tipAmount: number;
-  totalPrice: number;
+  isActive: boolean;
   isNew: boolean;
   existingId: string | null;
 }
@@ -178,13 +181,9 @@ interface ImportError {
                              text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                     Base
                   </th>
-                  <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
+                  <th style="text-align:center;padding:10px 16px;font-size:.7rem;font-weight:700;
                              text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
-                    Propina
-                  </th>
-                  <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
-                             text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
-                    Total
+                    Activo
                   </th>
                   <th style="text-align:center;padding:10px 16px;font-size:.7rem;font-weight:700;
                              text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
@@ -205,13 +204,12 @@ interface ImportError {
                                text-align:right;white-space:nowrap">
                       $ {{ row.basePrice | number:'1.0-0' }}
                     </td>
-                    <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);
-                               text-align:right;white-space:nowrap">
-                      $ {{ row.tipAmount | number:'1.0-0' }}
-                    </td>
-                    <td style="padding:10px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-dark);
-                               text-align:right;white-space:nowrap">
-                      $ {{ row.totalPrice | number:'1.0-0' }}
+                    <td style="padding:10px 16px;text-align:center">
+                      @if (row.isActive) {
+                        <span style="color:var(--ion-color-tertiary);font-size:1rem">✓</span>
+                      } @else {
+                        <span style="color:rgba(var(--ion-color-primary-rgb),0.3);font-size:1rem">—</span>
+                      }
                     </td>
                     <td style="padding:10px 16px;text-align:center">
                       @if (row.isNew) {
@@ -370,7 +368,7 @@ interface ImportError {
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-espresso truncate leading-tight">{{ p.name }}</p>
-                <p class="text-sm font-bold text-espresso">&#36;{{ p.totalPrice | number:'1.0-0' }}</p>
+                <p class="text-sm font-bold text-espresso">&#36;{{ p.basePrice | number:'1.0-0' }}</p>
               </div>
               @if (!p.isActive) {
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full
@@ -425,7 +423,7 @@ interface ImportError {
               <div class="p-3 flex-1 flex flex-col">
                 <h3 class="text-sm font-semibold text-espresso leading-snug">{{ p.name }}</h3>
                 <p class="text-base font-bold text-espresso mt-1">
-                  &#36;{{ p.totalPrice | number:'1.0-0' }}
+                  &#36;{{ p.basePrice | number:'1.0-0' }}
                 </p>
                 <div class="flex gap-2 mt-auto pt-3">
                   <ion-button (click)="openEdit(p)" fill="outline" size="small" expand="block"
@@ -639,9 +637,31 @@ export class ProductsComponent {
       }
 
       const basePrice = Number(r['basePrice'] ?? 0);
-      const tipAmount = Number(r['tipAmount'] ?? 0);
-      if (!isFinite(basePrice) || !isFinite(tipAmount)) {
-        errors.push({ row: rowNumber, reason: 'Precio base o propina inválidos' });
+      if (!isFinite(basePrice) || basePrice < 0) {
+        errors.push({ row: rowNumber, reason: 'Precio base inválido' });
+        continue;
+      }
+
+      const description = String(r['description'] ?? '').trim() || null;
+
+      const variants = parseList(r['variants']);
+      const duplicateVariant = findDuplicate(variants);
+      if (duplicateVariant !== null) {
+        errors.push({ row: rowNumber, reason: `Variante duplicada: "${duplicateVariant}"` });
+        continue;
+      }
+
+      const additionNames = parseList(r['additions']);
+      const additionPrices = parsePriceList(r['additionPrices']);
+      const { additions, error: additionsError } = buildAdditions(additionNames, additionPrices);
+      if (additionsError !== null) {
+        errors.push({ row: rowNumber, reason: additionsError });
+        continue;
+      }
+
+      const isActive = parseBoolean(r['active']);
+      if (isActive === null) {
+        errors.push({ row: rowNumber, reason: `Valor de "active" no reconocido: "${r['active'] ?? ''}"` });
         continue;
       }
 
@@ -650,11 +670,13 @@ export class ProductsComponent {
       rows.push({
         key,
         name,
+        description,
         category,
         subcategory,
+        variants,
+        additions,
         basePrice,
-        tipAmount,
-        totalPrice: basePrice + tipAmount,
+        isActive,
         isNew: !existing,
         existingId: existing?.id ?? null,
       });
@@ -671,29 +693,78 @@ export class ProductsComponent {
   }
 
   downloadTemplate(): void {
+    // Una fila por cada combinación válida de categoría/subcategoría (15 en
+    // total), más al menos un ejemplo de `variants`, uno de `additions` con
+    // `additionPrices`, y uno de `description` — para que quien reestructure
+    // la hoja `datos` de Google Sheets vea el formato completo de una vez.
     const templateData = [
       // bebidas
-      { name: 'Café Americano', category: 'bebidas', subcategory: 'de_cafe', basePrice: 5000, tipAmount: 500 },
-      { name: 'Chocolate Caliente', category: 'bebidas', subcategory: 'calientes', basePrice: 6000, tipAmount: 600 },
-      { name: 'Limonada Natural', category: 'bebidas', subcategory: 'frias', basePrice: 6000, tipAmount: 600 },
+      {
+        name: 'Café Americano', additions: 'leche_vegetal, licor', variants: '', description: '',
+        category: 'bebidas', subcategory: 'de_cafe', basePrice: 5000, additionPrices: '1500, 4000', active: true,
+      },
+      {
+        name: 'Chocolate Caliente', additions: '', variants: '', description: '',
+        category: 'bebidas', subcategory: 'calientes', basePrice: 6000, additionPrices: '', active: true,
+      },
+      {
+        name: 'Limonada Natural', additions: '', variants: 'sin_hielo, con_hielo', description: '',
+        category: 'bebidas', subcategory: 'frias', basePrice: 6000, additionPrices: '', active: true,
+      },
       // cocteles
-      { name: 'Mojito', category: 'cocteles', subcategory: 'clasicos', basePrice: 18000, tipAmount: 1800 },
-      { name: 'Sunset Le Tiende', category: 'cocteles', subcategory: 'de_autor', basePrice: 22000, tipAmount: 2200 },
-      { name: 'Old Fashioned', category: 'cocteles', subcategory: 'premium', basePrice: 28000, tipAmount: 2800 },
+      {
+        name: 'Mojito', additions: '', variants: '', description: 'Ron blanco, hierbabuena, limón y soda.',
+        category: 'cocteles', subcategory: 'clasicos', basePrice: 18000, additionPrices: '', active: true,
+      },
+      {
+        name: 'Sunset Le Tiende', additions: '', variants: '', description: 'Con vodka y lo mejor de nuestro café.',
+        category: 'cocteles', subcategory: 'de_autor', basePrice: 22000, additionPrices: '', active: true,
+      },
+      {
+        name: 'Old Fashioned', additions: '', variants: '', description: 'Whisky, azúcar y bitters, el clásico de los clásicos.',
+        category: 'cocteles', subcategory: 'premium', basePrice: 28000, additionPrices: '', active: true,
+      },
       // licores
-      { name: 'Aguardiente (trago)', category: 'licores', subcategory: 'trago', basePrice: 6000, tipAmount: 600 },
-      { name: 'Aguardiente (botella)', category: 'licores', subcategory: 'botella', basePrice: 60000, tipAmount: 6000 },
+      {
+        name: 'Aguardiente (trago)', additions: '', variants: '', description: '',
+        category: 'licores', subcategory: 'trago', basePrice: 6000, additionPrices: '', active: true,
+      },
+      {
+        name: 'Aguardiente (botella)', additions: '', variants: 'azul, rojo', description: '',
+        category: 'licores', subcategory: 'botella', basePrice: 60000, additionPrices: '', active: true,
+      },
       // cervezas
-      { name: 'Cerveza Club Colombia', category: 'cervezas', subcategory: 'nacionales', basePrice: 8000, tipAmount: 800 },
-      { name: 'Cerveza Heineken', category: 'cervezas', subcategory: 'importadas', basePrice: 10000, tipAmount: 1000 },
-      { name: 'Cerveza BBC Golden', category: 'cervezas', subcategory: 'artesanales', basePrice: 12000, tipAmount: 1200 },
+      {
+        name: 'Cerveza Club Colombia', additions: '', variants: 'dorada, roja, negra', description: '',
+        category: 'cervezas', subcategory: 'nacionales', basePrice: 8000, additionPrices: '', active: true,
+      },
+      {
+        name: 'Cerveza Heineken', additions: '', variants: '', description: '',
+        category: 'cervezas', subcategory: 'importadas', basePrice: 10000, additionPrices: '', active: true,
+      },
+      {
+        name: 'Cerveza BBC Golden', additions: '', variants: 'sweet_stout, amber_ale, indian_pale_ale, american_pale_ale', description: '',
+        category: 'cervezas', subcategory: 'artesanales', basePrice: 12000, additionPrices: '', active: true,
+      },
       // comida (sin subcategoría)
-      { name: 'Hamburguesa', category: 'comida', subcategory: '', basePrice: 22000, tipAmount: 2200 },
+      {
+        name: 'Hamburguesa', additions: '', variants: '', description: 'Con queso cheddar, tocineta y salsa de la casa.',
+        category: 'comida', subcategory: '', basePrice: 22000, additionPrices: '', active: true,
+      },
       // reposteria (sin subcategoría)
-      { name: 'Brownie', category: 'reposteria', subcategory: '', basePrice: 9000, tipAmount: 900 },
+      {
+        name: 'Brownie', additions: '', variants: '', description: '',
+        category: 'reposteria', subcategory: '', basePrice: 9000, additionPrices: '', active: false,
+      },
       // ofertas
-      { name: 'Combo pareja', category: 'ofertas', subcategory: 'combos', basePrice: 45000, tipAmount: 4500 },
-      { name: '2x1 Cervezas', category: 'ofertas', subcategory: 'promociones', basePrice: 14000, tipAmount: 1400 },
+      {
+        name: 'Combo pareja', additions: '', variants: '', description: '',
+        category: 'ofertas', subcategory: 'combos', basePrice: 45000, additionPrices: '', active: true,
+      },
+      {
+        name: '2x1 Cervezas', additions: '', variants: '', description: '',
+        category: 'ofertas', subcategory: 'promociones', basePrice: 14000, additionPrices: '', active: false,
+      },
     ];
     const ws = utils.json_to_sheet(templateData);
     const wb = utils.book_new();
@@ -711,15 +782,18 @@ export class ProductsComponent {
           existingId: row.existingId,
           data: {
             name: row.name,
+            description: row.description,
             category: row.category,
             subcategory: row.subcategory,
+            variants: row.variants,
+            additions: row.additions,
             basePrice: row.basePrice,
-            tipAmount: row.tipAmount,
-            totalPrice: row.totalPrice,
-            // Solo los productos nuevos se marcan activos; los existentes
-            // conservan su `isActive` actual (no se reactivan productos
-            // archivados como efecto secundario de un reintento de import).
-            ...(row.isNew ? { isActive: true } : {}),
+            // A diferencia de antes de la Tarea 29, `isActive` se escribe
+            // también en las filas existentes: la hoja de Google Sheets es
+            // ahora la fuente de verdad del catálogo, así que un producto
+            // marcado `active: FALSE` en la hoja debe archivarse en el
+            // siguiente import, no solo al crearlo.
+            isActive: row.isActive,
           },
         })),
       );

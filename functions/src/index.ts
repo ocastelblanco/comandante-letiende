@@ -5,16 +5,31 @@ import { onRequest, type Request, type Response } from 'firebase-functions/v2/ht
 initializeApp();
 
 /**
+ * Adición opcional de un producto, expuesta tal cual en `/menu.json`.
+ */
+interface PublicMenuAddition {
+  addition: string;
+  additionPrice: number;
+}
+
+/**
  * Subconjunto público de un producto, expuesto en la respuesta JSON de
  * `publicMenu` para que el sitio web público (letiende.co) pueda mostrar el
- * menú sin autenticación. NO incluye `basePrice`, `tipAmount`, `id`,
- * `createdAt` ni `updatedAt`: son desglose interno de negocio.
+ * menú sin autenticación. NO incluye `id`, `isActive`, `createdAt` ni
+ * `updatedAt`: son desglose interno de negocio.
+ *
+ * `basePrice` es el precio SIN propina (desde la Tarea 29 la propina vive en
+ * el pedido, no en el producto) — no confundir con el `totalPrice` que
+ * exponía el contrato anterior a esta tarea.
  */
 interface PublicMenuItem {
   name: string;
+  description: string | null;
+  additions: PublicMenuAddition[];
+  variants: string[];
   category: string;
   subcategory: string | null;
-  totalPrice: number;
+  basePrice: number;
 }
 
 interface PublicMenuResponse {
@@ -46,9 +61,12 @@ export const publicMenu = onRequest(
         const data = doc.data();
         return {
           name: data['name'] as string,
+          description: (data['description'] as string | null | undefined) ?? null,
+          additions: (data['additions'] as PublicMenuAddition[] | undefined) ?? [],
+          variants: (data['variants'] as string[] | undefined) ?? [],
           category: data['category'] as string,
           subcategory: (data['subcategory'] as string | null | undefined) ?? null,
-          totalPrice: data['totalPrice'] as number,
+          basePrice: data['basePrice'] as number,
         };
       });
 

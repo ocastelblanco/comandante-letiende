@@ -43,6 +43,7 @@ import { OrderService } from '../../core/db/order.service';
 import { ProductService } from '../../core/db/product.service';
 import { OrderItem } from '../../core/models/order-item.model';
 import { Order, OrderStatus, PaymentMethod } from '../../core/models/order.model';
+import { computeOrderTotals } from '../../core/models/order-totals';
 import { Product } from '../../core/models/product.model';
 
 type View = 'dashboard' | 'new-order';
@@ -197,11 +198,11 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                       <div style="border-top:1px solid rgba(var(--ion-color-primary-contrast-rgb),.6);margin:6px 0 4px"></div>
                       <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
                         <span>Subtotal (base)</span>
-                        <span>$ {{ orderSubtotalFor(order) | number:'1.0-0' }}</span>
+                        <span>$ {{ order.subtotal | number:'1.0-0' }}</span>
                       </div>
                       <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
                         <span>Propina</span>
-                        <span>$ {{ orderTipFor(order) | number:'1.0-0' }}</span>
+                        <span>$ {{ order.tipAmount | number:'1.0-0' }}</span>
                       </div>
                       <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:700;color:var(--ion-color-dark);padding:4px 0 2px">
                         <span>Total</span>
@@ -269,7 +270,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                     {{ line.selectedProduct.name }}
                   </div>
                   <div style="font-size:.75rem;color:var(--ion-color-medium);margin-top:2px">
-                    $ {{ line.selectedProduct.totalPrice | number:'1.0-0' }} c/u
+                    $ {{ line.selectedProduct.basePrice | number:'1.0-0' }} c/u
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:2px;background:var(--ion-color-light);border-radius:9999px;padding:2px">
@@ -308,7 +309,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                         (click)="selectProduct(line.id, p)"
                       >
                         <span style="color:var(--ion-color-dark);font-weight:500">{{ p.name }}</span>
-                        <span style="color:var(--ion-color-medium)"> — $ {{ p.totalPrice | number:'1.0-0' }}</span>
+                        <span style="color:var(--ion-color-medium)"> — $ {{ p.basePrice | number:'1.0-0' }}</span>
                       </div>
                     }
                   </div>
@@ -334,7 +335,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
               @if (line.selectedProduct) {
                 <div style="display:flex;justify-content:space-between;padding:4px 16px;font-size:.875rem;color:var(--ion-color-dark)">
                   <span>{{ line.selectedProduct.name }} ×{{ line.quantity }}</span>
-                  <span>$ {{ line.selectedProduct.totalPrice * line.quantity | number:'1.0-0' }}</span>
+                  <span>$ {{ line.selectedProduct.basePrice * line.quantity | number:'1.0-0' }}</span>
                 </div>
               }
             }
@@ -423,17 +424,13 @@ export class WaiterComponent {
       .reduce((s, l) => s + l.selectedProduct!.basePrice * l.quantity, 0),
   );
 
-  readonly orderTip = computed(() =>
-    this._orderLines()
-      .filter((l) => l.selectedProduct)
-      .reduce((s, l) => s + l.selectedProduct!.tipAmount * l.quantity, 0),
-  );
-
-  readonly orderTotal = computed(() =>
-    this._orderLines()
-      .filter((l) => l.selectedProduct)
-      .reduce((s, l) => s + l.selectedProduct!.totalPrice * l.quantity, 0),
-  );
+  // Propina fija del 10% a nivel de pedido (editable por el mesero en la
+  // Tarea 31). computeOrderTotals() es la misma función pura que persiste
+  // OrderService.createOrder(), para que el número que ve el mesero antes de
+  // enviar el pedido sea exactamente el que queda guardado.
+  private readonly orderTotals = computed(() => computeOrderTotals(this.orderSubtotal(), 10, 0));
+  readonly orderTip = computed(() => this.orderTotals().tipAmount);
+  readonly orderTotal = computed(() => this.orderTotals().total);
 
   readonly canSubmit = computed(
     () =>
@@ -552,14 +549,6 @@ export class WaiterComponent {
     return `hace ${Math.floor(mins / 60)} h`;
   }
 
-  orderSubtotalFor(order: Order): number {
-    return order.items.reduce((s, item) => s + (item.unitPrice - item.tipAmount) * item.quantity, 0);
-  }
-
-  orderTipFor(order: Order): number {
-    return order.items.reduce((s, item) => s + item.tipAmount * item.quantity, 0);
-  }
-
   // ── New-order form methods ────────────────────────────────────────────────
   cancelNewOrder(): void {
     this.view.set('dashboard');
@@ -637,8 +626,11 @@ export class WaiterComponent {
           productId: l.selectedProduct!.id,
           productName: l.selectedProduct!.name,
           quantity: l.quantity,
-          unitPrice: l.selectedProduct!.totalPrice,
-          tipAmount: l.selectedProduct!.tipAmount,
+          // La selección de variante/adiciones llega en la Tarea 30; por
+          // ahora todo pedido usa el precio base sin adiciones.
+          variant: null,
+          additions: [],
+          unitPrice: l.selectedProduct!.basePrice,
           itemStatus: 'pending' as const,
         }));
       await this.orderService.createOrder(identifier, items);

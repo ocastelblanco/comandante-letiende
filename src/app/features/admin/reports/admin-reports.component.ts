@@ -351,9 +351,11 @@ export class AdminReportsComponent {
         paymentLabel: this.paymentLabel(order.paymentMethod ?? null),
         paymentColor: this.paymentColor(order.paymentMethod ?? null),
         itemsLabel: order.items.map((i) => `${i.productName} ×${i.quantity}`).join(', '),
-        base: order.items.reduce((s, i) => s + (i.unitPrice - i.tipAmount) * i.quantity, 0),
-        tip: order.items.reduce((s, i) => s + i.tipAmount * i.quantity, 0),
-        total: order.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
+        // Desde la Tarea 29 la propina vive en el pedido, no por ítem: ya no
+        // se re-deriva restando `unitPrice - tipAmount` sobre cada línea.
+        base: order.subtotal,
+        tip: order.tipAmount,
+        total: order.total,
       }));
 
       this.orders.set(rows);
