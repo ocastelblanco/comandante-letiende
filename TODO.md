@@ -19,27 +19,17 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-Las Tareas 29, 30 y 31 provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. Las Tareas 32 y 33 son la estrategia de pruebas acordada en la misma sesión (`tech-specs.md` §14, ADR-008 en `MEMORY.md`).
+Las Tareas 29, 30 y 31 provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. La Tarea 33 es la estrategia de pruebas acordada en la misma sesión (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, ya está completada (ver §3, PR #40).
 
 **Orden de ejecución — no coincide con la numeración:**
 
 ```
-32 (gate de CI)  →  29 (modelo + import)  →  30 (mesero)  →  31 (propina y pagos)  →  33 (reglas)
+29 (modelo + import)  →  30 (mesero)  →  31 (propina y pagos)  →  33 (reglas)
 ```
 
 La numeración es de creación, no de ejecución; ya hay precedentes en el historial (las Tareas 13/14 y 15/16 también se completaron fuera de orden). Cada tarea deja la aplicación compilando y desplegable por su cuenta.
 
 El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato del endpoint, reglas de seguridad) está en `tech-specs.md` §13; las decisiones acordadas, en la sección "Decisiones tomadas" de `docs/cambio-en-modelo-de-datos.md`; la estrategia de pruebas y su justificación, en `tech-specs.md` §14.
-
-### 🔜 Tarea 32: [INFRA] Ejecutar las pruebas en CI (bloquea el merge) — **hacer primero**
-
-*   **Objetivo:** Que las pruebas dejen de ser decorativas.
-*   **Problema:** `.github/workflows/deploy-hosting.yml` hace `npm ci` → build → deploy y **nunca ejecuta `npm test`**, ni en el job `deploy_live` ni en el de `preview`. Hoy se puede fusionar y desplegar un PR con la suite en rojo sin que nada lo impida. Mientras esto siga así, cualquier prueba que se escriba en las Tareas 29-31 y 33 no protege de nada.
-*   **Alcance:**
-    *   Añadir un paso `npm test -- --watch=false` **antes** del build en ambos jobs del workflow.
-    *   ⚠️ El builder `@angular/build:unit-test` activa el modo *watch* por defecto **solo en entornos TTY** (`watch` → *"Defaults to `true` in TTY environments and `false` otherwise"*). En GitHub Actions no hay TTY, así que `npm test` a secas saldría limpio; aun así se pasa `--watch=false` explícito, para que el mismo comando sea seguro de copiar y pegar en una terminal local sin colgarse.
-    *   Verificar que el job falla de verdad si una prueba falla (romper una a propósito en el PR y confirmar el rojo antes de repararla).
-*   **Costo estimado:** ~15 minutos. Es el mejor retorno por esfuerzo de todo el proyecto y precondición de todo lo demás.
 
 
 
@@ -104,6 +94,12 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 32: [INFRA] Ejecutar las pruebas en CI (bloquea el merge)
+*   **Completada:** 2026-09-20
+*   **PR:** #40 (`fix/ci-run-tests`)
+*   **Origen:** ADR-008 (`MEMORY.md`) y `tech-specs.md` §14 — al evaluar, a petición del usuario, el costo de una suite de pruebas completa, se encontró que `.github/workflows/deploy-hosting.yml` nunca ejecutaba `npm test`: hacía `npm ci` → build → deploy en los dos jobs (`deploy_live` y `preview`). La única prueba del repositorio no protegía de nada — un PR con la suite en rojo se podía fusionar y desplegar sin que nada lo impidiera.
+*   **Resultado:** añadido el paso **"Ejecutar pruebas"** (`npm test -- --watch=false`), justo antes del build, en ambos jobs. `--watch=false` es explícito a propósito: el builder `@angular/build:unit-test` activa el modo *watch* por defecto solo en entornos TTY (falso en GitHub Actions, así que el job habría salido limpio de todos modos sin el flag), pero así el mismo comando es seguro de copiar y pegar en una terminal local sin colgarse. Verificado que el gate bloquea de verdad, con el **exit code real** del proceso (sin pipes que lo enmascaren): la suite en su estado actual sale con 0; rompiendo a propósito la única prueba existente (`app.component.spec.ts`) sale con 1. La prueba se revirtió antes de commitear — el PR toca un solo archivo. Confirmado también en el entorno real de GitHub Actions: el job `preview` del propio PR #40 ejecutó el paso nuevo y pasó en verde. `npm run build -- --configuration=production` verificado limpio. Cambio acotado a `.github/workflows/deploy-hosting.yml`, sin tocar código de la aplicación.
 
 ### ✅ Tarea 28: [INFRA] Migración completa a Node.js 24 (Cloud Functions + GitHub Actions)
 *   **Completada:** 2026-09-16
@@ -276,3 +272,4 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 | 2026-09-16 | Tarea 27 completada (tomada del PRD — integración del catálogo con `letiende.co`, pedida directamente por el humano). Jerarquía de 7 categorías de productos, borrado masivo, y menú público `/menu.json` vía Cloud Function + Hosting (rediseñado desde un mirror de Firestore abierto, descartado por riesgo de cuota tras revisión de `architect`). Deploy bloqueado 8 veces en cadena por permisos de GCP ausentes (3 APIs + 4 roles IAM en 2 recursos distintos), todos documentados en el resultado de la tarea para no tener que re-descubrirlos. PRs #32-#35. Pendiente: reclasificación manual de los 116 productos reales vía Excel (acción del usuario, no del motor JIT). | WIP se mantiene en 0. |
 | 2026-09-16 | Tarea 28 completada. Migración completa a Node.js 24 (Cloud Functions + `actions/checkout`+`actions/setup-node` a `@v5`), disparada por el aviso de deprecación de Node 20 visto durante el deploy de la Tarea 27. Investigado el alcance antes de aplicar (agente de exploración): sin incompatibilidades, cambio mecánico. PR #36. | WIP se mantiene en 0. Cola de tareas vacía — próxima tarea a evaluar contra el PRD cuando el usuario retome. |
 | 2026-09-19 | Sesión de documentación, sin código, por instrucción explícita del usuario. Se analizó `docs/cambio-en-modelo-de-datos.md` con tres agentes de exploración en paralelo y se acordaron con el humano las siete decisiones de diseño pendientes. Se detectó deuda documental acumulada: `tech-specs.md` §3/§4.3/§5 describían una estructura y un modelo de datos inexistentes desde la Tarea 27, y §12 mencionaba una Cloud Function `syncPublicMenu` que nunca existió; `MEMORY.md` seguía congelado en 2026-05-22 con 28 tareas ya completadas. Corregidos además el typo `aditions`→`additions` del documento original y la inconsistencia `carta`/`canva`. Registrados ADR-006 (propina porcentual a nivel de pedido, reemplaza al ADR-003) y ADR-007 (Google Sheets como fuente de verdad). A petición del usuario se evaluó además el costo de una suite de pruebas completa (estimado en 20-25 sesiones supervisadas, desproporcionado para ~3.800 líneas): se acordó la estrategia por capas del ADR-008, documentada en `tech-specs.md` §14. **Hallazgo colateral:** el CI nunca ejecutaba `npm test`, así que la única prueba del repositorio era decorativa y un PR en rojo podía fusionarse y desplegarse. | WIP se mantiene en 0. Cinco tareas encoladas en §2.5. Orden de ejecución **32 → 29 → 30 → 31 → 33**, que no coincide con la numeración. Próxima sesión: Tarea 32 (~15 min), luego Tarea 29. |
+| 2026-09-20 | Tarea 32 completada. Añadido el paso `npm test -- --watch=false` antes del build en ambos jobs de `.github/workflows/deploy-hosting.yml`, precondición de las Tareas 29-31 y 33. Verificado el gate con el exit code real del proceso (0 en verde, 1 rompiendo a propósito la única prueba existente) y confirmado en el entorno real de GitHub Actions, en el propio job `preview` del PR. PR #40. | WIP se mantiene en 0. Cuatro tareas restantes en §2.5. Orden de ejecución **29 → 30 → 31 → 33**. Próxima sesión: Tarea 29. |

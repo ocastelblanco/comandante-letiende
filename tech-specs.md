@@ -634,7 +634,7 @@ El criterio es cubrir **lo que puede causar daño real**: aritmética de dinero 
 
 | Capa | Costo | Qué protege | Fragilidad | Decisión |
 | :--- | :--- | :--- | :--- | :--- |
-| **0. Gate de CI** | ~15 min | Que las pruebas signifiquen algo | Nula | ✅ **Tarea 32**, primero |
+| **0. Gate de CI** | ~15 min | Que las pruebas signifiquen algo | Nula | ✅ **Hecho** — Tarea 32, PR #40 |
 | **1. Funciones puras** | ~1 sesión | Propina, parseo del catálogo, categorías | Nula | ✅ Dentro de las Tareas 29 y 31 |
 | **2. `firestore.rules`** | ~1-2 sesiones | La única frontera de seguridad real | Muy baja | ✅ **Tarea 33**, tras la 31 |
 | **3. Servicios de Firestore** | ~1-2 sesiones | Queries, lotes, transiciones de estado | Media | 🟡 Opcional, sin encolar |
@@ -661,6 +661,6 @@ Si el objetivo es que esos dos componentes sean más mantenibles, **partirlos ap
 
 El orden importa. Las Tareas 29-31 reescriben justo la lógica de precios, propina e importación: escribir pruebas contra el código actual sería escribirlas contra código que está por desaparecer.
 
-1. **Antes de la Tarea 29** — Tarea 32 (gate de CI). Sin esto, todo lo demás es decorativo.
+1. ~~**Antes de la Tarea 29** — Tarea 32 (gate de CI).~~ **Hecha** (2026-09-20, PR #40). Sin esto, todo lo demás habría sido decorativo.
 2. **Dentro de las Tareas 29 y 31** — capa 1, contra la forma nueva del código.
 3. **Después de la Tarea 31** — Tarea 33, cuando las reglas ya incluyan `onlyUpdatesTip()` y no haya que probarlas dos veces.
