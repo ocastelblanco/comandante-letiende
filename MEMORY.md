@@ -12,9 +12,9 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
 | **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 28 (ver `TODO.md` §3). |
-| **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. Los PR reciben un canal de vista previa (solo Hosting). |
-| **Última Sesión** | 2026-09-19 — Documentación del cambio en el modelo de datos (productos con variantes y adiciones, propina a nivel de pedido, nuevos medios de pago). Tareas 29-31 encoladas, sin código escrito. |
+| **Tareas completadas** | 29 (ver `TODO.md` §3). |
+| **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. Los PR reciben un canal de vista previa (solo Hosting), y desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**: una suite en rojo bloquea el merge. |
+| **Última Sesión** | 2026-09-20 — Tarea 32 (gate de CI) implementada y verificada, PR #40. |
 
 ---
 
@@ -67,7 +67,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 
 ### Calidad y Pruebas
 - `[x]` Runner de pruebas configurado (Vitest vía `@angular/build:unit-test`), con el parche de `@ionic/angular` que lo desbloqueó.
-- `[ ]` **El CI ejecuta la suite y bloquea el merge** *(Tarea 32 — hacer antes que cualquier otra cosa)*.
+- `[x]` **El CI ejecuta la suite y bloquea el merge** *(Tarea 32, PR #40, 2026-09-20)*.
 - `[ ]` Pruebas de las funciones puras de propina y del parser del Excel *(dentro de las Tareas 29 y 31)*.
 - `[ ]` Pruebas de `firestore.rules` con el emulador *(Tarea 33)*.
 - `[—]` Pruebas de componentes — **descartadas a conciencia**, ver ADR-008.
@@ -245,15 +245,10 @@ Rutas relativas a la raíz del repositorio.
 
 ## 9. Contexto de la Sesión Actual
 
-- **Fecha:** 2026-09-19
+- **Fecha:** 2026-09-20
 - **Qué se hizo:**
-  - Se analizó `docs/cambio-en-modelo-de-datos.md` y se acordaron con el dueño del proyecto las siete decisiones de diseño que faltaban (ortografía de `additions`, ruptura del contrato de `/menu.json`, limpieza de datos de prueba, importador *upsert*, conservación de `isActive`, alcance de la edición post-pedido y entrega en tres fases). Quedan registradas en la sección "Decisiones tomadas" de ese mismo documento.
-  - Se corrigió el documento original: el error de ortografía `aditions` → `additions` en todas sus formas, la inconsistencia entre la hoja llamada `carta` y `canva`, y una línea que atribuía a las variantes el efecto sobre el precio que en realidad tienen las adiciones.
-  - Se saldó deuda documental acumulada: `tech-specs.md` §3, §4.3 y §5 describían una estructura de repositorio y un modelo de datos que ya no existían (alias de rutas inexistentes, categorías planas, `tipValue`, `isAvailable`), y §12 terminaba mencionando una Cloud Function `syncPublicMenu` que nunca llegó a existir.
-  - Se añadió `tech-specs.md` §13 con el modelo objetivo completo, marcado explícitamente como pendiente, para no dejar el documento describiendo como real algo que aún no se ha implementado.
-  - Se actualizaron `PRD.md` (§5.1, §5.2, §5.3, §7, §9 y §10) y este `MEMORY.md`, que seguía congelado en el estado de 2026-05-22 con 28 tareas ya completadas.
-  - Se registraron el **ADR-006** (propina porcentual a nivel de pedido, que reemplaza al ADR-003) y el **ADR-007** (Google Sheets como fuente de verdad del catálogo).
-  - Se encolaron las **Tareas 29, 30 y 31** en `TODO.md`, con su alcance, sus archivos y las pruebas a añadir.
-  - Se evaluó a petición del usuario el costo de construir una suite de pruebas completa. Hallazgo que disparó una tarea nueva: **el CI nunca ejecutaba `npm test`**, así que la única prueba del repositorio no protegía de nada y un PR en rojo podía fusionarse y desplegarse. Se acordó la estrategia por capas del **ADR-008**, documentada en `tech-specs.md` §14, y se encolaron la **Tarea 32** (gate de CI, ~15 minutos, a ejecutar antes que nada) y la **Tarea 33** (pruebas de `firestore.rules`, después de la Tarea 31).
-- **No se escribió ni una línea de código.** Fue una sesión deliberadamente documental, previa a la implementación.
-- **Próxima Tarea:** **Tarea 32** — añadir `npm test -- --watch=false` al workflow de CI en ambos jobs. Son ~15 minutos y es precondición de todo lo demás. Inmediatamente después, la **Tarea 29** (modelo de producto, importador y `/menu.json` v2); antes de empezarla, verificar si el usuario ya reestructuró la hoja `datos` del Google Sheets. El orden completo de la cola es **32 → 29 → 30 → 31 → 33**.
+  - Implementada la **Tarea 32**: añadido el paso `npm test -- --watch=false` antes del build en ambos jobs de `.github/workflows/deploy-hosting.yml` (`deploy_live` y `preview`). Hasta ahora el CI nunca ejecutaba la suite.
+  - Verificado que el gate bloquea de verdad, con el **exit code real** del proceso (sin pipes que lo enmascaren — el primer intento de correr `npm test` en la sesión anterior se había interrumpido por precaución, sin necesidad: aquí se comprobó con `--watch=false` que el comando termina solo): la suite en su estado actual sale con 0; rompiendo a propósito la única prueba existente (`app.component.spec.ts`, `toBeTruthy()` → `toBeFalsy()`) sale con 1. La prueba se revirtió antes de comitear.
+  - Confirmado también en el entorno real de GitHub Actions: el job `preview` del PR #40 ejecutó el paso nuevo y pasó en verde.
+  - A pedido explícito del usuario ("vamos a dar pasos completos por cada tarea"), la documentación, la memoria y el motor JIT se actualizaron **dentro del mismo PR** que el cambio de código, en vez de en un PR de documentación separado (el patrón que había seguido la Tarea 27/28, ver PR #37). Movida la Tarea 32 al historial de `TODO.md` §3, sacada de la cola de §2.5, actualizado el diagrama de orden de ejecución (ya sin el 32) y `tech-specs.md` §14.
+- **Próxima Tarea:** **Tarea 29** — modelo de producto con variantes y adiciones, importador de Excel actualizado y `/menu.json` v2. Antes de empezar, verificar si el usuario ya reestructuró la hoja `datos` del Google Sheets. El orden restante de la cola es **29 → 30 → 31 → 33**.
