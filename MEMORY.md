@@ -8,11 +8,13 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 
 | Parámetro | Detalle |
 | :--- | :--- |
-| **Versión Actual** | v0.1.0-alpha (Inicialización del Proyecto) |
-| **Ramas Activas** | `develop` (integración), `main` (producción) |
-| **Entorno de Staging** | *Pendiente por configurar en Firebase Console* |
-| **Entorno de Prod** | *Pendiente por configurar en Firebase Console* |
-| **Última Sesión** | 2026-05-22 — Creación de la documentación base de arquitectura y requerimientos. |
+| **Estado** | En producción, todavía sin estreno en operación real. Todo lo que hay en Firestore son datos de prueba. |
+| **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
+| **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado. |
+| **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
+| **Tareas completadas** | 28 (ver `TODO.md` §3). |
+| **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. Los PR reciben un canal de vista previa (solo Hosting). |
+| **Última Sesión** | 2026-09-19 — Documentación del cambio en el modelo de datos (productos con variantes y adiciones, propina a nivel de pedido, nuevos medios de pago). Tareas 29-31 encoladas, sin código escrito. |
 
 ---
 
@@ -22,31 +24,55 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Definición de Requerimientos de Producto (`PRD.md`)
 - `[x]` Diseño de Especificaciones Técnicas (`tech-specs.md`)
 - `[x]` Políticas de Seguridad OWASP y Git Flow (`CLAUDE.md`)
-- `[x]` Memoria de Arquitectura Inicial (`MEMORY.md`)
+- `[x]` Sistema de diseño (`DESIGN.md`)
+- `[x]` Memoria de Arquitectura (`MEMORY.md`)
+- `[x]` Licencia Apache 2.0
 
 ### Infraestructura y Base
-- `[ ]` Creación del proyecto en la consola de Firebase.
-- `[ ]` Inicialización del repositorio y estructura de directorios Angular 21.2.x.
-- `[ ]` Configuración de Tailwind CSS v4 e Ionic Framework en el frontend.
-- `[ ]` Definición de Reglas de Seguridad en Cloud Firestore (`firestore.rules`).
+- `[x]` Proyecto en la consola de Firebase (`comandante-letiende`).
+- `[x]` Repositorio y estructura Angular 21.2.x con componentes Standalone.
+- `[x]` Tailwind CSS v4 e Ionic Framework 8.x integrados.
+- `[x]` Reglas de Seguridad en Cloud Firestore (`firestore.rules`), con validación de categorías del lado servidor.
+- `[x]` Dominio `comandante.letiende.co` apuntado desde AWS Route 53.
+- `[x]` CI/CD en GitHub Actions con canal de vista previa por PR.
+- `[x]` Migración completa a Node.js 24 (Cloud Functions y runners de CI).
 
 ### Módulo del Mesero (Vista Móvil)
-- `[ ]` Autenticación con Google Sign-In e integración con lista blanca.
-- `[ ]` Campo para ingresar palabra clave / nombre del cliente en cada pedido.
-- `[ ]` Selector ágil de productos con cálculo contable automático (Consumo vs Propina).
-- `[ ]` Envío inmediato de comandas a la barra para inicio de preparación antes del pago.
-- `[ ]` Vista de cobro posterior y registro de pago (efectivo/tarjeta con discriminación).
-- `[ ]` Listado en tiempo real de estados de pedidos ("En Preparación" / "Listo") y estado de pago.
+- `[x]` Autenticación con Google Sign-In e integración con lista blanca.
+- `[x]` Campo para ingresar palabra clave / nombre del cliente en cada pedido.
+- `[x]` Selector ágil de productos con cálculo contable automático (Consumo vs Propina).
+- `[x]` Envío inmediato de comandas a la barra para inicio de preparación antes del pago.
+- `[x]` Vista de cobro posterior y registro de pago con discriminación.
+- `[x]` Listado en tiempo real de estados de pedidos y estado de pago, con alerta al quedar listo.
+- `[ ]` Selección de variantes y adiciones al añadir un producto *(Tarea 30)*.
+- `[ ]` Observaciones del pedido dirigidas al barista *(Tarea 30)*.
+- `[ ]` Propina del 10 % editable por porcentaje y valor absoluto *(Tarea 31)*.
+- `[ ]` Medios de pago Datáfono / QR / Efectivo *(Tarea 31)*.
 
 ### Módulo del Barista (Vista Barra)
-- `[ ]` Cola digital cronológica de comandas entrantes identificadas por palabra clave/nombre del cliente.
-- `[ ]` Gestión de preparación (marcar productos individuales o pedidos completos).
-- `[ ]` Notificación reactiva de comanda lista hacia el mesero.
+- `[x]` Cola digital cronológica de comandas entrantes, en dos columnas (por preparar / en preparación).
+- `[x]` Gestión de preparación y marcado de comanda lista.
+- `[x]` Notificación reactiva de comanda lista hacia el mesero.
+- `[ ]` Visualización de variantes, adiciones y observaciones en la comanda *(Tarea 30)*.
 
 ### Módulo del Administrador (Vista Escritorio)
-- `[ ]` ABM (Crear, Leer, Actualizar, Borrar) de productos y asignación de propina fija.
-- `[ ]` Control de usuarios (Gestión de lista blanca de correos autorizados y roles).
-- `[ ]` Generador de consolidados diarios para migración manual al POS de Le Tiende.
+- `[x]` ABM de productos con jerarquía de 7 categorías y subcategorías en cascada.
+- `[x]` Importación masiva del catálogo desde Excel, con validación y rechazo de filas inválidas.
+- `[x]` Plantilla de Excel descargable y borrado masivo del catálogo.
+- `[x]` Control de usuarios (lista blanca de correos autorizados y roles).
+- `[x]` Consolidado diario de ventas con rango de fecha/hora y exportación a XLSX.
+- `[x]` Endpoint público `/menu.json` para la carta de letiende.co.
+- `[ ]` Producto con descripción, variantes y adiciones *(Tarea 29)*.
+- `[ ]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro *(Tarea 29)*.
+
+### Calidad y Pruebas
+- `[x]` Runner de pruebas configurado (Vitest vía `@angular/build:unit-test`), con el parche de `@ionic/angular` que lo desbloqueó.
+- `[ ]` **El CI ejecuta la suite y bloquea el merge** *(Tarea 32 — hacer antes que cualquier otra cosa)*.
+- `[ ]` Pruebas de las funciones puras de propina y del parser del Excel *(dentro de las Tareas 29 y 31)*.
+- `[ ]` Pruebas de `firestore.rules` con el emulador *(Tarea 33)*.
+- `[—]` Pruebas de componentes — **descartadas a conciencia**, ver ADR-008.
+- `[—]` Pruebas E2E — diferidas, acotadas a un solo flujo. Ver ADR-008.
+- `[—]` Lint — el repositorio no tiene script de lint.
 
 ---
 
@@ -68,7 +94,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 
 ### ADR-003: Propina Precalculada Fija en Catálogo de Eventos
 *   **Fecha:** 2026-05-22
-*   **Estado:** Aprobado (Fase de Planeación)
+*   **Estado:** ⛔ **Reemplazado por ADR-006** (2026-09-19). Se conserva por trazabilidad; no describe el rumbo actual del producto.
 *   **Decisión:** El cálculo de la propina no será porcentual libre en el momento del pago. Cada producto en el catálogo de eventos tendrá un valor de propina fijo y precalculado asociado. El total mostrado en la carta incluye ya ese valor.
 *   **Razón:** Agilizar al máximo la atención tipo discoteca. El mesero no debe preguntar ni calcular el 10% mentalmente. Al cobrar, el sistema simplemente sustrae matemáticamente los valores fijos parametrizados en la base de datos para mostrar la discriminación contable exacta en el datáfono.
 *   **Consecuencias Conocidas:** Si un producto cambia de precio o el porcentaje de propina pactado varía, el administrador debe actualizar el catálogo en el panel.
@@ -87,83 +113,147 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 *   **Razón:** Garantizar costo cero de mantenimiento de base de datos e infraestructura para Le Tiende.
 *   **Consecuencias Conocidas:** Se deben implementar mecanismos estrictos de desuscripción de sockets y carga diferida o almacenamiento en caché local (Angular Signals) de catálogos y resúmenes diarios.
 
+### ADR-006: Propina Porcentual a Nivel de Pedido, Editable por el Mesero
+*   **Fecha:** 2026-09-19
+*   **Estado:** Aprobado. **Reemplaza al ADR-003.**
+*   **Decisión:** La propina deja de ser un valor fijo precalculado por producto (`Product.tipAmount` / `Product.totalPrice`) y pasa a calcularse sobre el pedido completo: 10 % del subtotal por defecto, ajustable por el mesero mediante un porcentaje y un valor absoluto que se suman. El pedido almacena `subtotal`, `tipPercentage`, `tipValue`, `tipAmount` y `total`.
+*   **Razón:** El ADR-003 era correcto mientras el catálogo era solo el menú interno del punto de venta. Dejó de serlo cuando el mismo catálogo pasó a alimentar la lista de precios pública de letiende.co y la carta impresa: un precio de carta con la propina ya embebida es incorrecto de cara al cliente, porque la propina es voluntaria por ley (ver **Propina (Exenta)** en el glosario del `PRD.md`). Además, un 10 % calculado es más flexible que un valor fijo por producto que hay que mantener a mano en 116 filas.
+*   **Consecuencias Conocidas:** La discriminación contable para el datáfono pasa de ser una *resta* (`unitPrice − tipAmount`) a una *suma* (`subtotal + tipAmount`), lo que simplifica los reportes pero obliga a tocar el consolidado del administrador. El mesero necesita permiso para modificar la propina de un pedido ya enviado a la barra: se resuelve con un helper acotado en `firestore.rules` que solo deja tocar los campos de propina y solo mientras `paid == false`. Los pedidos con el formato anterior dejan de ser legibles por los reportes; se borran, por tratarse únicamente de datos de prueba.
+
+### ADR-007: Google Sheets como Fuente de Verdad del Catálogo
+*   **Fecha:** 2026-09-19
+*   **Estado:** Aprobado.
+*   **Decisión:** El catálogo maestro vive en un documento de Google Sheets con dos hojas. La hoja `datos` se exporta como XLSX y se carga en Comandante con el importador existente; es la que se persiste en `/products` y se publica en `/menu.json`. La hoja `canva` se conecta dinámicamente a Canva para generar la carta impresa en PDF, y obtiene sus nombres y precios de `datos` mediante fórmulas. Comandante no lee la hoja `canva`.
+*   **Razón:** Un único punto de edición para los tres destinos del catálogo (punto de venta, carta digital de letiende.co y carta impresa), en una herramienta que el administrador ya sabe usar y que no requiere desplegar nada para cambiar un precio.
+*   **Consecuencias Conocidas:** El importador se mantiene como *upsert*: crea y actualiza, pero **no archiva** los productos que desaparezcan de la hoja. Es una decisión explícita, no una omisión — para retirar un producto hay que archivarlo desde Comandante o recargar el catálogo completo tras un borrado masivo. Comandante y la hoja pueden divergir si alguien edita un producto directamente en el panel de administración; la hoja sigue siendo la referencia a la que volver.
+
+### ADR-008: Cobertura de Pruebas por Capas, No Cobertura Total
+*   **Fecha:** 2026-09-19
+*   **Estado:** Aprobado.
+*   **Decisión:** No se persigue una suite de pruebas completa. Se cubren tres capas — el *gate* de CI, las funciones puras de dinero y parseo, y las reglas de Firestore — y se descarta explícitamente la capa de pruebas de componentes. Las pruebas E2E quedan diferidas y acotadas a un único flujo. Detalle en `tech-specs.md` §14; tareas en `TODO.md` (32 y 33).
+*   **Razón:** Se estimó el costo real de una suite completa en **20-25 sesiones supervisadas**, más un impuesto permanente de mantenimiento sobre cada cambio de interfaz. Para una aplicación de ~3.800 líneas mantenida por una sola persona es desproporcionado. El costo no está en escribir las pruebas, sino en tres factores: refactorizar el código para que sea testeable (`waiter.component.ts` y `products.component.ts` suman 1.473 líneas que mezclan plantilla, lógica, Firestore y *overlays*), montar el arnés de Ionic en jsdom (que ya mordió una vez, ver Tarea 21), y mantener pruebas que afirman marcado. En esta aplicación el daño real solo puede venir de tres sitios: aritmética de propina equivocada, una importación que corrompa el catálogo, y un hueco en las reglas. Ninguno necesita pruebas de componentes.
+*   **Consecuencias Conocidas:** Los componentes quedan sin red de seguridad automatizada; su verificación sigue siendo manual contra el emulador, documentada en cada tarea. Se asume ese riesgo a conciencia. Si en algún momento se parten `waiter` y `products` en piezas más pequeñas, la capa 4 deja de ser cara y conviene reevaluar esta decisión — pero ese refactor debe justificarse por mantenibilidad, no por cobertura. **Hallazgo que motivó la Tarea 32:** el CI nunca ejecutaba `npm test`, así que hasta ahora cualquier prueba del repositorio era decorativa y un PR con la suite en rojo podía fusionarse y desplegarse.
+
 ---
 
-## 4. Dependencias Instaladas (Teóricas Iniciales)
+## 4. Dependencias Principales Instaladas
 
-Estas dependencias serán instaladas durante la inicialización del proyecto:
+Versiones reales del `package.json`. La lista completa está en el propio archivo.
 
-| Paquete | Versión Esperada | Propósito |
+| Paquete | Versión | Propósito |
 | :--- | :--- | :--- |
-| `@angular/core` | `^21.2.0` | Framework base de desarrollo |
-| `@angular/fire` | `^21.2.0` | Integración oficial de Angular con el SDK de Firebase |
-| `firebase` | `^10.12.0` | SDK de Firebase para Auth y Firestore |
-| `@ionic/angular` | `^8.0.0` | Componentes visuales móviles |
-| `tailwindcss` | `^4.0.0` | Utilidades de diseño rápido |
+| `@angular/core` | `^21.2.0` | Framework base |
+| `@angular/fire` | `21.0.0-rc.0` | Integración de Angular con el SDK de Firebase |
+| `firebase` | `^12.4.0` | SDK de Firebase (Auth y Firestore) |
+| `@ionic/angular` | `^8.8.8` | Componentes visuales móviles |
+| `tailwindcss` | `^4.3.0` | Utilidades de diseño (con `@tailwindcss/postcss`) |
+| `xlsx` | `^0.18.5` | Import del catálogo y export del consolidado de ventas |
+| `patch-package` | `^8` | Parche del import ESM de `@ionic/angular` (ver §7) |
+| `vitest` | `^4.0.8` | Runner de pruebas, vía `@angular/build:unit-test` |
+| `firebase-tools` | `^14.27.0` | Despliegue local y emuladores |
+
+En `functions/` (proyecto npm independiente, `engines.node = "24"`): `firebase-admin ^14.4.0`, `firebase-functions ^7.4.0`, `@google-cloud/firestore ^9.1.0`.
+
+**No hay script de lint** en este repositorio. La verificación previa a un commit es `npm run build -- --configuration=production` y `npm test`.
 
 ---
 
 ## 5. Configuraciones Vigentes
-*Por definir una vez se inicialice el proyecto Firebase y se generen las credenciales del cliente.*
+
+| Configuración | Detalle |
+| :--- | :--- |
+| **Proyecto Firebase** | `comandante-letiende` (mismo proyecto para los alias `staging` y `production`). |
+| **Región de Cloud Functions** | `us-central1`. |
+| **Credenciales del cliente** | `src/environments/environment.ts`, único archivo de entorno. Son llaves públicas del cliente; la seguridad real está en `firestore.rules`. |
+| **Administrador semilla** | `letiende.co@gmail.com`, cableado en `firestore.rules` (`isRootAdmin()`). |
+| **ID de documento en `/users`** | El **email**, no el UID de Firebase Auth. |
+| **Caché de Hosting** | `**/*.@(js|css)` con `max-age=31536000, immutable`; `/menu.json` con `max-age=300`. |
+| **Service account de despliegue** | `firebase-adminsdk-fbsvc@comandante-letiende.iam.gserviceaccount.com`. Los roles IAM exactos que necesita están en `TODO.md` Tarea 27 — costaron 8 intentos de despliegue descubrirlos uno a uno. |
 
 ---
 
 ## 6. Patrones de Código Establecidos
 
-### Consumo Reactivo de Pedidos con Signals (Ejemplo de Servicio)
-```typescript
-import { inject, Injectable, signal } from '@angular/core';
-import { Firestore, collection, collectionData } from '@angular/fire/firestore';
-import { Order } from '@core/models/order.model';
-import { Observable } from 'rxjs';
+### Consumo Reactivo de Firestore con Signals
 
-@Injectable({
-  providedIn: 'root'
-})
+Los servicios de `src/app/core/db/` son `providedIn: 'root'`, exponen un *signal* de solo lectura y **se desuscriben del listener con `DestroyRef`** (obligatorio por el ADR-005: un listener huérfano consume cuota de la capa gratuita). Ejemplo real, de `order.service.ts`:
+
+```typescript
+@Injectable({ providedIn: 'root' })
 export class OrderService {
-  private firestore = inject(Firestore);
-  
-  // Signal de estado interno
-  private ordersSignal = signal<Order[]>([]);
-  public readonly orders = this.ordersSignal.asReadonly();
+  private readonly firestore = inject(Firestore);
+  private readonly colRef = collection(this.firestore, 'orders');
+
+  private readonly _activeOrders = signal<Order[]>([]);
+  readonly activeOrders = this._activeOrders.asReadonly();
 
   constructor() {
-    const ordersRef = collection(this.firestore, 'orders');
-    // Escucha en tiempo real de Firestore
-    (collectionData(ordersRef, { idField: 'id' }) as Observable<Order[]>).subscribe(
-      (data) => this.ordersSignal.set(data)
-    );
+    const q = query(this.colRef, where('status', 'in', ['pending', 'preparing', 'ready']));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      this._activeOrders.set(
+        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order),
+      );
+    });
+    inject(DestroyRef).onDestroy(unsubscribe);
   }
 }
 ```
+
+Se usa `onSnapshot` directamente, no `collectionData()`, para controlar la desuscripción de forma explícita.
+
+### Otros patrones vigentes
+
+- **Componentes Standalone con plantilla y estilos en línea.** Salvo `app.component`, ningún componente tiene archivos `.html`/`.css` separados. No existe carpeta `shared/`.
+- **Fuente única de verdad para las enumeraciones de dominio.** `core/models/category-tree.ts` alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada y la validación del import. Es el patrón a copiar para cualquier lista cerrada nueva (por ejemplo, los medios de pago de la Tarea 31).
+- **Diálogos con los controladores de Ionic.** No se usa `ion-modal` en ningún punto del proyecto: las elecciones simples van con `ActionSheetController`, las confirmaciones y los formularios cortos con `AlertController` (que soporta `inputs` de tipo `checkbox` y `number`), y cuando hace falta más control, un overlay propio con un *signal* de visibilidad (como el formulario de productos).
+- **Escrituras masivas en lotes de 500.** `writeBatch` con el límite de Firestore, en `importProducts()` y `deleteAllProducts()`.
 
 ---
 
 ## 7. Gotchas Conocidos (Problemas Frecuentes)
 
-| Situación | Causa | Solución Recomendada |
+Hallazgos verificados empíricamente durante el desarrollo. El detalle completo, con síntoma, causa raíz y solución, está en **`CLAUDE.md` §7**; esta tabla es el índice.
+
+| Situación | Causa raíz | Solución |
 | :--- | :--- | :--- |
-| Doble cobro o comandas duplicadas al presionar varias veces el botón de envío rápido. | Latencia de red móvil en el cliente mesero. | Deshabilitar el botón de confirmación de pago inmediatamente después del primer toque mediante un estado `isSubmitting` reactivo. |
-| El mesero no recibe alertas visuales cuando un pedido pasa a "Listo". | La aplicación está en segundo plano o el dispositivo móvil apaga el socket por ahorro de energía. | Implementar notificaciones de vibración local o alertas persistentes en la barra de navegación usando las capacidades PWA de Ionic. |
+| Tailwind no se aplica pese a tener `postcss.config.js`. | El builder `@angular/build:application` (esbuild) **solo** carga configuración PostCSS desde JSON; ignora `.js`/`.mjs` por diseño. | Usar `postcss.config.json`. |
+| Layout colapsado en móvil: una franja de contenido y el resto negro. | `<ion-page>` **no es un web component de Ionic**: es un elemento desconocido con `display:inline` dentro del flex container que `IonRouterOutlet` crea. | La plantilla empieza directamente con `<ion-header>` / `<ion-content>`, sin envoltura. Nunca añadir `CUSTOM_ELEMENTS_SCHEMA` para esquivarlo. |
+| El avatar de Google devuelve `429 Too Many Requests`. | `lh3.googleusercontent.com` bloquea peticiones con un `Referer` que no reconoce. | `referrerpolicy="no-referrer"` en todo `<img>` que cargue una URL de Google. |
+| Escrituras denegadas con `permission-denied` aunque el rol sea correcto. | En Firestore Rules, `&&` retorna **booleano**, no el último valor evaluado como en JavaScript: `userRole()` devolvía `true` en vez del string del rol. | Usar operador ternario `? :` para retornar el string. |
+| Una clase como `text-[#FFE7B3]/55` no aplica ningún estilo. | En Tailwind v4, los modificadores de opacidad combinados con colores arbitrarios entre corchetes no siempre generan la regla CSS durante el escaneo JIT. | Definir el color con opacidad en los `styles` del componente, no con clases Tailwind. |
+| `npm test` fallaba con `Directory import '@ionic/core/components' is not supported`. | `@ionic/angular@8.8.8` importa un directorio sin `/index.js`, y Node ESM nativo no resuelve *directory imports*. | Parche vía `patch-package` (carpeta `patches/`, aplicado en `postinstall`) más un alias en `vitest.config.ts`. |
+| Doble cobro al tocar varias veces el botón de envío. | Latencia de red móvil. | Estado reactivo `submitting` que deshabilita el botón tras el primer toque (ya implementado en el mesero). |
 
 ---
 
 ## 8. Documentos de Referencia
 
+Rutas relativas a la raíz del repositorio.
+
 | Archivo | Ruta | Propósito |
 | :--- | :--- | :--- |
-| **Planteamiento Inicial** | [planteamiento-inicial.md](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/planteamiento-inicial.md) | Documento original con las necesidades de Le Tiende. |
-| **PRD** | [PRD.md](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/PRD.md) | Requisitos funcionales de producto y roadmap comercial. |
-| **Tech Specs** | [tech-specs.md](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/tech-specs.md) | Especificación de la arquitectura de datos, flujos y stack. |
-| **Claude rules** | [CLAUDE.md](file:///Users/ocastelblanco/Documents/LeTiende/letiende.co/comandante/CLAUDE.md) | Reglas permanentes de IA, seguridad y Git Flow. |
+| **PRD** | `PRD.md` | Requisitos funcionales de producto, casos de uso y glosario de negocio. |
+| **Tech Specs** | `tech-specs.md` | Arquitectura, modelos de datos, infraestructura y contrato de `/menu.json`. |
+| **TODO** | `TODO.md` | Motor de planificación JIT: tareas activas, cola e historial completo. |
+| **Reglas de IA** | `CLAUDE.md` | Stack, convenciones, seguridad OWASP, Git Flow y gotchas del stack. |
+| **Diseño** | `DESIGN.md` | Sistema visual: paleta, tipografía y ratios de contraste aprobados. |
+| **Planteamiento inicial** | `docs/planteamiento-inicial.md` | Documento original con las necesidades de Le Tiende. |
+| **Cambio de modelo de datos** | `docs/cambio-en-modelo-de-datos.md` | Especificación del cambio pendiente (Tareas 29-31) y decisiones tomadas. |
+| **Detalle de reportes** | `docs/aumento-detalle-reportes.md` | Especificación de mejoras al consolidado de ventas. |
 
 ---
 
 ## 9. Contexto de la Sesión Actual
 
-- **Qué se hizo hoy:**
-  - Creación de la documentación base (`PRD.md`, `tech-specs.md`, `CLAUDE.md`, `MEMORY.md`, `TODO.md`).
-  - Ajuste del flujo de toma de pedidos para permitir envío a barra inmediato antes de realizar el pago.
-  - Adición de palabra clave (nombre del cliente) a los pedidos para una fácil identificación de comandas.
-  - Ajustes de requerimientos para Angular 21.2.x, subdominio personalizado `comandante.letiende.co` en AWS Route 53, optimizaciones de costo cero bajo el plan Firebase Spark y roles dinámicos por jornada (administrador semilla: `letiende.co@gmail.com`).
-- **Próxima Tarea Sugerida:** Inicializar el proyecto Angular 21.2.x mediante el CLI e integrar el SDK de Firebase en `app.config.ts`. Crear la rama `develop` en el repositorio antes de comenzar.
+- **Fecha:** 2026-09-19
+- **Qué se hizo:**
+  - Se analizó `docs/cambio-en-modelo-de-datos.md` y se acordaron con el dueño del proyecto las siete decisiones de diseño que faltaban (ortografía de `additions`, ruptura del contrato de `/menu.json`, limpieza de datos de prueba, importador *upsert*, conservación de `isActive`, alcance de la edición post-pedido y entrega en tres fases). Quedan registradas en la sección "Decisiones tomadas" de ese mismo documento.
+  - Se corrigió el documento original: el error de ortografía `aditions` → `additions` en todas sus formas, la inconsistencia entre la hoja llamada `carta` y `canva`, y una línea que atribuía a las variantes el efecto sobre el precio que en realidad tienen las adiciones.
+  - Se saldó deuda documental acumulada: `tech-specs.md` §3, §4.3 y §5 describían una estructura de repositorio y un modelo de datos que ya no existían (alias de rutas inexistentes, categorías planas, `tipValue`, `isAvailable`), y §12 terminaba mencionando una Cloud Function `syncPublicMenu` que nunca llegó a existir.
+  - Se añadió `tech-specs.md` §13 con el modelo objetivo completo, marcado explícitamente como pendiente, para no dejar el documento describiendo como real algo que aún no se ha implementado.
+  - Se actualizaron `PRD.md` (§5.1, §5.2, §5.3, §7, §9 y §10) y este `MEMORY.md`, que seguía congelado en el estado de 2026-05-22 con 28 tareas ya completadas.
+  - Se registraron el **ADR-006** (propina porcentual a nivel de pedido, que reemplaza al ADR-003) y el **ADR-007** (Google Sheets como fuente de verdad del catálogo).
+  - Se encolaron las **Tareas 29, 30 y 31** en `TODO.md`, con su alcance, sus archivos y las pruebas a añadir.
+  - Se evaluó a petición del usuario el costo de construir una suite de pruebas completa. Hallazgo que disparó una tarea nueva: **el CI nunca ejecutaba `npm test`**, así que la única prueba del repositorio no protegía de nada y un PR en rojo podía fusionarse y desplegarse. Se acordó la estrategia por capas del **ADR-008**, documentada en `tech-specs.md` §14, y se encolaron la **Tarea 32** (gate de CI, ~15 minutos, a ejecutar antes que nada) y la **Tarea 33** (pruebas de `firestore.rules`, después de la Tarea 31).
+- **No se escribió ni una línea de código.** Fue una sesión deliberadamente documental, previa a la implementación.
+- **Próxima Tarea:** **Tarea 32** — añadir `npm test -- --watch=false` al workflow de CI en ambos jobs. Son ~15 minutos y es precondición de todo lo demás. Inmediatamente después, la **Tarea 29** (modelo de producto, importador y `/menu.json` v2); antes de empezarla, verificar si el usuario ya reestructuró la hoja `datos` del Google Sheets. El orden completo de la cola es **32 → 29 → 30 → 31 → 33**.
