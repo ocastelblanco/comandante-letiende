@@ -19,7 +19,29 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-Las tres tareas provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. Deben ejecutarse **en orden**: cada una deja la aplicación compilando y desplegable por su cuenta. El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato del endpoint, reglas de seguridad) está en `tech-specs.md` §13, y las decisiones acordadas en la sección "Decisiones tomadas" de `docs/cambio-en-modelo-de-datos.md`.
+Las Tareas 29, 30 y 31 provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. Las Tareas 32 y 33 son la estrategia de pruebas acordada en la misma sesión (`tech-specs.md` §14, ADR-008 en `MEMORY.md`).
+
+**Orden de ejecución — no coincide con la numeración:**
+
+```
+32 (gate de CI)  →  29 (modelo + import)  →  30 (mesero)  →  31 (propina y pagos)  →  33 (reglas)
+```
+
+La numeración es de creación, no de ejecución; ya hay precedentes en el historial (las Tareas 13/14 y 15/16 también se completaron fuera de orden). Cada tarea deja la aplicación compilando y desplegable por su cuenta.
+
+El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato del endpoint, reglas de seguridad) está en `tech-specs.md` §13; las decisiones acordadas, en la sección "Decisiones tomadas" de `docs/cambio-en-modelo-de-datos.md`; la estrategia de pruebas y su justificación, en `tech-specs.md` §14.
+
+### 🔜 Tarea 32: [INFRA] Ejecutar las pruebas en CI (bloquea el merge) — **hacer primero**
+
+*   **Objetivo:** Que las pruebas dejen de ser decorativas.
+*   **Problema:** `.github/workflows/deploy-hosting.yml` hace `npm ci` → build → deploy y **nunca ejecuta `npm test`**, ni en el job `deploy_live` ni en el de `preview`. Hoy se puede fusionar y desplegar un PR con la suite en rojo sin que nada lo impida. Mientras esto siga así, cualquier prueba que se escriba en las Tareas 29-31 y 33 no protege de nada.
+*   **Alcance:**
+    *   Añadir un paso `npm test -- --watch=false` **antes** del build en ambos jobs del workflow.
+    *   ⚠️ El builder `@angular/build:unit-test` activa el modo *watch* por defecto **solo en entornos TTY** (`watch` → *"Defaults to `true` in TTY environments and `false` otherwise"*). En GitHub Actions no hay TTY, así que `npm test` a secas saldría limpio; aun así se pasa `--watch=false` explícito, para que el mismo comando sea seguro de copiar y pegar en una terminal local sin colgarse.
+    *   Verificar que el job falla de verdad si una prueba falla (romper una a propósito en el PR y confirmar el rojo antes de repararla).
+*   **Costo estimado:** ~15 minutos. Es el mejor retorno por esfuerzo de todo el proyecto y precondición de todo lo demás.
+
+
 
 ### 🔜 Tarea 29: [FEATURE] Modelo de producto con variantes y adiciones + `/menu.json` v2
 
@@ -61,7 +83,23 @@ Las tres tareas provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo
     *   `OrderService.updateOrderTip(orderId, { tipPercentage, tipValue, tipAmount, total })`.
     *   **`firestore.rules`** — helper `onlyUpdatesTip()` acotado a `['tipPercentage','tipValue','tipAmount','total','updatedAt']` y con `resource.data.paid == false`, sumado a las cláusulas de mesero en `/orders/{orderId}`. El mesero sigue sin poder tocar los ítems de un pedido enviado ni un pedido ya cobrado.
     *   Reportes: etiquetas y colores de los tres medios nuevos, tanto en la tabla como en el XLSX exportado.
-*   **Verificación específica:** contra el emulador, comprobar que un mesero **sí** puede cambiar la propina de un pedido sin cobrar y **no** puede cambiar sus ítems ni tocar un pedido ya cobrado.
+*   **Pruebas a añadir:** `order-totals.spec.ts` sobre la función pura `computeOrderTotals()` extraída en esta tarea — 10 % por defecto, redondeo a pesos sin centavos, porcentaje 0, valor absoluto solo, y ambos combinados.
+*   **Verificación específica:** contra el emulador, comprobar que un mesero **sí** puede cambiar la propina de un pedido sin cobrar y **no** puede cambiar sus ítems ni tocar un pedido ya cobrado. La cobertura sistemática de este comportamiento llega en la Tarea 33.
+
+### 🔜 Tarea 33: [SEGURIDAD] Pruebas de `firestore.rules` con el emulador — **después de la Tarea 31**
+
+*   **Objetivo:** Cubrir con pruebas la única frontera de seguridad real del sistema.
+*   **Por qué esta capa y no otras:** `CLAUDE.md` §5 establece explícitamente que los guardias de Angular son solo experiencia de usuario y que la autorización real vive en `firestore.rules`. Este archivo ya dejó pasar un fallo a producción (el gotcha de `&&` devolviendo `bool` en vez del string del rol, que denegaba todas las escrituras). Además no requiere refactorizar nada — las reglas ya son código aislado — y no se rompe cuando cambia la interfaz, a diferencia de las pruebas de componentes.
+*   **Se hace después de la Tarea 31** porque es esa tarea la que introduce `onlyUpdatesTip()`, un helper cuyo propósito entero es ser restrictivo: no tiene sentido probar las reglas dos veces.
+*   **Alcance:**
+    *   Dependencia de desarrollo `@firebase/rules-unit-testing` y arnés de emulador (`firebase emulators:exec`).
+    *   Matriz de casos por rol (`admin`, `waiter`, `barista`, `inactive`, anónimo) contra las tres colecciones:
+        *   `/users` — solo el administrador escribe; un no-administrador no puede alterar su propio `role`.
+        *   `/products` — solo el administrador escribe; `isValidProductData()` rechaza categorías y subcategorías inválidas y `basePrice` negativo.
+        *   `/orders` — el barista solo toca campos de estado; el mesero solo puede marcar `delivered`, marcar pagado (`paid` false→true) y **editar la propina mientras `paid == false`**; el mesero **no** puede modificar los ítems de un pedido enviado ni tocar uno ya cobrado.
+    *   Verificar explícitamente que `userRole()` devuelve el *string* del rol y no `true` (regresión del gotcha ya documentado en `CLAUDE.md` §7).
+    *   Conectar el paso al workflow de CI creado en la Tarea 32.
+*   **Costo estimado:** ~1-2 sesiones.
 
 ---
 
@@ -237,4 +275,4 @@ Las tres tareas provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo
 | 2026-09-07 | Tarea 18 completada — tarea externa (T-0018/OPT-18 de `letiende.co`, ampliada a partir del hallazgo de la Tarea 17), no tomada del PRD. Se agregó por primera vez `LICENSE` (Apache License 2.0, texto canónico) y el badge `License`/`Licencia` correspondiente en `README.md`/`README.es.md`. Resuelve el primero de los dos hallazgos de la Tarea 17; el de autoría IA sigue pendiente. | WIP se mantiene en 0. |
 | 2026-09-16 | Tarea 27 completada (tomada del PRD — integración del catálogo con `letiende.co`, pedida directamente por el humano). Jerarquía de 7 categorías de productos, borrado masivo, y menú público `/menu.json` vía Cloud Function + Hosting (rediseñado desde un mirror de Firestore abierto, descartado por riesgo de cuota tras revisión de `architect`). Deploy bloqueado 8 veces en cadena por permisos de GCP ausentes (3 APIs + 4 roles IAM en 2 recursos distintos), todos documentados en el resultado de la tarea para no tener que re-descubrirlos. PRs #32-#35. Pendiente: reclasificación manual de los 116 productos reales vía Excel (acción del usuario, no del motor JIT). | WIP se mantiene en 0. |
 | 2026-09-16 | Tarea 28 completada. Migración completa a Node.js 24 (Cloud Functions + `actions/checkout`+`actions/setup-node` a `@v5`), disparada por el aviso de deprecación de Node 20 visto durante el deploy de la Tarea 27. Investigado el alcance antes de aplicar (agente de exploración): sin incompatibilidades, cambio mecánico. PR #36. | WIP se mantiene en 0. Cola de tareas vacía — próxima tarea a evaluar contra el PRD cuando el usuario retome. |
-| 2026-09-19 | Sesión de documentación, sin código, por instrucción explícita del usuario. Se analizó `docs/cambio-en-modelo-de-datos.md` con tres agentes de exploración en paralelo y se acordaron con el humano las siete decisiones de diseño pendientes. Se detectó deuda documental acumulada: `tech-specs.md` §3/§4.3/§5 describían una estructura y un modelo de datos inexistentes desde la Tarea 27, y §12 mencionaba una Cloud Function `syncPublicMenu` que nunca existió; `MEMORY.md` seguía congelado en 2026-05-22 con 28 tareas ya completadas. Corregidos además el typo `aditions`→`additions` del documento original y la inconsistencia `carta`/`canva`. Registrados ADR-006 (propina porcentual a nivel de pedido, reemplaza al ADR-003) y ADR-007 (Google Sheets como fuente de verdad). | WIP se mantiene en 0. Tareas 29, 30 y 31 encoladas en §2.5, a ejecutarse en orden. Próxima sesión: Tarea 29. |
+| 2026-09-19 | Sesión de documentación, sin código, por instrucción explícita del usuario. Se analizó `docs/cambio-en-modelo-de-datos.md` con tres agentes de exploración en paralelo y se acordaron con el humano las siete decisiones de diseño pendientes. Se detectó deuda documental acumulada: `tech-specs.md` §3/§4.3/§5 describían una estructura y un modelo de datos inexistentes desde la Tarea 27, y §12 mencionaba una Cloud Function `syncPublicMenu` que nunca existió; `MEMORY.md` seguía congelado en 2026-05-22 con 28 tareas ya completadas. Corregidos además el typo `aditions`→`additions` del documento original y la inconsistencia `carta`/`canva`. Registrados ADR-006 (propina porcentual a nivel de pedido, reemplaza al ADR-003) y ADR-007 (Google Sheets como fuente de verdad). A petición del usuario se evaluó además el costo de una suite de pruebas completa (estimado en 20-25 sesiones supervisadas, desproporcionado para ~3.800 líneas): se acordó la estrategia por capas del ADR-008, documentada en `tech-specs.md` §14. **Hallazgo colateral:** el CI nunca ejecutaba `npm test`, así que la única prueba del repositorio era decorativa y un PR en rojo podía fusionarse y desplegarse. | WIP se mantiene en 0. Cinco tareas encoladas en §2.5. Orden de ejecución **32 → 29 → 30 → 31 → 33**, que no coincide con la numeración. Próxima sesión: Tarea 32 (~15 min), luego Tarea 29. |

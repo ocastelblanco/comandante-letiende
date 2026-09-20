@@ -65,6 +65,15 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[ ]` Producto con descripción, variantes y adiciones *(Tarea 29)*.
 - `[ ]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro *(Tarea 29)*.
 
+### Calidad y Pruebas
+- `[x]` Runner de pruebas configurado (Vitest vía `@angular/build:unit-test`), con el parche de `@ionic/angular` que lo desbloqueó.
+- `[ ]` **El CI ejecuta la suite y bloquea el merge** *(Tarea 32 — hacer antes que cualquier otra cosa)*.
+- `[ ]` Pruebas de las funciones puras de propina y del parser del Excel *(dentro de las Tareas 29 y 31)*.
+- `[ ]` Pruebas de `firestore.rules` con el emulador *(Tarea 33)*.
+- `[—]` Pruebas de componentes — **descartadas a conciencia**, ver ADR-008.
+- `[—]` Pruebas E2E — diferidas, acotadas a un solo flujo. Ver ADR-008.
+- `[—]` Lint — el repositorio no tiene script de lint.
+
 ---
 
 ## 3. Registro de Decisiones de Arquitectura (ADRs)
@@ -117,6 +126,13 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 *   **Decisión:** El catálogo maestro vive en un documento de Google Sheets con dos hojas. La hoja `datos` se exporta como XLSX y se carga en Comandante con el importador existente; es la que se persiste en `/products` y se publica en `/menu.json`. La hoja `canva` se conecta dinámicamente a Canva para generar la carta impresa en PDF, y obtiene sus nombres y precios de `datos` mediante fórmulas. Comandante no lee la hoja `canva`.
 *   **Razón:** Un único punto de edición para los tres destinos del catálogo (punto de venta, carta digital de letiende.co y carta impresa), en una herramienta que el administrador ya sabe usar y que no requiere desplegar nada para cambiar un precio.
 *   **Consecuencias Conocidas:** El importador se mantiene como *upsert*: crea y actualiza, pero **no archiva** los productos que desaparezcan de la hoja. Es una decisión explícita, no una omisión — para retirar un producto hay que archivarlo desde Comandante o recargar el catálogo completo tras un borrado masivo. Comandante y la hoja pueden divergir si alguien edita un producto directamente en el panel de administración; la hoja sigue siendo la referencia a la que volver.
+
+### ADR-008: Cobertura de Pruebas por Capas, No Cobertura Total
+*   **Fecha:** 2026-09-19
+*   **Estado:** Aprobado.
+*   **Decisión:** No se persigue una suite de pruebas completa. Se cubren tres capas — el *gate* de CI, las funciones puras de dinero y parseo, y las reglas de Firestore — y se descarta explícitamente la capa de pruebas de componentes. Las pruebas E2E quedan diferidas y acotadas a un único flujo. Detalle en `tech-specs.md` §14; tareas en `TODO.md` (32 y 33).
+*   **Razón:** Se estimó el costo real de una suite completa en **20-25 sesiones supervisadas**, más un impuesto permanente de mantenimiento sobre cada cambio de interfaz. Para una aplicación de ~3.800 líneas mantenida por una sola persona es desproporcionado. El costo no está en escribir las pruebas, sino en tres factores: refactorizar el código para que sea testeable (`waiter.component.ts` y `products.component.ts` suman 1.473 líneas que mezclan plantilla, lógica, Firestore y *overlays*), montar el arnés de Ionic en jsdom (que ya mordió una vez, ver Tarea 21), y mantener pruebas que afirman marcado. En esta aplicación el daño real solo puede venir de tres sitios: aritmética de propina equivocada, una importación que corrompa el catálogo, y un hueco en las reglas. Ninguno necesita pruebas de componentes.
+*   **Consecuencias Conocidas:** Los componentes quedan sin red de seguridad automatizada; su verificación sigue siendo manual contra el emulador, documentada en cada tarea. Se asume ese riesgo a conciencia. Si en algún momento se parten `waiter` y `products` en piezas más pequeñas, la capa 4 deja de ser cara y conviene reevaluar esta decisión — pero ese refactor debe justificarse por mantenibilidad, no por cobertura. **Hallazgo que motivó la Tarea 32:** el CI nunca ejecutaba `npm test`, así que hasta ahora cualquier prueba del repositorio era decorativa y un PR con la suite en rojo podía fusionarse y desplegarse.
 
 ---
 
@@ -238,5 +254,6 @@ Rutas relativas a la raíz del repositorio.
   - Se actualizaron `PRD.md` (§5.1, §5.2, §5.3, §7, §9 y §10) y este `MEMORY.md`, que seguía congelado en el estado de 2026-05-22 con 28 tareas ya completadas.
   - Se registraron el **ADR-006** (propina porcentual a nivel de pedido, que reemplaza al ADR-003) y el **ADR-007** (Google Sheets como fuente de verdad del catálogo).
   - Se encolaron las **Tareas 29, 30 y 31** en `TODO.md`, con su alcance, sus archivos y las pruebas a añadir.
+  - Se evaluó a petición del usuario el costo de construir una suite de pruebas completa. Hallazgo que disparó una tarea nueva: **el CI nunca ejecutaba `npm test`**, así que la única prueba del repositorio no protegía de nada y un PR en rojo podía fusionarse y desplegarse. Se acordó la estrategia por capas del **ADR-008**, documentada en `tech-specs.md` §14, y se encolaron la **Tarea 32** (gate de CI, ~15 minutos, a ejecutar antes que nada) y la **Tarea 33** (pruebas de `firestore.rules`, después de la Tarea 31).
 - **No se escribió ni una línea de código.** Fue una sesión deliberadamente documental, previa a la implementación.
-- **Próxima Tarea:** **Tarea 29** — modelo de producto con variantes y adiciones, importador de Excel actualizado y `/menu.json` v2. Antes de empezar, verificar si el usuario ya reestructuró la hoja `datos` del Google Sheets.
+- **Próxima Tarea:** **Tarea 32** — añadir `npm test -- --watch=false` al workflow de CI en ambos jobs. Son ~15 minutos y es precondición de todo lo demás. Inmediatamente después, la **Tarea 29** (modelo de producto, importador y `/menu.json` v2); antes de empezarla, verificar si el usuario ya reestructuró la hoja `datos` del Google Sheets. El orden completo de la cola es **32 → 29 → 30 → 31 → 33**.

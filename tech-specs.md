@@ -607,3 +607,60 @@ Reemplaza sin compatibilidad hacia atrás al de la §12. En el momento de escrib
 **Campos excluidos deliberadamente:** `id`, `isActive`, `createdAt`, `updatedAt` por ítem. Se mantienen sin cambio el filtro `isActive == true`, el `Cache-Control: public, max-age=300, s-maxage=300`, el `Access-Control-Allow-Origin: *`, el `405` en métodos distintos de `GET` y el `500` ante fallo de Firestore.
 
 **Cambio de semántica importante para el consumidor:** el contrato anterior entregaba `totalPrice` (precio con la propina ya incluida). El nuevo entrega `basePrice` (precio sin propina). Para un mismo producto, el número que llega es más bajo, no es el mismo dato con otro nombre.
+
+---
+
+## 14. Estrategia de Pruebas
+
+### Situación de partida (2026-09-19)
+
+| Hecho | Detalle |
+| :--- | :--- |
+| Pruebas existentes | **Una**: `src/app/app.component.spec.ts` (`should create the app`). |
+| Runner | Vitest, vía el builder `@angular/build:unit-test` con `runnerConfig: vitest.config.ts`. |
+| Comando | `npm test` (`ng test`). |
+| Ejecución en CI | **Ninguna.** `.github/workflows/deploy-hosting.yml` hace `npm ci` → build → deploy en ambos jobs, sin ejecutar la suite. |
+| Lint | No existe script de lint en el repositorio. |
+
+⚠️ **El builder activa el modo *watch* por defecto solo en TTY** (`"Defaults to \`true\` in TTY environments and \`false\` otherwise"`). En CI no hay TTY, así que `npm test` termina solo; en una terminal local, no. Usar siempre **`npm test -- --watch=false`** en scripts y documentación.
+
+⚠️ **Vitest necesita el alias de `vitest.config.ts`.** `@ionic/angular@8.8.8` importa `@ionic/core/components` como *directory import*, que Node ESM nativo no resuelve. Está corregido con `patch-package` (carpeta `patches/`, aplicado en `postinstall`) más el alias del runner. No eliminar ninguno de los dos (ver `CLAUDE.md` §7 y `TODO.md` Tarea 21).
+
+### Decisión: cobertura por capas, no cobertura total
+
+No se persigue una suite completa. El análisis de costo (ADR-008 en `MEMORY.md`) estimó **20-25 sesiones supervisadas** para cubrir toda la aplicación, más un impuesto permanente de mantenimiento sobre cada cambio de interfaz — desproporcionado para una aplicación de ~3.800 líneas mantenida por una sola persona.
+
+El criterio es cubrir **lo que puede causar daño real**: aritmética de dinero equivocada, una importación que corrompa el catálogo, y un hueco en las reglas de seguridad. Ninguna de las tres necesita pruebas de componentes.
+
+| Capa | Costo | Qué protege | Fragilidad | Decisión |
+| :--- | :--- | :--- | :--- | :--- |
+| **0. Gate de CI** | ~15 min | Que las pruebas signifiquen algo | Nula | ✅ **Tarea 32**, primero |
+| **1. Funciones puras** | ~1 sesión | Propina, parseo del catálogo, categorías | Nula | ✅ Dentro de las Tareas 29 y 31 |
+| **2. `firestore.rules`** | ~1-2 sesiones | La única frontera de seguridad real | Muy baja | ✅ **Tarea 33**, tras la 31 |
+| **3. Servicios de Firestore** | ~1-2 sesiones | Queries, lotes, transiciones de estado | Media | 🟡 Opcional, sin encolar |
+| **4. Componentes** | ~8-12 sesiones | Poco, en la práctica | Alta | ❌ Descartada |
+| **5. E2E (Playwright)** | ~5-7 sesiones | El camino del dinero completo | Media-alta | 🟡 Diferida, acotada a un flujo |
+
+### Por qué se descarta la capa de componentes
+
+`waiter.component.ts` (653 líneas) y `products.component.ts` (820) mezclan plantilla en línea, lógica de negocio, acceso a Firestore y *overlays* de Ionic en un solo archivo. Probarlos de forma significativa exige **partirlos primero**, y cada archivo de prueba necesita `TestBed`, providers de Ionic y dobles de `ActionSheetController`, `AlertController` y `ToastController`. El resultado típico son pruebas que afirman marcado y se rompen al mover un `div`.
+
+Si el objetivo es que esos dos componentes sean más mantenibles, **partirlos aporta más valor que probarlos como están**. Ese trabajo, si se hace, es un refactor con su propia justificación, no una tarea de pruebas.
+
+### Qué se prueba, concretamente
+
+**Capa 1 — funciones puras** (se extraen como parte de las Tareas 29 y 31, no como trabajo aparte; el costo marginal es casi nulo porque la extracción hay que hacerla de todos modos):
+
+- `features/admin/products/import-parsers.ts` — `parseList()`, `parsePriceList()`, `parseBoolean()`, `buildAdditions()`. Casos: listas vacías y con espacios sobrantes, `additionPrices` con distinta cantidad de elementos que `additions`, precios no finitos o negativos, entradas duplicadas en una misma fila, y las distintas formas de `active` que produce Excel (booleano nativo, `"TRUE"`, `"true"`, `1`).
+- `computeOrderTotals(items, tipPercentage, tipValue)` — 10 % por defecto, redondeo a pesos sin centavos, porcentaje 0, valor absoluto solo, y ambos combinados.
+- `core/models/category-tree.ts` — ya es puro hoy: `isValidCategory()`, `isValidSubcategory()`, `categoryRequiresSubcategory()`, `getCategoryNode()`.
+
+**Capa 2 — reglas de seguridad** (Tarea 33): matriz de rol × colección × operación con `@firebase/rules-unit-testing` contra el emulador. Detalle en `TODO.md` Tarea 33.
+
+### Momento de ejecución
+
+El orden importa. Las Tareas 29-31 reescriben justo la lógica de precios, propina e importación: escribir pruebas contra el código actual sería escribirlas contra código que está por desaparecer.
+
+1. **Antes de la Tarea 29** — Tarea 32 (gate de CI). Sin esto, todo lo demás es decorativo.
+2. **Dentro de las Tareas 29 y 31** — capa 1, contra la forma nueva del código.
+3. **Después de la Tarea 31** — Tarea 33, cuando las reglas ya incluyan `onlyUpdatesTip()` y no haya que probarlas dos veces.
