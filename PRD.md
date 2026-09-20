@@ -61,34 +61,46 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
 
 ### 5.1. Módulo del Mesero (Vista Móvil)
 - **Inicio de sesión y autenticación:** Acceso rápido mediante cuenta de Google autorizada.
-- **Identificación del Pedido:** Campo de texto obligatorio para ingresar una palabra clave (típicamente el nombre del cliente) que identifique el pedido tanto para el mesero como para el barista.
-- **Toma de pedidos ágil:** Lista visual de productos organizada por categorías de alta rotación (bebidas, licores, comida rápida). Selección mediante toques con sumatoria en tiempo real.
+- **Identificación del Pedido:** Campo de texto obligatorio para ingresar una palabra clave (típicamente el nombre del cliente o la mesa) que identifique el pedido tanto para el mesero como para el barista.
+- **Toma de pedidos ágil:** Buscador de productos con sumatoria en tiempo real. Solo se ofrecen los productos activos del catálogo.
+- **Variantes obligatorias:** Si un producto define variantes (por ejemplo, una cerveza artesanal con cuatro estilos, o un té con cinco sabores), el mesero **debe** elegir exactamente una antes de poder enviar el pedido. Las variantes no modifican el precio.
+- **Adiciones opcionales:** Si un producto define adiciones (leche vegetal, licor, etc.), el mesero puede agregar ninguna, una o varias. Cada adición suma su propio valor al precio base del producto.
+- **Observaciones para la barra:** Campo de texto libre por pedido, dirigido al barista, para instrucciones del cliente ("sin aceituna en el Dry Martini"). Visible también para el administrador.
 - **Consolidación y Envío Inmediato:** Botón para enviar la comanda directamente a la cola de preparación en barra, iniciando el proceso sin retrasos por el pago.
-- **Pantalla de Cobro y Registro:** Una vez enviado el pedido, se activa la interfaz de pago. Si el pago es con tarjeta, la app muestra de manera destacada y en letras grandes la discriminación para el datáfono:
+- **Propina calculada y editable:** El resumen del pedido muestra subtotal, propina y total a cobrar. La propina se calcula por defecto como el **10 % del subtotal** y el mesero puede ajustarla antes de cobrar mediante un diálogo con dos campos que se suman: un **porcentaje** sobre el subtotal y un **valor absoluto**. La propina sigue siendo editable después de enviar el pedido a la barra, mientras no se haya cobrado.
+- **Pantalla de Cobro y Registro:** La app muestra de forma destacada la discriminación necesaria para el datáfono:
   - **Valor Consumo (Productos):** $XX.XXX
   - **Valor Propina:** $Y.YYY
   - **Total a Cobrar:** $ZZ.ZZZ
-  Botón para confirmar que el cobro (efectivo o tarjeta) fue exitoso, actualizando el estado de pago del pedido en el sistema.
+
+  El mesero selecciona el medio de pago entre **Datáfono**, **QR** (SonoQR de Bold, que agrupa billeteras virtuales y transferencias) y **Efectivo**, y confirma el cobro.
 - **Monitoreo de Estado:** Listado de los pedidos del mesero actual, mostrando su estado de preparación (*En Preparación* / *Listo*) y su estado de cobro (*Pendiente* / *Pagado*).
 
 #### Diagrama de flujo de toma de pedido:
 ```
 [Inicio de Pedido] -> [Ingresar Nombre / Palabra Clave] -> [Seleccionar Productos]
                                                                   |
-                                                         [Verificar Resumen]
+                                              [Elegir Variante (obligatoria si aplica)]
+                                              [Elegir Adiciones (opcionales, suman precio)]
+                                                                  |
+                                                    [Escribir Observaciones]
+                                                                  |
+                                     [Verificar Resumen: Subtotal / Propina 10% / Total]
                                                                   |
                                                      [Enviar Pedido a la Barra]
                                                   (Inicia preparación de inmediato)
                                                                   |
+                                              [Ajustar Propina (opcional, si no se ha cobrado)]
+                                                                  |
                                                      [Seleccionar Medio de Pago]
-                                                     /                         \
-                                            [Pago con Tarjeta]            [Pago en Efectivo]
-                                                    |                              |
-                                         [Mostrar Discriminación]          [Mostrar Total Neto]
-                                         (Valor base vs Propina)                   |
-                                                    |                              |
-                                           [Registrar en Datáfono]                 |
-                                                    \                              /
+                                        /                         |                        \
+                                 [Datáfono]                    [QR]                   [Efectivo]
+                                        |                         |                         |
+                            [Mostrar Discriminación]   [Indicar al cliente        [Mostrar Total Neto]
+                            (Consumo vs Propina)        consumo y propina]                  |
+                                        |                         |                         |
+                             [Registrar en Datáfono]     [Cliente escanea]                  |
+                                        \                        |                         /
                                                  [Confirmar y Registrar Pago]
                                                                   |
                                                          [Pedido Pagado]
@@ -97,7 +109,8 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
 ### 5.2. Módulo del Barista (Vista de Tableta/Pantalla)
 - **Cola de Pedidos en Tiempo Real:** Lista de pedidos entrantes ordenados cronológicamente (los más antiguos primero). Cada comanda digital muestra:
   - Palabra clave (nombre del cliente) destacada y nombre del mesero.
-  - Lista de productos y cantidades.
+  - Lista de productos y cantidades, con la variante elegida y las adiciones de cada uno.
+  - **Observaciones** escritas por el mesero, cuando las haya.
   - Tiempo transcurrido desde su solicitud.
   - Estado del pago (marcado como "Pendiente" o "Pagado") para el control de entrega.
 - **Gestión de Preparación:** El barista puede marcar productos de forma individual como "preparados" (para pedidos grandes) o marcar la comanda completa como "Lista para entrega".
@@ -111,9 +124,14 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
   - Cuenta inicial sembrada (Administrador Semilla): `letiende.co@gmail.com`.
 - **Administración del Catálogo (Menú):** Crear, modificar y archivar productos. Cada producto define:
   - Nombre del producto.
-  - Precio de venta al público (PVP) base.
-  - Valor de la propina precalculada asociada al producto.
-  - Precio total (PVP + Propina), que es el valor que visualiza el cliente en la carta especial de eventos.
+  - Descripción (para la carta impresa y la carta digital del sitio público).
+  - Categoría y subcategoría, dentro de una jerarquía cerrada de 7 categorías raíz.
+  - Precio de venta al público (PVP) base, **sin propina**.
+  - Variantes disponibles (estilos, sabores, presentaciones), que no alteran el precio.
+  - Adiciones disponibles con su costo individual, que sí se suman al precio.
+  - Estado activo o archivado: solo los activos se ofrecen al mesero y se publican en la carta.
+- **Carga del Catálogo desde Google Sheets:** La fuente de verdad del catálogo es un documento de Google Sheets. El administrador lo exporta como XLSX y lo carga en Comandante, que valida todas las filas antes de escribir nada: si alguna fila tiene una categoría inválida o precios inconsistentes, se rechaza la importación completa y se listan los errores. También puede descargar una plantilla con el formato correcto.
+- **Publicación de la Carta:** El catálogo activo se expone como un endpoint público (`/menu.json`) que alimenta la lista de precios del sitio **letiende.co**. Una segunda hoja del mismo documento de Google Sheets alimenta la carta impresa a través de Canva.
 - **Consolidado de Ventas:** Interfaz para seleccionar una fecha o jornada y generar un resumen estructurado que indica la sumatoria de productos vendidos y el total de propinas recaudadas, facilitando su inserción manual en el sistema POS del establecimiento.
 
 ---
@@ -135,8 +153,9 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
 | Actor | Acción | Resultado Esperado |
 | :--- | :--- | :--- |
 | **Mesero** | Abre la aplicación en su móvil e inicia sesión. | La aplicación autentica su cuenta de Gmail contra la lista de usuarios permitidos y carga la pantalla de toma de pedidos con el menú actualizado. |
-| **Mesero** | Ingresa la palabra clave "Carlos", selecciona 2 Cervezas y 1 Hamburguesa, y presiona "Enviar a Barra". | El sistema crea el pedido en estado "En Preparación" con pago "Pendiente". El pedido aparece al instante en la cola del barista bajo el nombre "Carlos" y se habilita la pantalla de cobro en el móvil del mesero. |
-| **Mesero** | Procesa el pago con tarjeta del pedido de "Carlos", visualiza la discriminación en pantalla (Consumo: $45.000, Propina: $4.500) y presiona "Registrar Pago". | El sistema actualiza el estado de pago del pedido a "Pagado" en la base de datos. El mesero puede continuar atendiendo mientras la barra continúa la preparación. |
+| **Mesero** | Ingresa la palabra clave "Carlos", selecciona 2 Cervezas Diosa (eligiendo el estilo *Amber Ale*), 1 Capuchino con leche vegetal, anota "el capuchino sin azúcar" y presiona "Enviar a Barra". | El sistema exige elegir el estilo de la cerveza antes de permitir el envío, suma el costo de la leche vegetal al precio del capuchino, calcula una propina del 10 % sobre el subtotal y crea el pedido en estado "En Preparación" con pago "Pendiente". El pedido aparece al instante en la cola del barista bajo el nombre "Carlos", con la variante, la adición y la observación visibles. |
+| **Mesero** | El cliente de "Carlos" pide dejar $6.000 de propina en vez del 10 % sugerido. El mesero toca el lápiz junto a la propina, pone el porcentaje en 0 y el valor en 6.000. | El sistema recalcula el total del pedido con la propina nueva. El cambio se permite porque el pedido aún no está cobrado; una vez cobrado, la propina queda bloqueada. |
+| **Mesero** | Procesa el pago con datáfono del pedido de "Carlos", visualiza la discriminación en pantalla (Consumo: $45.000, Propina: $6.000) y presiona "Registrar Pago". | El sistema actualiza el estado de pago del pedido a "Pagado" y guarda el medio de pago usado. El mesero puede continuar atendiendo mientras la barra continúa la preparación. |
 | **Barista** | Presiona "Listo" en la comanda digital del pedido de la mesa o cliente X. | El pedido desaparece de la lista activa del barista. En la pantalla del mesero correspondiente, el pedido pasa al estado "Listos para Entregar" y emite una alerta visual. |
 | **Administrador** | Ingresa a la sección "Consolidado" al final de la jornada y selecciona la fecha actual. | El sistema genera una tabla resumen con el total de ingresos por productos y el total de propinas, además de un botón para exportar a CSV/JSON o ver el reporte resumido de inserción en POS. |
 
@@ -161,7 +180,11 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
 
 ## 9. Restricciones y Decisiones de Diseño
 
-- **Cartas Especiales con Precios Fijos (Propina Incluida):** El menú en eventos no calcula propinas dinámicas porcentuales sugeridas. Los precios mostrados en el menú ya incluyen el valor absoluto de la propina predefinido para ese evento o producto. La app tiene la única tarea de realizar la *sustracción* contable para mostrarle la discriminación al mesero.
+- **Precios de Carta sin Propina, Propina Calculada en el Pedido:** La carta muestra el precio real del producto, sin propina embebida. La propina se calcula sobre el pedido completo como un porcentaje sugerido del 10 %, que el mesero puede ajustar (por porcentaje, por valor absoluto o por ambos) antes de cobrar. La app realiza la *suma* contable y muestra la discriminación al mesero para el datáfono.
+
+  > Esta decisión **reemplaza** a la política original de "cartas especiales con precios fijos con propina incluida", vigente hasta septiembre de 2026 (ver ADR-003 y ADR-006 en `MEMORY.md`). El motivo del cambio es que el catálogo dejó de ser solo el menú interno del punto de venta: ahora también es la lista de precios pública de letiende.co y la fuente de la carta impresa. Publicar un precio con una propina ya incluida es incorrecto en una carta de cara al cliente, porque la propina es voluntaria por ley.
+
+- **Catálogo como Fuente de Verdad Compartida:** El catálogo de productos alimenta simultáneamente tres destinos: el punto de venta, la lista de precios de **letiende.co** (a través del endpoint público `/menu.json`) y la carta impresa (a través de una hoja de Google Sheets conectada a Canva). Su origen es un único documento de Google Sheets que el administrador exporta y carga en Comandante.
 - **Ingreso POS Diferido:** Dado que actualmente no hay una API disponible para el POS físico de Le Tiende, no se requiere integración de facturación electrónica en tiempo real desde la aplicación. Las facturas oficiales del POS se emitirán al final del evento ingresando los totales agrupados generados en el consolidado de Comandante.
 - **Límites de Infraestructura Sin Costo (Plan Spark de Firebase):** La aplicación debe estar técnicamente optimizada para operar estrictamente bajo los límites gratuitos mensuales y diarios de la capa gratuita (Spark Plan de Firebase). Ninguna característica o flujo debe inducir consumos que activen la facturación del plan Blaze.
 
@@ -174,4 +197,8 @@ Para eventos, el modelo debe cambiar a un esquema de cobro inmediato:
 - **Propina (Exenta):** Suma de dinero voluntaria que el cliente otorga por el servicio. En la legislación tributaria colombiana, las propinas no forman parte de la base gravable del Impuesto Nacional al Consumo (INC) ni del IVA, por lo que es mandatorio cobrarlas y registrarlas de forma separada del valor de los productos consumidos.
 - **POS (Point of Sale):** Sistema de caja registradora y facturación física principal del establecimiento Le Tiende donde se asienta la contabilidad y se emiten los tiquetes fiscales.
 - **Barista:** Personal encargado de preparar café, cocteles, licores y comidas rápidas en la barra.
+- **Variante:** Opción excluyente de un mismo producto que no altera su precio: el estilo de una cerveza artesanal, el sabor de un té, la presentación con o sin gas de un agua. Si un producto tiene variantes, elegir una es obligatorio.
+- **Adición:** Extra opcional que se suma al precio base de un producto, como leche vegetal en un capuchino o un licor en un café. Un producto puede llevar varias.
+- **SonoQR (Bold):** Sistema de cobro por código QR adquirido por Le Tiende, que agrupa en un solo medio de pago las billeteras virtuales (Nequi, Daviplata y otras) y las transferencias electrónicas. En Comandante corresponde al medio de pago **QR**.
+- **Carta digital:** Versión pública del catálogo publicada en letiende.co, alimentada por el endpoint `/menu.json` de Comandante.
 - **Parkway:** Sector del barrio La Soledad/Teusaquillo en Bogotá, caracterizado por ser un corredor cultural y comercial de alta afluencia.

@@ -56,48 +56,51 @@ El sistema está diseñado bajo una arquitectura de Cliente-Servidor Serverless,
 
 ## 3. Estructura del Repositorio Comentada
 
-El proyecto sigue la estructura estándar de una aplicación Angular modular basada en componentes Standalone:
+Aplicación Angular de componentes Standalone, más una carpeta `functions/` con la única Cloud Function del proyecto.
 
 ```
 comandante/
-├── docs/                         # Documentación del proyecto
-│   └── instrucciones-inicio.md
+├── docs/                         # Documentación de trabajo y especificaciones de cambios
+├── functions/                    # Cloud Functions (Gen2, Node 24) — proyecto npm independiente
+│   ├── src/index.ts              # `publicMenu`: sirve GET /menu.json (ver §12)
+│   ├── package.json              # engines.node = "24"
+│   └── tsconfig.json
+├── patches/                      # patch-package: arreglo del import ESM de @ionic/angular
+├── public/                       # Servido tal cual por Hosting: robots.txt, llms.txt, logos, favicon
+├── scripts/
+│   └── firestore-admin/          # Herramienta local de limpieza de colecciones (no versiona secretos)
 ├── src/
 │   ├── app/
-│   │   ├── core/                 # Guardias, interceptores, servicios globales, constantes
-│   │   │   ├── auth/             # Lógica de inicio de sesión y guardias de rol
-│   │   │   ├── db/               # Cliente Firestore y persistencia
-│   │   │   └── models/           # Interfaces de datos TypeScript (Order, Product, etc.)
-│   │   ├── features/             # Módulos de funcionalidad por perfil de usuario
-│   │   │   ├── admin/            # Vistas y componentes del Administrador
-│   │   │   ├── barista/          # Vistas y componentes del Barista
-│   │   │   └── waiter/           # Vistas y componentes del Mesero
-│   │   ├── shared/               # Componentes, pipes y directivas comunes y reutilizables
-│   │   ├── app.config.ts         # Configuración del bootstrap de Angular (Providers)
-│   │   ├── app.routes.ts         # Definición de rutas y cargadores diferidos
-│   │   └── app.component.ts      # Componente raíz
-│   ├── assets/                   # Recursos estáticos (imágenes, fuentes, iconos)
-│   ├── theme/                    # Variables globales de estilos e integración Ionic
+│   │   ├── core/
+│   │   │   ├── auth/             # auth.service.ts, auth.guard.ts
+│   │   │   ├── db/               # order.service.ts, product.service.ts, user.service.ts
+│   │   │   └── models/           # Interfaces + category-tree.ts (fuente única de categorías)
+│   │   ├── features/             # Una carpeta por perfil de usuario
+│   │   │   ├── admin/            # dashboard, orders, products, reports, users
+│   │   │   ├── barista/
+│   │   │   ├── login/
+│   │   │   └── waiter/
+│   │   ├── app.config.ts
+│   │   ├── app.routes.ts
+│   │   └── app.component.ts
+│   ├── environments/             # environment.ts (config de Firebase del cliente)
+│   ├── theme/variables.css       # Variables CSS del tema de Ionic
+│   ├── styles.css                # @import "tailwindcss" + tokens @theme
 │   ├── index.html
 │   └── main.ts
-├── CLAUDE.md                     # Configuración de IA, seguridad y Git Flow
-├── PRD.md                        # Requerimientos de producto
-├── MEMORY.md                     # Memoria de arquitectura del proyecto
-├── TODO.md                       # Planificación JIT
-├── angular.json
-├── package.json
-├── tailwind.config.js
-└── tsconfig.json
+├── firebase.json                 # Hosting, rewrites (/menu.json), headers, functions
+├── firestore.rules               # Autorización real del sistema
+├── firestore.indexes.json
+├── postcss.config.json           # Tailwind v4 (ver CLAUDE.md §7: debe ser JSON, no .js)
+├── vitest.config.ts              # Runner de pruebas
+├── CLAUDE.md · PRD.md · MEMORY.md · TODO.md · DESIGN.md
+├── angular.json · package.json · tsconfig*.json
+└── LICENSE                       # Apache 2.0
 ```
 
-### Tabla de Alias de Rutas (Path Aliases)
-Para evitar rutas relativas complejas como `../../../core`, se configuran en `tsconfig.json`:
-- `@core/*` -> `src/app/core/*`
-- `@shared/*` -> `src/app/shared/*`
-- `@features/*` -> `src/app/features/*`
-- `@theme/*` -> `src/theme/*`
+**No hay alias de rutas.** `tsconfig.json` no declara `paths`; los imports entre módulos son relativos (`../../core/models/product.model`). Tampoco existe una carpeta `shared/`: el proyecto es lo bastante pequeño como para que cada componente sea autónomo.
 
----
+**No hay `tailwind.config.js`.** Tailwind v4 se configura con `@theme` dentro de `src/styles.css` y se activa con `postcss.config.json`.
 
 ## 4. Frontend / Cliente
 
@@ -119,55 +122,80 @@ Para evitar rutas relativas complejas como `../../../core`, se configuran en `ts
 
 ### 4.3. Modelos de Datos Principales (Interfaces clave)
 
+> Refleja el código real en `src/app/core/models/`. El modelo **objetivo** del cambio descrito en `docs/cambio-en-modelo-de-datos.md` está en la §13 de este documento, todavía sin implementar.
+
 ```typescript
-// @core/models/user.model.ts
-export interface UserProfile {
-  uid: string;
-  email: string;
+// src/app/core/models/user.model.ts
+export type UserRole = 'admin' | 'waiter' | 'barista' | 'inactive';
+
+export interface AppUser {
+  email: string;            // el documento de Firestore usa el email como ID, no el UID
   displayName: string;
-  role: 'admin' | 'barista' | 'waiter';
-  isActive: boolean;
-  createdAt: any;
+  role: UserRole;
+  createdAt: Timestamp;
 }
 
-// @core/models/product.model.ts
+// src/app/core/models/product.model.ts
+export type ProductCategory =
+  | 'bebidas' | 'cocteles' | 'licores' | 'cervezas' | 'comida' | 'reposteria' | 'ofertas';
+
+export type ProductSubcategory =
+  | 'de_cafe' | 'calientes' | 'frias'          // bebidas
+  | 'clasicos' | 'de_autor' | 'premium'        // cocteles
+  | 'trago' | 'botella'                        // licores
+  | 'nacionales' | 'importadas' | 'artesanales'// cervezas
+  | 'combos' | 'promociones';                  // ofertas
+
 export interface Product {
   id: string;
   name: string;
-  category: 'bebidas' | 'licores' | 'comida' | 'otros';
+  category: ProductCategory;
+  subcategory?: ProductSubcategory | null;  // null explícito para comida y repostería
   basePrice: number;       // PVP sin propina
-  tipValue: number;        // Valor absoluto de propina fija
-  totalPrice: number;      // basePrice + tipValue (precio visual en carta)
-  isAvailable: boolean;
+  tipAmount: number;       // valor absoluto de propina fija por unidad
+  totalPrice: number;      // basePrice + tipAmount (precio visual en carta)
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
-// @core/models/order.model.ts
+// src/app/core/models/order-item.model.ts
+export type ItemStatus = 'pending' | 'ready';
+
 export interface OrderItem {
   productId: string;
   productName: string;
   quantity: number;
-  basePrice: number;
-  tipValue: number;
-  totalPrice: number;
+  unitPrice: number;   // = product.totalPrice (base + propina), NO el precio base
+  tipAmount: number;   // propina por unidad, denormalizada del producto
+  itemStatus: ItemStatus;
 }
+
+// src/app/core/models/order.model.ts
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+export type PaymentMethod = 'card' | 'cash' | 'nequi' | 'daviplata';
 
 export interface Order {
   id: string;
-  waiterId: string;
-  waiterName: string;
-  customerName: string;     // Palabra clave / Nombre del cliente para identificación
+  tableNumber: string;      // identificador libre del pedido: "Mesa 3", "Juan"
   items: OrderItem[];
-  paymentMethod?: 'cash' | 'card'; // Opcional hasta que se realiza el pago
-  paymentStatus: 'pending' | 'paid'; // Estado del pago del pedido
-  // Discriminación contable para datáfono
-  totalConsumption: number; // Suma de (basePrice * qty)
-  totalTip: number;         // Suma de (tipValue * qty)
-  totalAmount: number;      // totalConsumption + totalTip
-  status: 'pending' | 'preparing' | 'ready' | 'delivered';
-  createdAt: any;           // Timestamp de Firebase
-  updatedAt: any;
+  status: OrderStatus;
+  paid: boolean;
+  paymentMethod: PaymentMethod | null;
+  paidAt: Timestamp | null;
+  waiterId: string;         // email, no UID
+  waiterName: string;
+  total: number;            // Σ unitPrice × quantity (propina ya incluida)
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 ```
+
+**Discriminación contable:** la propina no se almacena agregada en el pedido. Se re-deriva por resta a partir de los ítems (`base = Σ (unitPrice − tipAmount) × qty`, `propina = Σ tipAmount × qty`) en la vista del mesero y en el consolidado del administrador.
+
+**Deriva conocida del modelo:** `updateOrderStatusAsBarista()` escribe `baristaId` y `preparedAt` en el documento del pedido, pero ninguno de los dos está declarado en la interfaz `Order`. Queda corregido en la §13.
+
+**Fuente única de verdad de categorías:** `src/app/core/models/category-tree.ts` (`CATEGORY_TREE`) alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada del formulario y la validación del import de Excel. La misma jerarquía está duplicada en `firestore.rules` (`productSubcategoriesFor()`), que es la única validación real del lado servidor.
 
 ### 4.4. Sistema de Estilos y Temas
 - **Tematización con Ionic:** El proyecto utiliza variables CSS configuradas en `src/theme/variables.css` para manejar colores institucionales (paleta elegante y oscura de Le Tiende, adecuada para ambientes de teatro/bar).
@@ -181,27 +209,23 @@ Dado que se utiliza **Firebase**, no se cuenta con un servidor Node.js/Express t
 
 ### Estructura de Colecciones de Cloud Firestore
 
-```
-+---------------------------------------------------------------------------------+
-| COLEC.  | ID DOC. | ESTRUCTURA DEL DOCUMENTO                                    |
-+---------+---------+-------------------------------------------------------------+
-| users   | uid     | { email, displayName, role: 'waiter'|'barista'|'admin',     |
-|         |         |   isActive, createdAt }                                     |
-+---------+---------+-------------------------------------------------------------+
-| products| prod_id | { name, category, basePrice, tipValue, totalPrice,          |
-|         |         |   isAvailable }                                             |
-+---------+---------+-------------------------------------------------------------+
-| orders  | order_id| { waiterId, waiterName, customerName, items: [...],         |
-|         |         |   paymentMethod?, paymentStatus: 'pending'|'paid',          |
-|         |         |   totalConsumption, totalTip, totalAmount, status,          |
-|         |         |   createdAt, updatedAt }                                    |
-+---------------------------------------------------------------------------------+
-```
+Tres colecciones planas, sin subcolecciones. Refleja el estado real de la base de datos.
+
+| Colección | ID del documento | Estructura |
+| :--- | :--- | :--- |
+| `users` | el **email** del usuario | `{ email, displayName, role: 'admin'\|'waiter'\|'barista'\|'inactive', createdAt }` |
+| `products` | autogenerado | `{ name, category, subcategory?, basePrice, tipAmount, totalPrice, isActive, createdAt, updatedAt }` |
+| `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, total, baristaId?, preparedAt?, createdAt, updatedAt }` |
+
+**El ID de `users` es el email, no el UID de Firebase Auth.** `firestore.rules` resuelve el rol con `get(/databases/$(database)/documents/users/$(request.auth.token.email))`, así que cambiar esa clave rompería toda la autorización.
+
+Índices compuestos declarados en `firestore.indexes.json` (solo para `orders`, que es la única colección consultada con filtro + orden).
 
 ### Servicios Externos Utilizados
 - **Firebase Auth:** Gestión de sesión de Google.
 - **Cloud Firestore:** Persistencia y sincronización reactiva de comandas.
-- **Firebase Hosting:** Distribución global de la aplicación.
+- **Firebase Hosting:** Distribución global de la aplicación y CDN del endpoint público.
+- **Cloud Functions (Gen2, Node 24):** una sola función HTTPS, `publicMenu`, que sirve `GET /menu.json` (ver §12).
 
 ---
 
@@ -408,5 +432,178 @@ const { updatedAt, items } = await res.json();
 
 ### Permisos
 
-No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colección de Firestore, sino una función HTTPS que consulta `/products` con el Admin SDK (que ignora las reglas de seguridad del cliente).
-Lectura pública sin autenticación. Ninguna escritura de cliente está permitida; el único escritor válido es el Admin SDK desde la Cloud Function `syncPublicMenu`, que opera con privilegios administrativos e ignora las reglas de seguridad.
+No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colección de Firestore, sino una función HTTPS que consulta `/products` con el Admin SDK, que ignora las reglas de seguridad del cliente. La lectura es pública y sin autenticación; el endpoint es de solo lectura y no acepta escrituras de ningún tipo.
+
+---
+
+## 13. Modelo de datos objetivo (Tareas 29-31 — pendiente de implementación)
+
+> **Esta sección describe lo que todavía NO existe.** Las §4.3, §5 y §12 describen el sistema desplegado hoy. A medida que se completen las Tareas 29, 30 y 31 de `TODO.md`, cada parte de esta sección se traslada a la sección definitiva que le corresponde y esta §13 se va acortando hasta desaparecer.
+>
+> Origen y justificación: `docs/cambio-en-modelo-de-datos.md`.
+
+### 13.1. Por qué cambia el modelo
+
+El catálogo de productos de Comandante deja de ser solo el menú interno del POS y pasa a ser, simultáneamente:
+
+1. el catálogo del punto de venta,
+2. la lista de precios pública de **letiende.co** (vía `GET /menu.json`), y
+3. la fuente de datos de la **carta física** de Le Tiende (vía una hoja de Google Sheets conectada a Canva).
+
+Un precio con la propina ya embebida (`totalPrice`) sirve para el primer uso pero no para los otros dos: en una carta pública el cliente debe ver el precio del producto, no un precio inflado con una propina que legalmente es voluntaria. Por eso la propina abandona el producto y pasa al pedido, donde se calcula como un porcentaje editable.
+
+### 13.2. Fuente de verdad del catálogo
+
+Un documento de **Google Sheets** con dos hojas:
+
+- **`datos`** — listado plano de productos. El administrador lo exporta como XLSX y lo carga en Comandante con el importador existente. Es lo que se persiste en `/products`.
+- **`canva`** — conectada dinámicamente a [Canva](https://canva.com) para generar la carta impresa en PDF. Sus nombres y precios se obtienen de `datos` mediante fórmulas o un script. **Comandante no la lee.**
+
+Columnas de la hoja `datos` y de la plantilla descargable:
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `name` | texto | Obligatorio. Fila sin nombre se omite en silencio. |
+| `additions` | lista separada por comas | Vacío si no aplica. Ej: `leche_vegetal, licor` |
+| `variants` | lista separada por comas | Vacío si no aplica. No alteran el precio. |
+| `description` | texto | Opcional. Se publica en `/menu.json`. |
+| `category` | enum | Una de las 7 categorías raíz. |
+| `subcategory` | enum | Obligatoria salvo en `comida` y `reposteria`. |
+| `basePrice` | número | PVP sin propina. |
+| `additionPrices` | lista de números | **Paralela a `additions`**: misma cantidad de elementos. |
+| `active` | booleano | Se mapea al campo `isActive` del producto. |
+
+Desaparece la columna `tipAmount`. El importador conserva su comportamiento de *upsert*: crea y actualiza, pero no archiva los productos que ya no aparezcan en la hoja.
+
+### 13.3. Interfaces objetivo
+
+```typescript
+// src/app/core/models/product.model.ts
+export interface ProductAddition {
+  addition: string;        // 'leche_vegetal'
+  additionPrice: number;   // 3500
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  category: ProductCategory;
+  subcategory?: ProductSubcategory | null;
+  variants: string[];              // [] si no aplica
+  additions: ProductAddition[];    // [] si no aplica
+  basePrice: number;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+// Eliminados respecto a la §4.3: tipAmount, totalPrice
+
+// src/app/core/models/order-item.model.ts
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  variant: string | null;          // obligatorio si el producto tiene variants
+  additions: ProductAddition[];    // las seleccionadas, con su precio
+  unitPrice: number;               // basePrice + Σ additionPrice
+  itemStatus: ItemStatus;
+}
+// Eliminado respecto a la §4.3: tipAmount
+
+// src/app/core/models/order.model.ts
+export type PaymentMethod = 'datafono' | 'qr' | 'efectivo';
+
+export interface Order {
+  // …campos actuales de la §4.3…
+  observations: string;      // '' si el mesero no escribió nada
+  subtotal: number;          // Σ unitPrice × quantity
+  tipPercentage: number;     // 10 por defecto
+  tipValue: number;          // 0 por defecto (valor absoluto)
+  tipAmount: number;         // Math.round(subtotal × tipPercentage / 100) + tipValue
+  total: number;             // subtotal + tipAmount
+  baristaId: string | null;  // se declara: hoy se escribe sin estar en la interfaz
+  preparedAt: Timestamp | null;
+}
+```
+
+El peso colombiano no maneja centavos: la propina porcentual se redondea con `Math.round` **antes** de sumarle `tipValue`.
+
+La propina deja de re-derivarse por resta sobre los ítems (§4.3): se lee directamente de `order.subtotal` y `order.tipAmount`, tanto en la vista del mesero como en el consolidado del administrador.
+
+### 13.4. Medios de pago
+
+`card | cash | nequi | daviplata` se reemplaza por:
+
+| Valor | Etiqueta | Nota |
+| :--- | :--- | :--- |
+| `datafono` | Datáfono | Terminal físico. Requiere discriminar consumo y propina al digitar. |
+| `qr` | QR | **SonoQR de Bold**, adquirido por Le Tiende. Agrupa billeteras virtuales (Nequi, Daviplata, etc.) y transferencias electrónicas en un solo medio. |
+| `efectivo` | Efectivo | |
+
+La lista vive en un archivo nuevo, `src/app/core/models/payment-methods.ts`, como fuente única de verdad, siguiendo el patrón ya establecido por `category-tree.ts`. Hoy está duplicada y hardcodeada en `waiter.component.ts` (action sheet de cobro) y en `admin-reports.component.ts` (etiqueta y color del badge).
+
+`firestore.rules` no valida el valor de `paymentMethod`, así que este cambio no requiere tocar las reglas.
+
+### 13.5. Reglas de seguridad
+
+El mesero necesita poder corregir la propina de un pedido ya enviado a la barra, mientras no esté cobrado. Helper nuevo en `firestore.rules`:
+
+```javascript
+function onlyUpdatesTip() {
+  let allowed = ['tipPercentage', 'tipValue', 'tipAmount', 'total', 'updatedAt'];
+  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+      && resource.data.paid == false;
+}
+```
+
+Se suma a las cláusulas existentes de `/orders/{orderId}`:
+
+```javascript
+allow update: if isAdmin()
+    || (isBarista() && onlyUpdatesOrderStatus())
+    || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid() || onlyUpdatesTip()));
+```
+
+El mesero sigue **sin** poder modificar los ítems de un pedido enviado, ni tocar un pedido ya cobrado.
+
+Adicionalmente, `isValidProductData()` amplía su validación (hoy solo comprueba `category`/`subcategory`) para exigir que `basePrice` sea un número no negativo y que `variants` y `additions` sean listas.
+
+### 13.6. Nuevo contrato de `GET /menu.json`
+
+Reemplaza sin compatibilidad hacia atrás al de la §12. En el momento de escribir esto **letiende.co todavía no consume el endpoint**, así que no se conserva ningún campo del contrato anterior.
+
+```json
+{
+  "updatedAt": "2026-09-19T23:45:24.778Z",
+  "items": [
+    {
+      "name": "Capuchino",
+      "description": null,
+      "additions": [
+        { "addition": "leche_vegetal", "additionPrice": 3500 },
+        { "addition": "licor", "additionPrice": 8700 }
+      ],
+      "variants": [],
+      "category": "bebidas",
+      "subcategory": "de_cafe",
+      "basePrice": 9900
+    }
+  ]
+}
+```
+
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `updatedAt` | `string` (ISO 8601) | Momento en que se generó la respuesta. |
+| `items[].name` | `string` | Nombre del producto. |
+| `items[].description` | `string \| null` | Descripción para la carta digital. |
+| `items[].additions` | `{ addition, additionPrice }[]` | Adiciones disponibles y su costo. `[]` si no aplica. |
+| `items[].variants` | `string[]` | Variantes disponibles. No alteran el precio. `[]` si no aplica. |
+| `items[].category` | `string` | Categoría raíz. |
+| `items[].subcategory` | `string \| null` | `null` si la categoría no admite subcategorías. |
+| `items[].basePrice` | `number` | Precio del producto, **sin propina**. |
+
+**Campos excluidos deliberadamente:** `id`, `isActive`, `createdAt`, `updatedAt` por ítem. Se mantienen sin cambio el filtro `isActive == true`, el `Cache-Control: public, max-age=300, s-maxage=300`, el `Access-Control-Allow-Origin: *`, el `405` en métodos distintos de `GET` y el `500` ante fallo de Firestore.
+
+**Cambio de semántica importante para el consumidor:** el contrato anterior entregaba `totalPrice` (precio con la propina ya incluida). El nuevo entrega `basePrice` (precio sin propina). Para un mismo producto, el número que llega es más bajo, no es el mismo dato con otro nombre.
