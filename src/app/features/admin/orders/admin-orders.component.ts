@@ -23,6 +23,7 @@ import {
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
 import { Order, OrderStatus } from '../../../core/models/order.model';
+import { OrderItem } from '../../../core/models/order-item.model';
 
 type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
 
@@ -157,10 +158,18 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                     @for (item of order.items; track item.productId) {
                       <span class="bg-cream text-espresso text-xs font-medium
                                    px-2.5 py-1 rounded-full">
-                        {{ item.quantity }}× {{ item.productName }}
+                        {{ itemLabel(item) }}
                       </span>
                     }
                   </div>
+
+                  <!-- Observaciones del mesero para el barista/administrador -->
+                  @if (order.observations) {
+                    <div class="mt-3 bg-cream/50 rounded-xl px-3 py-2 flex gap-2 items-start">
+                      <span style="font-size:.9rem;line-height:1.2">📝</span>
+                      <p class="text-xs text-espresso/70 italic">{{ order.observations }}</p>
+                    </div>
+                  }
 
                   <!-- Action button -->
                   <div class="mt-4">
@@ -231,6 +240,20 @@ export class AdminOrdersComponent {
   }
   protected statusLabel(s: string): string {
     return s === 'preparing' ? 'Preparando' : s === 'ready' ? 'Lista' : 'Pendiente';
+  }
+
+  // Arma el texto de la chip incluyendo variante y adiciones cuando existan,
+  // igual que en la vista de barista, para que el administrador vea el
+  // detalle completo del ítem sin abrir el pedido.
+  protected itemLabel(item: OrderItem): string {
+    let label = `${item.quantity}× ${item.productName}`;
+    if (item.variant) {
+      label += ` (${item.variant})`;
+    }
+    if (item.additions.length > 0) {
+      label += ' ' + item.additions.map(a => `+ ${a.addition}`).join(', ');
+    }
+    return label;
   }
 
   async updateStatus(order: Order, status: OrderStatus): Promise<void> {
