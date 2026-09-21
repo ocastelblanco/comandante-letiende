@@ -25,6 +25,15 @@ jobs:
       - name: Ejecutar pruebas
         run: npm test -- --watch=false
 
+      - name: Configurar JDK (emulador de Firestore)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Pruebas de firestore.rules (emulador)
+        run: npx firebase-tools emulators:exec --only firestore --project demo-comandante-rules-test "npm run test:rules"
+
       - name: Build de producción
         run: npm run build -- --configuration=production
 
@@ -71,6 +80,15 @@ jobs:
 
       - name: Ejecutar pruebas
         run: npm test -- --watch=false
+
+      - name: Configurar JDK (emulador de Firestore)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Pruebas de firestore.rules (emulador)
+        run: npx firebase-tools emulators:exec --only firestore --project demo-comandante-rules-test "npm run test:rules"
 
       - name: Build de producción
         run: npm run build -- --configuration=production
