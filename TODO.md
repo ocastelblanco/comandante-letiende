@@ -19,32 +19,17 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-Las Tareas 30 y 31 provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto; la Tarea 29, la primera de esa serie, ya está completada (ver §3, PR #41). La Tarea 33 es la estrategia de pruebas acordada el 2026-09-19 (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, también está completada (ver §3, PR #40).
+La Tarea 31 proviene de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto; las Tareas 29 y 30, las dos primeras de esa serie, ya están completadas (ver §3, PR #41 y PR #43). La Tarea 33 es la estrategia de pruebas acordada el 2026-09-19 (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, también está completada (ver §3, PR #40).
 
 **Orden de ejecución — no coincide con la numeración:**
 
 ```
-30 (mesero)  →  31 (propina y pagos)  →  33 (reglas)
+31 (propina y pagos)  →  33 (reglas)
 ```
 
 La numeración es de creación, no de ejecución; ya hay precedentes en el historial (las Tareas 13/14 y 15/16 también se completaron fuera de orden). Cada tarea deja la aplicación compilando y desplegable por su cuenta.
 
 El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato del endpoint, reglas de seguridad) está en `tech-specs.md` §13; las decisiones acordadas, en la sección "Decisiones tomadas" de `docs/cambio-en-modelo-de-datos.md`; la estrategia de pruebas y su justificación, en `tech-specs.md` §14.
-
-
-
-### 🔜 Tarea 30: [FEATURE] Flujo de pedido del mesero — variantes, adiciones y observaciones
-
-*   **Objetivo:** Implementar los pasos 5 a 10 del flujo descrito en `docs/cambio-en-modelo-de-datos.md`.
-*   **Alcance:**
-    *   `OrderLine` (`waiter.component.ts:50-56`) gana `selectedVariant: string | null` y `selectedAdditions: ProductAddition[]`.
-    *   Botón **+ Variante** en la *card* del producto cuando `variants.length > 0` → `ActionSheetController`, selección única. Se abre automáticamente al seleccionar el producto, porque elegir una es obligatorio.
-    *   Botón **+ Adición** cuando `additions.length > 0` → `AlertController` con `inputs: [{ type: 'checkbox' }]`, selección múltiple. Sin dependencias nuevas: el repositorio no usa `ion-modal` en ningún punto.
-    *   Chips bajo el nombre del producto con la variante y las adiciones elegidas, y el precio unitario ya sumado (`unitPrice = basePrice + Σ additionPrice`).
-    *   `canSubmit()` bloquea **Realizar pedido** mientras alguna línea con variantes no tenga una elegida, con mensaje explícito en `submitError()`.
-    *   *Textarea* **Observaciones** en la *card* Resumen (líneas 328-355), persistido en `Order.observations`.
-    *   Renderizar la observación en la *card* expandida del mesero (183-217), en **ambas** columnas del barista (`barista.component.ts`, bloques 70-104 y 128-162, que son copia literal una de otra — conviene extraer la *card* a un componente en vez de editar dos veces) y en `admin-orders.component.ts:156-163`.
-    *   Registrar los iconos nuevos en el `addIcons({...})` del constructor (445-493).
 
 ### 🔜 Tarea 31: [FEATURE] Propina editable y medios de pago Datáfono / QR / Efectivo
 
@@ -76,6 +61,13 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 30: [FEATURE] Flujo de pedido del mesero — variantes, adiciones y observaciones
+*   **Completada:** 2026-09-21
+*   **PR:** #43 (`revert-42-feature/waiter-order-variants-flow`; el PR original, #42, se fusionó por error antes de la revisión en preview y se revirtió — este PR reaplica el mismo código y suma esta documentación)
+*   **Origen:** tomada del PRD — `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. Implementa los pasos 5 a 10 del flujo de pedido del mesero descrito ahí.
+*   **Resultado:** `OrderLine` (mesero) gana `selectedVariant`/`selectedAdditions`. Al elegir un producto con `variants` no vacío se abre automáticamente un `ActionSheetController` de selección única y obligatoria; un botón **+ Adición** abre un `AlertController` con checkboxes para selección múltiple opcional. El precio unitario de cada línea pasa a ser `basePrice + Σ additionPrice` de las adiciones elegidas, reflejado en la card de línea, el resumen y el subtotal del pedido. `canSubmit()` bloquea **Realizar pedido** mientras alguna línea con variantes no tenga una elegida, con mensaje explícito en `submitError()`. *Textarea* **Observaciones** nueva en la card Resumen, persistida en `Order.observations` vía el tercer parámetro (opcional) que gana `OrderService.createOrder()`. La observación y el detalle de variante/adiciones por ítem se muestran también en la card expandida del propio mesero, en ambas columnas de la barra y en el listado de pedidos del administrador. Extraído `OrderCardComponent` (standalone, Signals) en `features/barista/`, que elimina la duplicación literal que tenían las dos columnas de `barista.component.ts` — la única refactorización de la tarea, sugerida en el alcance original. Sin pruebas nuevas: la tarea no introduce ninguna función pura nueva (toda la lógica es UI/Firestore), y las 28 pruebas existentes siguen en verde.
+*   **Nota de proceso:** el PR #42 se fusionó accidentalmente sin pasar por la revisión en el canal de preview que exige el ciclo de trabajo acordado (ver `MEMORY.md` §9). Se revirtió con el botón "Revert" de GitHub (commit `28d37db`) y se reaplicó el mismo código sobre esa misma rama/PR (#43) junto con esta actualización de documentación, para completar el ciclo correctamente antes de fusionar.
 
 ### ✅ Tarea 29: [FEATURE] Modelo de producto con variantes y adiciones + `/menu.json` v2
 *   **Completada:** 2026-09-20
@@ -262,3 +254,4 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 | 2026-09-19 | Sesión de documentación, sin código, por instrucción explícita del usuario. Se analizó `docs/cambio-en-modelo-de-datos.md` con tres agentes de exploración en paralelo y se acordaron con el humano las siete decisiones de diseño pendientes. Se detectó deuda documental acumulada: `tech-specs.md` §3/§4.3/§5 describían una estructura y un modelo de datos inexistentes desde la Tarea 27, y §12 mencionaba una Cloud Function `syncPublicMenu` que nunca existió; `MEMORY.md` seguía congelado en 2026-05-22 con 28 tareas ya completadas. Corregidos además el typo `aditions`→`additions` del documento original y la inconsistencia `carta`/`canva`. Registrados ADR-006 (propina porcentual a nivel de pedido, reemplaza al ADR-003) y ADR-007 (Google Sheets como fuente de verdad). A petición del usuario se evaluó además el costo de una suite de pruebas completa (estimado en 20-25 sesiones supervisadas, desproporcionado para ~3.800 líneas): se acordó la estrategia por capas del ADR-008, documentada en `tech-specs.md` §14. **Hallazgo colateral:** el CI nunca ejecutaba `npm test`, así que la única prueba del repositorio era decorativa y un PR en rojo podía fusionarse y desplegarse. | WIP se mantiene en 0. Cinco tareas encoladas en §2.5. Orden de ejecución **32 → 29 → 30 → 31 → 33**, que no coincide con la numeración. Próxima sesión: Tarea 32 (~15 min), luego Tarea 29. |
 | 2026-09-20 | Tarea 32 completada. Añadido el paso `npm test -- --watch=false` antes del build en ambos jobs de `.github/workflows/deploy-hosting.yml`, precondición de las Tareas 29-31 y 33. Verificado el gate con el exit code real del proceso (0 en verde, 1 rompiendo a propósito la única prueba existente) y confirmado en el entorno real de GitHub Actions, en el propio job `preview` del PR. PR #40. | WIP se mantiene en 0. Cuatro tareas restantes en §2.5. Orden de ejecución **29 → 30 → 31 → 33**. Próxima sesión: Tarea 29. |
 | 2026-09-20 | Tarea 29 completada. Producto con `description`/`variants`/`additions`, sin `tipAmount`/`totalPrice`; propina trasladada al pedido vía `computeOrderTotals()` (nueva, pura, compartida con el resumen del mesero); importador de Excel con las columnas nuevas y parsers extraídos/probados; `isActive` ahora se escribe también en actualizaciones del import (bug corregido); `firestore.rules` y Cloud Function `publicMenu` actualizados. Verificado en preview con datos reales: el usuario reestructuró la hoja `datos` y cargó el primer paquete completo — cierra también la reclasificación pendiente de la Tarea 27. PR #41. | WIP se mantiene en 0. Tres tareas restantes en §2.5. Orden de ejecución **30 → 31 → 33**. Próxima sesión: Tarea 30. |
+| 2026-09-21 | Tarea 30 completada. Selección de variante (obligatoria, `ActionSheetController`) y adiciones (opcional, `AlertController` con checkboxes) en el pedido del mesero; precio unitario recalculado con las adiciones; `canSubmit()` bloquea el envío sin variante elegida; Observaciones persistidas en `Order.observations` y visibles en mesero/barista/admin; extraído `OrderCardComponent` para eliminar duplicación en `barista.component.ts`. **Incidente de proceso:** el PR #42 se fusionó por error sin pasar por la revisión de preview del ciclo acordado; se revirtió (PR #43) y se reaplicó el mismo código más esta documentación sobre ese mismo PR, para retomar el ciclo correctamente. | WIP se mantiene en 0. Dos tareas restantes en §2.5. Orden de ejecución **31 → 33**. Próxima sesión: Tarea 31. |

@@ -12,9 +12,9 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
 | **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado — el canal de preview de cada PR comparte el mismo Firestore que producción. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 30 (ver `TODO.md` §3). |
+| **Tareas completadas** | 31 (ver `TODO.md` §3). |
 | **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. Los PR reciben un canal de vista previa (solo Hosting), y desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**: una suite en rojo bloquea el merge. |
-| **Última Sesión** | 2026-09-20 — Tarea 29 (variantes, adiciones, propina al pedido) implementada y verificada en preview con datos reales, PR #41. |
+| **Última Sesión** | 2026-09-21 — Tarea 30 (selección de variante/adición en el pedido, observaciones) implementada, PR #43. |
 
 ---
 
@@ -45,8 +45,8 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Vista de cobro posterior y registro de pago con discriminación.
 - `[x]` Listado en tiempo real de estados de pedidos y estado de pago, con alerta al quedar listo.
 - `[x]` Propina del 10 % calculada a nivel de pedido, a partir del subtotal *(Tarea 29)* — todavía no editable por el mesero: eso llega en la Tarea 31.
-- `[ ]` Selección de variantes y adiciones al añadir un producto *(Tarea 30)*.
-- `[ ]` Observaciones del pedido dirigidas al barista *(Tarea 30)*.
+- `[x]` Selección de variantes y adiciones al añadir un producto *(Tarea 30, PR #43, 2026-09-21)*.
+- `[x]` Observaciones del pedido dirigidas al barista *(Tarea 30, PR #43, 2026-09-21)*.
 - `[ ]` Propina editable por porcentaje y valor absoluto *(Tarea 31)*.
 - `[ ]` Medios de pago Datáfono / QR / Efectivo *(Tarea 31)*.
 
@@ -54,7 +54,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Cola digital cronológica de comandas entrantes, en dos columnas (por preparar / en preparación).
 - `[x]` Gestión de preparación y marcado de comanda lista.
 - `[x]` Notificación reactiva de comanda lista hacia el mesero.
-- `[ ]` Visualización de variantes, adiciones y observaciones en la comanda *(Tarea 30)*.
+- `[x]` Visualización de variantes, adiciones y observaciones en la comanda *(Tarea 30, PR #43, 2026-09-21)* — de paso, extraído `OrderCardComponent` para eliminar la duplicación literal entre las dos columnas.
 
 ### Módulo del Administrador (Vista Escritorio)
 - `[x]` ABM de productos con jerarquía de 7 categorías y subcategorías en cascada.
@@ -246,11 +246,9 @@ Rutas relativas a la raíz del repositorio.
 
 ## 9. Contexto de la Sesión Actual
 
-- **Fecha:** 2026-09-20
+- **Fecha:** 2026-09-21
 - **Qué se hizo:**
-  - Adoptado un ciclo de trabajo explícito por tarea, pedido por el usuario: *feature branch* → PR → despliegue automático a un canal de preview → revisión del usuario (con ajustes si hacen falta, empujados al mismo PR) → **solo al confirmar que funciona**, se actualizan documentación/memoria/motor JIT y se empujan también al mismo PR → el usuario fusiona y borra la rama → al confirmar el usuario que el deploy a producción salió bien, se limpia la rama local.
-  - Implementada la **Tarea 29** siguiendo ese ciclo: `Product` gana `description`/`variants`/`additions`, pierde `tipAmount`/`totalPrice`; la propina se traslada al pedido (`subtotal`/`tipPercentage`/`tipValue`/`tipAmount`/`total`) vía la función pura nueva `computeOrderTotals()`; importador de Excel con las columnas nuevas y parsers extraídos a `import-parsers.ts` (antes intestables); corregido en el camino un bug real (`applyImport()` solo escribía `isActive` en filas nuevas); `firestore.rules` y la Cloud Function `publicMenu` actualizados. 28 pruebas nuevas.
-  - PR #41 abierto, con documentación deliberadamente **sin tocar** hasta la confirmación del usuario (siguiendo el ciclo acordado).
-  - El usuario reestructuró la hoja `datos` del Google Sheets y cargó el primer paquete completo de productos vía Excel contra el canal de preview del PR, confirmando que todo funciona — **cierra, de paso, la reclasificación de los 116 productos pendiente desde la Tarea 27**. Importante: el canal de preview comparte el mismo Firestore que producción (no hay staging aislado), así que esa carga ya es el catálogo real.
-  - Con la confirmación, se actualizó la documentación en el mismo PR: `tech-specs.md` (§4.3, §5, §6 y §12 reciben lo implementado; §13 se recorta a solo lo pendiente de las Tareas 30/31/33; corregida además una inconsistencia en la Tarea 31 de `TODO.md`, que decía re-extraer `computeOrderTotals()` cuando ya se extrajo en la 29), `TODO.md` (Tarea 29 movida al historial, cola actualizada) y este `MEMORY.md` (checklist, ADR-006/007 marcados como implementados, tabla de estado).
-- **Próxima Tarea:** **Tarea 30** — flujo de pedido del mesero: selección de variantes y adiciones, y observaciones dirigidas al barista. El orden restante de la cola es **30 → 31 → 33**.
+  - Implementada la **Tarea 30** — flujo de pedido del mesero: `OrderLine` gana `selectedVariant`/`selectedAdditions`; selección de variante obligatoria vía `ActionSheetController` (se abre sola al elegir un producto con `variants`) y de adiciones opcional vía `AlertController` con checkboxes; precio unitario recalculado (`basePrice + Σ additionPrice`); `canSubmit()` bloquea el envío si falta una variante obligatoria; *textarea* de Observaciones persistido en `Order.observations` (tercer parámetro nuevo, opcional, de `OrderService.createOrder()`); observación y detalle de variante/adiciones visibles en la card del mesero, ambas columnas de la barra y el listado del administrador; extraído `OrderCardComponent` para eliminar la duplicación literal de `barista.component.ts`. Sin pruebas nuevas: no hay función pura nueva.
+  - **Incidente de proceso:** el usuario fusionó el PR #42 directamente, sin pasar por la revisión en el canal de preview que exige el ciclo de trabajo acordado (`[[feedback_task_workflow_cycle]]` en la memoria de Claude). Al notarlo, lo revirtió con el botón "Revert" de GitHub (nueva rama/PR #43, `revert-42-feature/waiter-order-variants-flow`) y pidió reaplicar el código más la documentación completa sobre ese mismo PR #43, para retomar el ciclo correctamente antes de fusionar de verdad. Se deshizo el revert (`git revert` sobre el commit de revert) reaplicando exactamente el mismo código de la Tarea 30, verificado de nuevo con build y las 28 pruebas en verde.
+  - Con esto se actualiza la documentación en el mismo PR #43 (recién ahora, no al abrirlo, porque este PR ya nace como la "confirmación" del ciclo — el trabajo funcional ya se había verificado antes del merge accidental): `tech-specs.md` (§13 se recorta a solo lo pendiente de las Tareas 31/33, renumerada; nota en §4.3 de que la Tarea 30 no cambia modelos, solo conecta UI), `TODO.md` (Tarea 30 movida al historial, cola actualizada a **31 → 33**) y este `MEMORY.md` (checklist, tabla de estado, este contexto de sesión).
+- **Próxima Tarea:** **Tarea 31** — propina editable por porcentaje/valor absoluto y medios de pago Datáfono/QR/Efectivo. El orden restante de la cola es **31 → 33**.

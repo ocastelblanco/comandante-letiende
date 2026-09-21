@@ -122,7 +122,7 @@ comandante/
 
 ### 4.3. Modelos de Datos Principales (Interfaces clave)
 
-> Refleja el código real en `src/app/core/models/`. El modelo de producto/pedido con variantes, adiciones y propina a nivel de pedido se implementó en la Tarea 29 (2026-09-20). Lo que sigue pendiente de las Tareas 30/31/33 está en la §13.
+> Refleja el código real en `src/app/core/models/`. El modelo de producto/pedido con variantes, adiciones y propina a nivel de pedido se implementó en la Tarea 29 (2026-09-20); la Tarea 30 (2026-09-21) no cambia estos modelos, solo conecta la UI que faltaba. Lo que sigue pendiente de las Tareas 31/33 está en la §13.
 
 ```typescript
 // src/app/core/models/user.model.ts
@@ -486,15 +486,11 @@ No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colecci�
 
 ---
 
-## 13. Cambios pendientes (Tareas 30, 31 y 33)
+## 13. Cambios pendientes (Tareas 31 y 33)
 
-> Lo que ya se implementó del cambio de modelo de datos (Tarea 29, 2026-09-20: variantes, adiciones, descripción, propina a nivel de pedido, `/menu.json` v2) está en las §4.3, §5, §6 y §12. Esta sección solo cubre lo que falta. Origen y justificación completa en `docs/cambio-en-modelo-de-datos.md`.
+> Lo que ya se implementó del cambio de modelo de datos está en las §4.3, §5, §6 y §12 (Tarea 29, 2026-09-20: variantes, adiciones, descripción, propina a nivel de pedido, `/menu.json` v2) y en `waiter.component.ts`/`barista.component.ts`/`admin-orders.component.ts` (Tarea 30, 2026-09-21: selección de variante/adición en el pedido y observaciones — ver `TODO.md` §3 para el detalle). Esta sección solo cubre lo que falta. Origen y justificación completa en `docs/cambio-en-modelo-de-datos.md`.
 
-### 13.1. Selección de variantes y adiciones en el pedido (Tarea 30)
-
-`OrderItem` ya declara `variant`/`additions` (§4.3), pero el mesero todavía no puede elegirlos: `waiter.component.ts` crea cada ítem con `variant: null, additions: []`. Falta la UI — botones **+ Variante** (selección única, obligatoria si `Product.variants` no está vacío) y **+ Adición** (selección múltiple, opcional) en la *card* del producto — y el campo **Observaciones** del pedido, visible para barista y administrador.
-
-### 13.2. Medios de pago (Tarea 31)
+### 13.1. Medios de pago (Tarea 31)
 
 `card | cash | nequi | daviplata` se reemplaza por:
 
@@ -508,7 +504,7 @@ La lista vive en un archivo nuevo, `src/app/core/models/payment-methods.ts`, com
 
 `firestore.rules` no valida el valor de `paymentMethod`, así que este cambio no requiere tocar las reglas.
 
-### 13.3. Propina editable después de enviar el pedido (Tarea 31)
+### 13.2. Propina editable después de enviar el pedido (Tarea 31)
 
 El mesero necesita poder corregir la propina de un pedido ya enviado a la barra, mientras no esté cobrado. `OrderService.createOrder()` ya persiste `tipPercentage`/`tipValue`/`tipAmount` (§4.3, Tarea 29) con un 10% fijo; falta el diálogo para editarlos y el helper de reglas que lo autorice:
 
@@ -530,7 +526,7 @@ allow update: if isAdmin()
 
 El mesero sigue **sin** poder modificar los ítems de un pedido enviado, ni tocar un pedido ya cobrado.
 
-### 13.4. Pruebas de `firestore.rules` (Tarea 33)
+### 13.3. Pruebas de `firestore.rules` (Tarea 33)
 
 Se hace **después** de la Tarea 31, para no probar dos veces el mismo helper: cubre con `@firebase/rules-unit-testing` la matriz de rol × colección × operación, incluyendo `onlyUpdatesTip()`. Detalle completo en §14 y en `TODO.md` Tarea 33.
 
