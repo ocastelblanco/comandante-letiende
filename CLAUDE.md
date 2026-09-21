@@ -285,3 +285,19 @@ styles: [`
 // ❌ Evitar en el template
 // class="text-[#FFE7B3]/55"
 ```
+
+### ⚠️ El canal de preview de un PR nunca despliega `firestore.rules`
+
+**Síntoma:** Un cambio en `firestore.rules` (ej. un helper nuevo que autoriza una escritura) se ve en preview como si no existiera: la UI aplica el cambio localmente por un instante (escritura optimista del SDK de Firestore) y un momento después revierte al valor anterior, sin ningún error visible en la consola de la app.
+
+**Causa raíz:** `.github/workflows/deploy-hosting.yml` tiene dos jobs. `preview` (dispara con `pull_request`) solo corre `FirebaseExtended/action-hosting-deploy@v0` — despliega **Hosting únicamente**. El paso `firebase deploy --only firestore:rules,functions` solo existe en el job `deploy_live` (dispara con `push` a `main`). Como el canal de preview de cualquier PR comparte el mismo proyecto de Firestore que producción (`.firebaserc`: `staging` y `production` apuntan al mismo proyecto), las reglas *realmente activas* durante la revisión de un PR son siempre las que ya están en `main` — nunca las del branch del PR. El síntoma de "cambia y vuelve" es el rollback optimista estándar de Firestore: el cliente aplica la escritura al caché local de inmediato, el servidor la rechaza por `permission-denied` contra las reglas viejas, y el SDK revierte el caché.
+
+**Solución:** una regla de seguridad nueva o modificada **no se puede verificar de punta a punta en el canal de preview**. Se verifica leyendo la regla con cuidado (comparándola con helpers ya probados en producción) y, si hace falta evidencia empírica antes de fusionar, contra el emulador de Firestore (`firebase emulators:start --only firestore` + `@firebase/rules-unit-testing`) — requiere Java instalado localmente. Si no se dispone del emulador, se fusiona confiando en la revisión manual y se verifica el comportamiento real recién en producción, tras el deploy de `deploy_live`.
+
+### ⚠️ `AlertController` — inputs de texto/número no soportan `label` visible, y los valores llegan anidados bajo `data.values`
+
+**Síntoma:** Un diálogo de `AlertController` con `inputs` de `type: 'number'`/`'text'` no muestra ninguna etiqueta persistente junto al campo (el `placeholder` desaparece en cuanto el campo trae un `value` precargado). Además, si el botón de confirmar no tiene `handler`, el valor que el usuario escribió se pierde: al leer `alert.onWillDismiss()`, `data.<nombreDelInput>` llega `undefined`.
+
+**Causa raíz:** verificado en el código fuente de `@ionic/core` (`dist/types/components/alert/alert-interface.d.ts` y `dist/collection/components/alert/alert.js`). `AlertInput.label` solo se renderiza para `type: 'radio'`/`'checkbox'` (`renderRadio()`/`renderCheckbox()`); los inputs de texto/número (`renderInput()`) solo soportan `placeholder`. Y en `buttonClick()`, un botón **sin** `handler` resuelve el dismiss con `{ values }` — es decir, los valores de los inputs quedan anidados bajo la clave `values` (`data.values.miInput`), no en `data.miInput` directamente. `getValues()` sí devuelve el array plano de valores marcados cuando `inputType === 'checkbox'` (por eso `openAdditionsAlert()` en `waiter.component.ts`, que lee `data.values` para checkboxes, funciona bien), pero para inputs de texto/número el objeto sigue viviendo bajo `.values`.
+
+**Solución:** si un diálogo necesita más de un campo de texto/número con label real, no usar `AlertController` — usar el patrón de **overlay propio con signal de visibilidad** ya establecido en el repo (ver `products.component.ts`, `showForm()`, y el diálogo de propina en `waiter.component.ts`, `tipEditOpen()`): un `<div>` `position:fixed` con `ion-item`/`ion-label position="stacked"`/`ion-input`, controlado por signals propios, sin depender de la forma de los datos que devuelve Ionic al cerrar el overlay. Si de todos modos se usa `AlertController` con inputs de texto, leer siempre `data.values.<nombre>`, nunca `data.<nombre>`.

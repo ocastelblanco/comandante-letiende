@@ -122,7 +122,7 @@ comandante/
 
 ### 4.3. Modelos de Datos Principales (Interfaces clave)
 
-> Refleja el código real en `src/app/core/models/`. El modelo de producto/pedido con variantes, adiciones y propina a nivel de pedido se implementó en la Tarea 29 (2026-09-20); la Tarea 30 (2026-09-21) no cambia estos modelos, solo conecta la UI que faltaba. Lo que sigue pendiente de las Tareas 31/33 está en la §13.
+> Refleja el código real en `src/app/core/models/`. El modelo de producto/pedido con variantes, adiciones y propina a nivel de pedido se implementó en la Tarea 29 (2026-09-20); la Tarea 30 (2026-09-21) no cambia estos modelos, solo conecta la UI que faltaba. La Tarea 31 (2026-09-21) reemplaza `PaymentMethod` y hace la propina editable después de enviar el pedido (`updateOrderTip()`). Lo que sigue pendiente de la Tarea 33 está en la §13.
 
 ```typescript
 // src/app/core/models/user.model.ts
@@ -182,7 +182,7 @@ export interface OrderItem {
 
 // src/app/core/models/order.model.ts
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-export type PaymentMethod = 'card' | 'cash' | 'nequi' | 'daviplata';
+export type PaymentMethod = 'datafono' | 'qr' | 'efectivo';
 
 export interface Order {
   id: string;
@@ -207,9 +207,11 @@ export interface Order {
 }
 ```
 
-**Cálculo de propina:** `src/app/core/models/order-totals.ts` exporta `computeOrderTotals(subtotal, tipPercentage, tipValue)`, una función pura compartida por `OrderService.createOrder()` y el resumen del mesero — el número que se ve antes de enviar el pedido es exactamente el que queda guardado. El peso colombiano no maneja centavos: la propina porcentual se redondea con `Math.round` **antes** de sumarle `tipValue`.
+**Cálculo de propina:** `src/app/core/models/order-totals.ts` exporta `computeOrderTotals(subtotal, tipPercentage, tipValue)`, una función pura compartida por `OrderService.createOrder()`, `OrderService.updateOrderTip()` y el resumen del mesero — el número que se ve antes de enviar el pedido es exactamente el que queda guardado, y el mismo cálculo se reutiliza al editar la propina de un pedido ya creado (Tarea 31, 2026-09-21). El peso colombiano no maneja centavos: la propina porcentual se redondea con `Math.round` **antes** de sumarle `tipValue`. `OrderService.createOrder()` acepta `tipPercentage`/`tipValue` opcionales (10/0 por defecto); `OrderService.updateOrderTip(orderId, { tipPercentage, tipValue, tipAmount, total })` persiste una edición posterior, autorizada por el helper `onlyUpdatesTip()` de `firestore.rules` mientras `paid == false`.
 
 **Discriminación contable:** ya no se re-deriva por resta sobre los ítems. El consolidado del administrador y la vista del mesero leen `order.subtotal` y `order.tipAmount` directamente.
+
+**Fuente única de verdad de medios de pago:** `src/app/core/models/payment-methods.ts` (`PAYMENT_METHODS`) alimenta el action sheet de cobro del mesero y las etiquetas/colores del consolidado del administrador, siguiendo el mismo patrón que `category-tree.ts`.
 
 **Fuente única de verdad de categorías:** `src/app/core/models/category-tree.ts` (`CATEGORY_TREE`) alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada del formulario y la validación del import de Excel. La misma jerarquía está duplicada en `firestore.rules` (`productSubcategoriesFor()`), que es la única validación real del lado servidor.
 
@@ -486,47 +488,11 @@ No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colecci�
 
 ---
 
-## 13. Cambios pendientes (Tareas 31 y 33)
+## 13. Cambios pendientes (Tarea 33)
 
-> Lo que ya se implementó del cambio de modelo de datos está en las §4.3, §5, §6 y §12 (Tarea 29, 2026-09-20: variantes, adiciones, descripción, propina a nivel de pedido, `/menu.json` v2) y en `waiter.component.ts`/`barista.component.ts`/`admin-orders.component.ts` (Tarea 30, 2026-09-21: selección de variante/adición en el pedido y observaciones — ver `TODO.md` §3 para el detalle). Esta sección solo cubre lo que falta. Origen y justificación completa en `docs/cambio-en-modelo-de-datos.md`.
+> Lo que ya se implementó del cambio de modelo de datos está en las §4.3, §5, §6 y §12 (Tarea 29, 2026-09-20: variantes, adiciones, descripción, propina a nivel de pedido, `/menu.json` v2), en `waiter.component.ts`/`barista.component.ts`/`admin-orders.component.ts` (Tarea 30, 2026-09-21: selección de variante/adición y observaciones) y en `payment-methods.ts`/`OrderService.updateOrderTip()`/`onlyUpdatesTip()` (Tarea 31, 2026-09-21: medios de pago nuevos y propina editable — detalle completo en `TODO.md` §3). Esta sección solo cubre lo que falta: las pruebas de `firestore.rules`. Origen y justificación completa en `docs/cambio-en-modelo-de-datos.md`.
 
-### 13.1. Medios de pago (Tarea 31)
-
-`card | cash | nequi | daviplata` se reemplaza por:
-
-| Valor | Etiqueta | Nota |
-| :--- | :--- | :--- |
-| `datafono` | Datáfono | Terminal físico. Requiere discriminar consumo y propina al digitar. |
-| `qr` | QR | **SonoQR de Bold**, adquirido por Le Tiende. Agrupa billeteras virtuales (Nequi, Daviplata, etc.) y transferencias electrónicas en un solo medio. |
-| `efectivo` | Efectivo | |
-
-La lista vive en un archivo nuevo, `src/app/core/models/payment-methods.ts`, como fuente única de verdad, siguiendo el patrón ya establecido por `category-tree.ts`. Hoy está duplicada y hardcodeada en `waiter.component.ts` (action sheet de cobro) y en `admin-reports.component.ts` (etiqueta y color del badge).
-
-`firestore.rules` no valida el valor de `paymentMethod`, así que este cambio no requiere tocar las reglas.
-
-### 13.2. Propina editable después de enviar el pedido (Tarea 31)
-
-El mesero necesita poder corregir la propina de un pedido ya enviado a la barra, mientras no esté cobrado. `OrderService.createOrder()` ya persiste `tipPercentage`/`tipValue`/`tipAmount` (§4.3, Tarea 29) con un 10% fijo; falta el diálogo para editarlos y el helper de reglas que lo autorice:
-
-```javascript
-function onlyUpdatesTip() {
-  let allowed = ['tipPercentage', 'tipValue', 'tipAmount', 'total', 'updatedAt'];
-  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
-      && resource.data.paid == false;
-}
-```
-
-Se suma a las cláusulas existentes de `/orders/{orderId}`:
-
-```javascript
-allow update: if isAdmin()
-    || (isBarista() && onlyUpdatesOrderStatus())
-    || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid() || onlyUpdatesTip()));
-```
-
-El mesero sigue **sin** poder modificar los ítems de un pedido enviado, ni tocar un pedido ya cobrado.
-
-### 13.3. Pruebas de `firestore.rules` (Tarea 33)
+### 13.1. Pruebas de `firestore.rules` (Tarea 33)
 
 Se hace **después** de la Tarea 31, para no probar dos veces el mismo helper: cubre con `@firebase/rules-unit-testing` la matriz de rol × colección × operación, incluyendo `onlyUpdatesTip()`. Detalle completo en §14 y en `TODO.md` Tarea 33.
 
