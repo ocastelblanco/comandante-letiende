@@ -447,6 +447,48 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
         </ion-toolbar>
       </ion-footer>
     }
+
+    @if (tipEditOpen()) {
+      <div style="position:fixed;inset:0;z-index:1000;background:rgba(35,12,0,.45);
+                  display:flex;align-items:center;justify-content:center;padding:16px"
+           (click)="closeTipDialog()">
+        <div style="background:#ffffff;border-radius:16px;width:100%;max-width:320px;
+                    box-shadow:0 8px 24px rgba(35,12,0,.25);overflow:hidden"
+             (click)="$event.stopPropagation()">
+          <div style="padding:16px 16px 4px;font-size:1rem;font-weight:700;color:var(--ion-color-dark)">
+            Editar propina
+          </div>
+          <div style="padding:8px 16px">
+            <ion-item style="--border-radius:8px;margin-bottom:8px">
+              <ion-label position="stacked">Porcentaje</ion-label>
+              <ion-input
+                type="number"
+                inputmode="decimal"
+                [value]="tipEditPercentageInput()"
+                (ionInput)="onTipPercentageInput($event)"
+              />
+            </ion-item>
+            <ion-item style="--border-radius:8px">
+              <ion-label position="stacked">Valor</ion-label>
+              <ion-input
+                type="number"
+                inputmode="decimal"
+                [value]="tipEditValueInput()"
+                (ionInput)="onTipValueInput($event)"
+              />
+            </ion-item>
+          </div>
+          <div style="display:flex;gap:8px;padding:12px 16px 16px">
+            <ion-button expand="block" fill="outline" style="flex:1" (click)="closeTipDialog()">
+              Cancelar
+            </ion-button>
+            <ion-button expand="block" color="secondary" style="flex:1" (click)="confirmTipDialog()">
+              Aceptar
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class WaiterComponent {
@@ -658,55 +700,75 @@ export class WaiterComponent {
     await this.orderService.markOrderPaid(order.id, data.method);
   }
 
-  // Diálogo compartido para editar la propina, tanto antes de enviar el
-  // pedido (card Resumen) como después (card expandida del mesero).
-  // Devuelve null si el mesero cancela.
-  private async promptTipEdit(
-    currentPercentage: number,
-    currentValue: number,
-  ): Promise<{ percentage: number; value: number } | null> {
-    const alert = await this.alertCtrl.create({
-      header: 'Editar propina',
-      inputs: [
-        { name: 'tipPercentage', type: 'number', placeholder: 'Porcentaje', value: currentPercentage },
-        { name: 'tipValue', type: 'number', placeholder: 'Valor', value: currentValue },
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        { text: 'Aceptar', role: 'confirm' },
-      ],
-    });
-    await alert.present();
-    const { data, role } = await alert.onWillDismiss<{ tipPercentage: string; tipValue: string }>();
-    if (role !== 'confirm' || !data) return null;
-    const percentage = Number(data.tipPercentage);
-    const value = Number(data.tipValue);
-    return {
-      percentage: data.tipPercentage === '' || Number.isNaN(percentage) ? currentPercentage : percentage,
-      value: data.tipValue === '' || Number.isNaN(value) ? currentValue : value,
-    };
-  }
+  // Overlay propio de edición de propina (AlertController no soporta labels
+  // visibles en inputs de tipo texto/número, solo en radio/checkbox — ver
+  // alert-interface.d.ts de @ionic/core). tipEditOrder null = se está editando
+  // la propina del pedido nuevo (antes de enviar); si tiene un Order, se está
+  // editando la propina de un pedido ya creado.
+  readonly tipEditOpen = signal(false);
+  readonly tipEditOrder = signal<Order | null>(null);
+  readonly tipEditPercentageInput = signal('10');
+  readonly tipEditValueInput = signal('0');
 
-  async openTipDialog(): Promise<void> {
-    const result = await this.promptTipEdit(this.tipPercentage(), this.tipValue());
-    if (!result) return;
-    this.tipPercentage.set(result.percentage);
-    this.tipValue.set(result.value);
+  openTipDialog(): void {
+    this.tipEditOrder.set(null);
+    this.tipEditPercentageInput.set(String(this.tipPercentage()));
+    this.tipEditValueInput.set(String(this.tipValue()));
+    this.tipEditOpen.set(true);
   }
 
   // Solo aplica a pedidos aún no cobrados (order.paid === false); una vez
   // cobrado el pedido queda inmutable.
-  async editOrderTip(order: Order, event: Event): Promise<void> {
+  editOrderTip(order: Order, event: Event): void {
     event.stopPropagation();
-    const result = await this.promptTipEdit(order.tipPercentage, order.tipValue);
-    if (!result) return;
-    const { tipAmount, total } = computeOrderTotals(order.subtotal, result.percentage, result.value);
-    await this.orderService.updateOrderTip(order.id, {
-      tipPercentage: result.percentage,
-      tipValue: result.value,
-      tipAmount,
-      total,
-    });
+    this.tipEditOrder.set(order);
+    this.tipEditPercentageInput.set(String(order.tipPercentage));
+    this.tipEditValueInput.set(String(order.tipValue));
+    this.tipEditOpen.set(true);
+  }
+
+  onTipPercentageInput(event: Event): void {
+    this.tipEditPercentageInput.set(
+      (event as CustomEvent<{ value: string | null | undefined }>).detail.value ?? '',
+    );
+  }
+
+  onTipValueInput(event: Event): void {
+    this.tipEditValueInput.set(
+      (event as CustomEvent<{ value: string | null | undefined }>).detail.value ?? '',
+    );
+  }
+
+  closeTipDialog(): void {
+    this.tipEditOpen.set(false);
+  }
+
+  async confirmTipDialog(): Promise<void> {
+    const order = this.tipEditOrder();
+    const fallbackPercentage = order ? order.tipPercentage : this.tipPercentage();
+    const fallbackValue = order ? order.tipValue : this.tipValue();
+    const parsedPercentage = Number(this.tipEditPercentageInput());
+    const parsedValue = Number(this.tipEditValueInput());
+    const percentage =
+      this.tipEditPercentageInput() === '' || Number.isNaN(parsedPercentage)
+        ? fallbackPercentage
+        : parsedPercentage;
+    const value =
+      this.tipEditValueInput() === '' || Number.isNaN(parsedValue) ? fallbackValue : parsedValue;
+
+    this.tipEditOpen.set(false);
+    if (order) {
+      const { tipAmount, total } = computeOrderTotals(order.subtotal, percentage, value);
+      await this.orderService.updateOrderTip(order.id, {
+        tipPercentage: percentage,
+        tipValue: value,
+        tipAmount,
+        total,
+      });
+    } else {
+      this.tipPercentage.set(percentage);
+      this.tipValue.set(value);
+    }
   }
 
   timeAgo(timestamp: Timestamp): string {
