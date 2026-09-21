@@ -1,4 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import {
   ActionSheetController,
   IonButton,
@@ -14,12 +15,11 @@ import { logOutOutline, personCircleOutline } from 'ionicons/icons';
 import { AuthService } from '../../core/auth/auth.service';
 import { OrderService } from '../../core/db/order.service';
 import { Order } from '../../core/models/order.model';
-import { OrderCardComponent } from './order-card.component';
 
 @Component({
   selector: 'app-barista',
   standalone: true,
-  imports: [IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar, OrderCardComponent],
+  imports: [DecimalPipe, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar],
   styles: [`:host { display: block; height: 100%; }`],
   template: `
     <ion-header class="ion-no-border">
@@ -67,9 +67,41 @@ import { OrderCardComponent } from './order-card.component';
             } @else {
               <div class="flex flex-col gap-3">
                 @for (order of pendingOrders(); track order.id) {
-                  <app-order-card [order]="order" actionLabel="Preparando" actionColor="secondary"
-                                  borderColor="var(--ion-color-light)"
-                                  (action)="startPreparing(order)" />
+                  <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)] overflow-hidden"
+                       style="border-left:4px solid var(--ion-color-light)">
+                    <div class="p-4">
+                      <div class="flex items-baseline justify-between mb-1">
+                        <span class="text-lg font-bold text-espresso">
+                          Pedido: {{ order.tableNumber }}
+                        </span>
+                        <span class="text-sm font-bold text-espresso">
+                          &#36;{{ order.total | number:'1.0-0' }}
+                        </span>
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px">
+                        <p style="font-size:.75rem;color:rgba(var(--ion-color-primary-rgb),0.45);margin:0">{{ order.waiterName }}</p>
+                        @if (order.paid) {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(0,183,163,.15);color:var(--ion-color-tertiary)">✓ Pagado</span>
+                        } @else {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(232,99,10,.12);color:var(--ion-color-secondary)">Sin cobrar</span>
+                        }
+                      </div>
+                      <div class="flex flex-wrap gap-1.5 mb-4">
+                        @for (item of order.items; track item.productId) {
+                          <span class="bg-surface text-espresso text-xs font-semibold
+                                       px-2.5 py-1 rounded-full">
+                            {{ item.quantity }}× {{ item.productName }}
+                          </span>
+                        }
+                      </div>
+                      <ion-button expand="block" color="secondary" class="btn-rounded"
+                                  (click)="startPreparing(order)">
+                        Preparando
+                      </ion-button>
+                    </div>
+                  </div>
                 }
               </div>
             }
@@ -93,9 +125,41 @@ import { OrderCardComponent } from './order-card.component';
             } @else {
               <div class="flex flex-col gap-3">
                 @for (order of preparingOrders(); track order.id) {
-                  <app-order-card [order]="order" actionLabel="Listo ✓" actionColor="tertiary"
-                                  borderColor="var(--ion-color-secondary)"
-                                  (action)="markReady(order)" />
+                  <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)] overflow-hidden"
+                       style="border-left:4px solid var(--ion-color-secondary)">
+                    <div class="p-4">
+                      <div class="flex items-baseline justify-between mb-1">
+                        <span class="text-lg font-bold text-espresso">
+                          Pedido: {{ order.tableNumber }}
+                        </span>
+                        <span class="text-sm font-bold text-espresso">
+                          &#36;{{ order.total | number:'1.0-0' }}
+                        </span>
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px">
+                        <p style="font-size:.75rem;color:rgba(var(--ion-color-primary-rgb),0.45);margin:0">{{ order.waiterName }}</p>
+                        @if (order.paid) {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(0,183,163,.15);color:var(--ion-color-tertiary)">✓ Pagado</span>
+                        } @else {
+                          <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:9999px;
+                                       background:rgba(232,99,10,.12);color:var(--ion-color-secondary)">Sin cobrar</span>
+                        }
+                      </div>
+                      <div class="flex flex-wrap gap-1.5 mb-4">
+                        @for (item of order.items; track item.productId) {
+                          <span class="bg-surface text-espresso text-xs font-semibold
+                                       px-2.5 py-1 rounded-full">
+                            {{ item.quantity }}× {{ item.productName }}
+                          </span>
+                        }
+                      </div>
+                      <ion-button expand="block" color="tertiary" class="btn-rounded"
+                                  (click)="markReady(order)">
+                        Listo ✓
+                      </ion-button>
+                    </div>
+                  </div>
                 }
               </div>
             }

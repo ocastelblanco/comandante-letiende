@@ -83,7 +83,7 @@ export class OrderService {
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
   }
 
-  createOrder(tableNumber: string, items: OrderItem[], observations = ''): Promise<unknown> {
+  createOrder(tableNumber: string, items: OrderItem[]): Promise<unknown> {
     const user = this.auth.currentUser;
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const { tipAmount, total } = computeOrderTotals(subtotal, DEFAULT_TIP_PERCENTAGE, 0);
@@ -96,7 +96,7 @@ export class OrderService {
       paidAt: null,
       waiterId: user?.email ?? '',
       waiterName: user?.displayName ?? '',
-      observations,
+      observations: '',
       subtotal,
       tipPercentage: DEFAULT_TIP_PERCENTAGE,
       tipValue: 0,

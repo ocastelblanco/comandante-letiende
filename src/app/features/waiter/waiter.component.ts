@@ -3,7 +3,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   ActionSheetController,
-  AlertController,
   IonButton,
   IonButtons,
   IonCard,
@@ -19,7 +18,6 @@ import {
   IonLabel,
   IonNote,
   IonSpinner,
-  IonTextarea,
   IonTitle,
   IonToolbar,
   ToastController,
@@ -35,7 +33,6 @@ import {
   filterOutline,
   logOutOutline,
   notificationsOutline,
-  optionsOutline,
   personCircleOutline,
   removeCircleOutline,
   timeOutline,
@@ -47,7 +44,7 @@ import { ProductService } from '../../core/db/product.service';
 import { OrderItem } from '../../core/models/order-item.model';
 import { Order, OrderStatus, PaymentMethod } from '../../core/models/order.model';
 import { computeOrderTotals } from '../../core/models/order-totals';
-import { Product, ProductAddition } from '../../core/models/product.model';
+import { Product } from '../../core/models/product.model';
 
 type View = 'dashboard' | 'new-order';
 
@@ -57,9 +54,6 @@ interface OrderLine {
   filteredProducts: Product[];
   selectedProduct: Product | null;
   quantity: number;
-  // `null` si el producto no tiene variantes o aún no se ha elegido una.
-  selectedVariant: string | null;
-  selectedAdditions: ProductAddition[];
 }
 
 const STATUS_BADGE: Record<OrderStatus, { bg: string; text: string }> = {
@@ -100,7 +94,6 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
     IonNote,
     IonSpinner,
     IonFooter,
-    IonTextarea,
   ],
   template: `
     @if (view() === 'dashboard') {
@@ -202,12 +195,6 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                           <span>$ {{ item.unitPrice * item.quantity | number:'1.0-0' }}</span>
                         </div>
                       }
-                      @if (order.observations) {
-                        <div style="display:flex;gap:6px;align-items:flex-start;background:var(--ion-color-light);border-radius:10px;padding:6px 10px;margin:6px 0">
-                          <span style="font-size:.85rem;line-height:1.2">📝</span>
-                          <p style="font-size:.75rem;color:var(--ion-color-medium);font-style:italic;margin:0">{{ order.observations }}</p>
-                        </div>
-                      }
                       <div style="border-top:1px solid rgba(var(--ion-color-primary-contrast-rgb),.6);margin:6px 0 4px"></div>
                       <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
                         <span>Subtotal (base)</span>
@@ -277,57 +264,29 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
         <div style="padding:0 16px">
           @for (line of orderLines(); track line.id) {
             @if (line.selectedProduct) {
-              <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;margin-bottom:8px;background:#ffffff;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
-                <div style="display:flex;align-items:center;gap:8px">
-                  <div style="flex:1;min-width:0">
-                    <div style="font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ion-color-dark)">
-                      {{ line.selectedProduct.name }}
-                    </div>
-                    <div style="font-size:.75rem;color:var(--ion-color-medium);margin-top:2px">
-                      $ {{ lineUnitPrice(line) | number:'1.0-0' }} c/u
-                    </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;margin-bottom:8px;background:#ffffff;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ion-color-dark)">
+                    {{ line.selectedProduct.name }}
                   </div>
-                  <div style="display:flex;align-items:center;gap:2px;background:var(--ion-color-light);border-radius:9999px;padding:2px">
-                    <ion-button fill="clear" size="small" [disabled]="line.quantity <= 1" (click)="decrementLine(line.id)">
-                      <ion-icon slot="icon-only" name="remove-circle-outline" />
-                    </ion-button>
-                    <span style="min-width:1.5rem;text-align:center;font-weight:700;font-size:.9rem;color:var(--ion-color-primary)">
-                      {{ line.quantity }}
-                    </span>
-                    <ion-button fill="clear" size="small" (click)="incrementLine(line.id)">
-                      <ion-icon slot="icon-only" name="add-circle-outline" />
-                    </ion-button>
+                  <div style="font-size:.75rem;color:var(--ion-color-medium);margin-top:2px">
+                    $ {{ line.selectedProduct.basePrice | number:'1.0-0' }} c/u
                   </div>
-                  <ion-button fill="clear" size="small" color="danger" (click)="removeLine(line.id)">
-                    <ion-icon slot="icon-only" name="trash-outline" />
+                </div>
+                <div style="display:flex;align-items:center;gap:2px;background:var(--ion-color-light);border-radius:9999px;padding:2px">
+                  <ion-button fill="clear" size="small" [disabled]="line.quantity <= 1" (click)="decrementLine(line.id)">
+                    <ion-icon slot="icon-only" name="remove-circle-outline" />
+                  </ion-button>
+                  <span style="min-width:1.5rem;text-align:center;font-weight:700;font-size:.9rem;color:var(--ion-color-primary)">
+                    {{ line.quantity }}
+                  </span>
+                  <ion-button fill="clear" size="small" (click)="incrementLine(line.id)">
+                    <ion-icon slot="icon-only" name="add-circle-outline" />
                   </ion-button>
                 </div>
-                @if (line.selectedProduct.variants.length > 0 || line.selectedProduct.additions.length > 0) {
-                  <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-                    @if (line.selectedProduct.variants.length > 0) {
-                      <span (click)="openVariantSheet(line.id, line.selectedProduct)"
-                            style="padding:4px 10px;border-radius:9999px;font-size:.7rem;font-weight:600;cursor:pointer;
-                                   background:rgba(var(--ion-color-primary-rgb),.08);color:var(--ion-color-primary)">
-                        <ion-icon name="options-outline" style="font-size:.8rem;vertical-align:-1px" />
-                        {{ line.selectedVariant ?? 'Elegir variante' }}
-                      </span>
-                    }
-                    @for (addition of line.selectedAdditions; track addition.addition) {
-                      <span style="padding:4px 10px;border-radius:9999px;font-size:.7rem;font-weight:600;
-                                   background:var(--ion-color-light);color:var(--ion-color-dark)">
-                        {{ addition.addition }}
-                      </span>
-                    }
-                    @if (line.selectedProduct.additions.length > 0) {
-                      <span (click)="openAdditionsAlert(line.id, line.selectedProduct, line.selectedAdditions)"
-                            style="padding:4px 10px;border-radius:9999px;font-size:.7rem;font-weight:600;cursor:pointer;
-                                   background:rgba(var(--ion-color-secondary-rgb),.12);color:var(--ion-color-secondary)">
-                        <ion-icon name="add-circle-outline" style="font-size:.8rem;vertical-align:-1px" />
-                        + Adición
-                      </span>
-                    }
-                  </div>
-                }
+                <ion-button fill="clear" size="small" color="danger" (click)="removeLine(line.id)">
+                  <ion-icon slot="icon-only" name="trash-outline" />
+                </ion-button>
               </div>
             } @else {
               <div style="margin-bottom:8px">
@@ -376,7 +335,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
               @if (line.selectedProduct) {
                 <div style="display:flex;justify-content:space-between;padding:4px 16px;font-size:.875rem;color:var(--ion-color-dark)">
                   <span>{{ line.selectedProduct.name }} ×{{ line.quantity }}</span>
-                  <span>$ {{ lineUnitPrice(line) * line.quantity | number:'1.0-0' }}</span>
+                  <span>$ {{ line.selectedProduct.basePrice * line.quantity | number:'1.0-0' }}</span>
                 </div>
               }
             }
@@ -392,18 +351,6 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
             <div style="display:flex;justify-content:space-between;padding:10px 16px 14px;font-size:1rem;font-weight:700;color:var(--ion-color-dark)">
               <span>Total a cobrar</span>
               <span>$ {{ orderTotal() | number:'1.0-0' }}</span>
-            </div>
-            <div style="padding:0 16px 16px">
-              <ion-item style="--border-radius:8px">
-                <ion-label position="stacked">Observaciones</ion-label>
-                <ion-textarea
-                  [value]="observations()"
-                  (ionInput)="onObservationsInput($event)"
-                  placeholder="Ej: sin azúcar, alergia a nueces..."
-                  autoGrow
-                  rows="2"
-                />
-              </ion-item>
             </div>
           </div>
         }
@@ -436,7 +383,6 @@ export class WaiterComponent {
   private readonly productService = inject(ProductService);
   private readonly toastCtrl = inject(ToastController);
   private readonly actionSheetCtrl = inject(ActionSheetController);
-  private readonly alertCtrl = inject(AlertController);
 
   readonly statusBadge = STATUS_BADGE;
   readonly statusLabels = STATUS_LABELS;
@@ -454,30 +400,12 @@ export class WaiterComponent {
 
   // ── New-order form ────────────────────────────────────────────────────────
   orderIdentifier = signal('');
-  observations = signal('');
   private lineCounter = 0;
   private readonly _orderLines = signal<OrderLine[]>([]);
   readonly orderLines = this._orderLines.asReadonly();
 
   submitting = signal(false);
-  private readonly _submitError = signal('');
-
-  // Línea con producto que tiene variantes pero aún no se eligió ninguna;
-  // bloquea el envío del pedido.
-  private readonly missingVariantLine = computed(
-    () =>
-      this._orderLines().find(
-        (l) => l.selectedProduct && l.selectedProduct.variants.length > 0 && !l.selectedVariant,
-      ) ?? null,
-  );
-
-  // Se mantiene como una función invocable (submitError()) para no romper
-  // el template: combina el error async de submitOrder() con el bloqueo
-  // por variante pendiente, que tiene prioridad porque impide el envío.
-  readonly submitError = computed(() => {
-    const missing = this.missingVariantLine();
-    return missing ? `Selecciona una variante para: ${missing.selectedProduct!.name}` : this._submitError();
-  });
+  submitError = signal('');
 
   readonly filterReady = signal(false);
   readonly filteredOrders = computed(() =>
@@ -493,7 +421,7 @@ export class WaiterComponent {
   readonly orderSubtotal = computed(() =>
     this._orderLines()
       .filter((l) => l.selectedProduct)
-      .reduce((s, l) => s + this.lineUnitPrice(l) * l.quantity, 0),
+      .reduce((s, l) => s + l.selectedProduct!.basePrice * l.quantity, 0),
   );
 
   // Propina fija del 10% a nivel de pedido (editable por el mesero en la
@@ -508,20 +436,8 @@ export class WaiterComponent {
     () =>
       this.orderIdentifier().trim().length > 0 &&
       this.hasSelectedProducts() &&
-      this.missingVariantLine() === null &&
       !this.submitting(),
   );
-
-  // Precio unitario real de una línea: basePrice + Σ additionPrice de las
-  // adiciones elegidas. Se centraliza aquí porque se usa tanto en el
-  // subtotal del pedido como en cada tarjeta de línea y en el resumen.
-  lineUnitPrice(line: OrderLine): number {
-    if (!line.selectedProduct) return 0;
-    return (
-      line.selectedProduct.basePrice +
-      line.selectedAdditions.reduce((sum, a) => sum + a.additionPrice, 0)
-    );
-  }
 
   constructor() {
     addIcons({
@@ -534,7 +450,6 @@ export class WaiterComponent {
       filterOutline,
       logOutOutline,
       notificationsOutline,
-      optionsOutline,
       personCircleOutline,
       timeOutline,
     });
@@ -582,8 +497,7 @@ export class WaiterComponent {
   openNewOrder(): void {
     this._orderLines.set([]);
     this.orderIdentifier.set('');
-    this.observations.set('');
-    this._submitError.set('');
+    this.submitError.set('');
     this.view.set('new-order');
   }
 
@@ -649,15 +563,7 @@ export class WaiterComponent {
   addLine(): void {
     this._orderLines.update((lines) => [
       ...lines,
-      {
-        id: ++this.lineCounter,
-        query: '',
-        filteredProducts: [],
-        selectedProduct: null,
-        quantity: 1,
-        selectedVariant: null,
-        selectedAdditions: [],
-      },
+      { id: ++this.lineCounter, query: '', filteredProducts: [], selectedProduct: null, quantity: 1 },
     ]);
   }
 
@@ -684,69 +590,13 @@ export class WaiterComponent {
     );
   }
 
-  async selectProduct(lineId: number, product: Product): Promise<void> {
+  selectProduct(lineId: number, product: Product): void {
     this._orderLines.update((lines) =>
       lines.map((l) =>
         l.id === lineId
-          ? {
-              ...l,
-              selectedProduct: product,
-              query: '',
-              filteredProducts: [],
-              // Se resetea la selección previa al cambiar de producto.
-              selectedVariant: null,
-              selectedAdditions: [],
-            }
+          ? { ...l, selectedProduct: product, query: '', filteredProducts: [] }
           : l,
       ),
-    );
-    if (product.variants.length > 0) {
-      await this.openVariantSheet(lineId, product);
-    }
-  }
-
-  // El action sheet no incluye botón "Cancelar": si el mesero lo cierra sin
-  // elegir, la línea queda con selectedVariant en null y canSubmit() la
-  // bloquea, en vez de dejar pasar un pedido sin variante obligatoria.
-  async openVariantSheet(lineId: number, product: Product): Promise<void> {
-    const sheet = await this.actionSheetCtrl.create({
-      header: 'Elige la variante',
-      buttons: product.variants.map((variant) => ({
-        text: variant,
-        data: { variant },
-      })),
-    });
-    await sheet.present();
-    const { data } = await sheet.onWillDismiss<{ variant: string }>();
-    if (!data) return;
-    this._orderLines.update((lines) =>
-      lines.map((l) => (l.id === lineId ? { ...l, selectedVariant: data.variant } : l)),
-    );
-  }
-
-  async openAdditionsAlert(
-    lineId: number,
-    product: Product,
-    current: ProductAddition[],
-  ): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header: 'Elige las adiciones',
-      inputs: product.additions.map((addition) => ({
-        type: 'checkbox' as const,
-        label: `${addition.addition} (+$${addition.additionPrice})`,
-        value: addition,
-        checked: current.some((c) => c.addition === addition.addition),
-      })),
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        { text: 'Aceptar', role: 'confirm' },
-      ],
-    });
-    await alert.present();
-    const { data, role } = await alert.onWillDismiss<{ values: ProductAddition[] }>();
-    if (role !== 'confirm' || !data) return;
-    this._orderLines.update((lines) =>
-      lines.map((l) => (l.id === lineId ? { ...l, selectedAdditions: data.values ?? [] } : l)),
     );
   }
 
@@ -764,17 +614,11 @@ export class WaiterComponent {
     );
   }
 
-  onObservationsInput(event: Event): void {
-    this.observations.set(
-      (event as CustomEvent<{ value: string | null | undefined }>).detail.value ?? '',
-    );
-  }
-
   async submitOrder(): Promise<void> {
     const identifier = this.orderIdentifier().trim();
     if (!identifier || !this.hasSelectedProducts()) return;
     this.submitting.set(true);
-    this._submitError.set('');
+    this.submitError.set('');
     try {
       const items: OrderItem[] = this._orderLines()
         .filter((l) => l.selectedProduct !== null)
@@ -782,16 +626,18 @@ export class WaiterComponent {
           productId: l.selectedProduct!.id,
           productName: l.selectedProduct!.name,
           quantity: l.quantity,
-          variant: l.selectedVariant,
-          additions: l.selectedAdditions,
-          unitPrice: this.lineUnitPrice(l),
+          // La selección de variante/adiciones llega en la Tarea 30; por
+          // ahora todo pedido usa el precio base sin adiciones.
+          variant: null,
+          additions: [],
+          unitPrice: l.selectedProduct!.basePrice,
           itemStatus: 'pending' as const,
         }));
-      await this.orderService.createOrder(identifier, items, this.observations().trim());
+      await this.orderService.createOrder(identifier, items);
       this.view.set('dashboard');
     } catch (err) {
       console.error('[submitOrder] createOrder failed:', err);
-      this._submitError.set('No se pudo crear el pedido. Intenta de nuevo.');
+      this.submitError.set('No se pudo crear el pedido. Intenta de nuevo.');
     } finally {
       this.submitting.set(false);
     }
