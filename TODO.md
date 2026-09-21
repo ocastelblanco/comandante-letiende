@@ -19,12 +19,12 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-Las Tareas 29, 30 y 31 provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. La Tarea 33 es la estrategia de pruebas acordada en la misma sesión (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, ya está completada (ver §3, PR #40).
+Las Tareas 30 y 31 provienen de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto; la Tarea 29, la primera de esa serie, ya está completada (ver §3, PR #41). La Tarea 33 es la estrategia de pruebas acordada el 2026-09-19 (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, también está completada (ver §3, PR #40).
 
 **Orden de ejecución — no coincide con la numeración:**
 
 ```
-29 (modelo + import)  →  30 (mesero)  →  31 (propina y pagos)  →  33 (reglas)
+30 (mesero)  →  31 (propina y pagos)  →  33 (reglas)
 ```
 
 La numeración es de creación, no de ejecución; ya hay precedentes en el historial (las Tareas 13/14 y 15/16 también se completaron fuera de orden). Cada tarea deja la aplicación compilando y desplegable por su cuenta.
@@ -32,24 +32,6 @@ La numeración es de creación, no de ejecución; ya hay precedentes en el histo
 El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato del endpoint, reglas de seguridad) está en `tech-specs.md` §13; las decisiones acordadas, en la sección "Decisiones tomadas" de `docs/cambio-en-modelo-de-datos.md`; la estrategia de pruebas y su justificación, en `tech-specs.md` §14.
 
 
-
-### 🔜 Tarea 29: [FEATURE] Modelo de producto con variantes y adiciones + `/menu.json` v2
-
-*   **Objetivo:** El producto gana `description`, `variants` y `additions` (con sus precios) y pierde `tipAmount`/`totalPrice`; la propina pasa a vivir en el pedido.
-*   **Alcance:**
-    *   **Modelos** — `product.model.ts` (nuevo `ProductAddition`, `description`, `variants`, `additions`; sin `tipAmount`/`totalPrice`), `order-item.model.ts` (sin `tipAmount`; `unitPrice` pasa a ser el precio base), `order.model.ts` (`observations`, `subtotal`, `tipPercentage`, `tipValue`, `tipAmount`, `total`, y declarar `baristaId`/`preparedAt`, que hoy se escriben sin estar en la interfaz).
-    *   **Importador de Excel** (`features/admin/products/products.component.ts`) — columnas nuevas `additions`, `variants`, `description`, `additionPrices`, `active`; desaparece `tipAmount`. **Extraer los parsers a `features/admin/products/import-parsers.ts`**: hoy están embebidos en `onFileSelected()` (líneas 590-671) y no se pueden probar. Validaciones nuevas, manteniendo el rechazo *todo o nada* que ya existe: `additionPrices` con distinta cantidad de elementos que `additions`, precios no finitos o negativos, variantes o adiciones duplicadas en la misma fila, `active` no interpretable como booleano.
-    *   ⚠️ **`applyImport()` (líneas 719-722) solo fija `isActive` en filas nuevas**, para no des-archivar productos en una re-importación. Ahora que la hoja es fuente de verdad, `isActive` debe escribirse también en las actualizaciones.
-    *   **Plantilla descargable** (`downloadTemplate()`, líneas 673-702) — regenerar las 15 filas de ejemplo con las columnas nuevas, incluyendo al menos una con variantes, una con adiciones y precios, y una con descripción. Reusar los ejemplos de la tabla de `docs/cambio-en-modelo-de-datos.md`.
-    *   **Formulario de producto** (`product-form.component.ts`) — quitar el campo de propina y el `computed totalPrice`; añadir `description` y editores de `variants` y `additions` con `FormArray`.
-    *   **Reportes** (`admin-reports.component.ts:354-356`) — leer `order.subtotal` y `order.tipAmount` en vez de re-derivar la propina restando sobre los ítems.
-    *   **Mesero** (`waiter.component.ts`) — cambio mínimo para compilar: `totalPrice` → `basePrice`, y propina fija del 10 % a nivel de pedido. Las variantes y adiciones llegan en la Tarea 30.
-    *   **`firestore.rules`** — ampliar `isValidProductData()` para exigir `basePrice` numérico no negativo y que `variants`/`additions` sean listas.
-    *   **Cloud Function** (`functions/src/index.ts`) — nuevo formato de respuesta con `description`, `additions`, `variants` y `basePrice`. Se conservan el filtro `isActive == true`, la caché de 5 minutos, el CORS, el `405` y el `500`.
-    *   **Documentación** — trasladar de `tech-specs.md` §13 a §4.3, §5 y §12 lo que quede implementado.
-*   **Pruebas a añadir:** `import-parsers.spec.ts` (listas vacías y con espacios, longitudes desiguales entre `additions` y `additionPrices`, precios no numéricos, duplicados, variantes de `active`) y `order-totals.spec.ts` sobre una función pura `computeOrderTotals()` (10 % por defecto, redondeo a pesos sin centavos, porcentaje 0, valor absoluto solo, ambos combinados). El repositorio tiene hoy **un solo test** y ninguna cobertura sobre el importador ni sobre el cálculo de precios, que es justo lo que esta tarea toca.
-*   ⚠️ **Prerrequisito del usuario:** reestructurar la hoja `datos` del Google Sheets con las columnas nuevas (nótese el cambio de `aditions`/`aditionPrices` a `additions`/`additionPrices`).
-*   ⚠️ **Acción manual posterior al despliegue:** limpiar Firestore y recargar el catálogo. Sirven `scripts/firestore-admin/clean-firestore-collections.mjs` (hace respaldo en `backups/` antes de borrar) o el botón "Borrar todos los productos" de `/admin/products`. **Los pedidos de prueba también deben borrarse**, porque los reportes ya no sabrán interpretar el formato anterior. Esto absorbe y da por cerrada la reclasificación manual de los 116 productos que quedó pendiente de la Tarea 27.
 
 ### 🔜 Tarea 30: [FEATURE] Flujo de pedido del mesero — variantes, adiciones y observaciones
 
@@ -73,7 +55,7 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
     *   `OrderService.updateOrderTip(orderId, { tipPercentage, tipValue, tipAmount, total })`.
     *   **`firestore.rules`** — helper `onlyUpdatesTip()` acotado a `['tipPercentage','tipValue','tipAmount','total','updatedAt']` y con `resource.data.paid == false`, sumado a las cláusulas de mesero en `/orders/{orderId}`. El mesero sigue sin poder tocar los ítems de un pedido enviado ni un pedido ya cobrado.
     *   Reportes: etiquetas y colores de los tres medios nuevos, tanto en la tabla como en el XLSX exportado.
-*   **Pruebas a añadir:** `order-totals.spec.ts` sobre la función pura `computeOrderTotals()` extraída en esta tarea — 10 % por defecto, redondeo a pesos sin centavos, porcentaje 0, valor absoluto solo, y ambos combinados.
+*   **Pruebas:** ninguna nueva función pura que probar — `updateOrderTip()` reutiliza `computeOrderTotals()` (extraída y probada en la Tarea 29, `order-totals.spec.ts`), así que el mismo cálculo que se probó para la creación del pedido queda cubierto también para su edición.
 *   **Verificación específica:** contra el emulador, comprobar que un mesero **sí** puede cambiar la propina de un pedido sin cobrar y **no** puede cambiar sus ítems ni tocar un pedido ya cobrado. La cobertura sistemática de este comportamiento llega en la Tarea 33.
 
 ### 🔜 Tarea 33: [SEGURIDAD] Pruebas de `firestore.rules` con el emulador — **después de la Tarea 31**
@@ -94,6 +76,12 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 29: [FEATURE] Modelo de producto con variantes y adiciones + `/menu.json` v2
+*   **Completada:** 2026-09-20
+*   **PR:** #41 (`feature/product-variants-additions`)
+*   **Origen:** tomada del PRD — `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. El catálogo de productos pasa a ser también la lista de precios de letiende.co y la fuente de la carta impresa, lo que exige separar la propina del producto.
+*   **Resultado:** `Product` gana `description`, `variants` y `additions` (con `ProductAddition { addition, additionPrice }`) y pierde `tipAmount`/`totalPrice`; la propina se traslada al pedido (`Order.subtotal`/`tipPercentage`/`tipValue`/`tipAmount`/`total`, más `observations` y los antes-fantasma `baristaId`/`preparedAt`, ahora declarados). Nueva `order-totals.ts` con la función pura `computeOrderTotals()`, compartida por `OrderService.createOrder()` y el resumen del mesero. Importador de Excel con las columnas `additions`/`variants`/`description`/`additionPrices`/`active`, con los parsers extraídos a `import-parsers.ts` (antes intestables, embebidos en `onFileSelected()`) y validación todo-o-nada (longitudes desiguales, precios no finitos/negativos, duplicados, `active` no interpretable). **Corregido en el camino:** `applyImport()` solo escribía `isActive` en filas nuevas; ahora también en actualizaciones, porque la hoja pasa a ser fuente de verdad. Formulario de producto sin campo de propina, con editores de variantes/adiciones (`FormArray`). Reportes leyendo `order.subtotal`/`order.tipAmount` directamente en vez de re-derivar por resta. `firestore.rules` valida `basePrice` numérico no negativo y que `variants`/`additions` sean listas. Cloud Function `publicMenu` con el contrato nuevo de `/menu.json` (`description`, `additions`, `variants`, `basePrice` sin propina), documentado en `tech-specs.md` §12. Pruebas nuevas: `import-parsers.spec.ts` y `order-totals.spec.ts` (28 casos) — el repositorio tenía un solo test antes de esta tarea. Verificado en el canal de preview del PR con datos reales: el usuario reestructuró la hoja `datos` del Google Sheets y cargó el primer paquete completo de productos vía Excel, confirmando que el importador, el formulario y el flujo del mesero funcionan de punta a punta con el modelo nuevo — cierra también, de una vez, la reclasificación manual de los 116 productos que había quedado pendiente de la Tarea 27.
 
 ### ✅ Tarea 32: [INFRA] Ejecutar las pruebas en CI (bloquea el merge)
 *   **Completada:** 2026-09-20
@@ -273,3 +261,4 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 | 2026-09-16 | Tarea 28 completada. Migración completa a Node.js 24 (Cloud Functions + `actions/checkout`+`actions/setup-node` a `@v5`), disparada por el aviso de deprecación de Node 20 visto durante el deploy de la Tarea 27. Investigado el alcance antes de aplicar (agente de exploración): sin incompatibilidades, cambio mecánico. PR #36. | WIP se mantiene en 0. Cola de tareas vacía — próxima tarea a evaluar contra el PRD cuando el usuario retome. |
 | 2026-09-19 | Sesión de documentación, sin código, por instrucción explícita del usuario. Se analizó `docs/cambio-en-modelo-de-datos.md` con tres agentes de exploración en paralelo y se acordaron con el humano las siete decisiones de diseño pendientes. Se detectó deuda documental acumulada: `tech-specs.md` §3/§4.3/§5 describían una estructura y un modelo de datos inexistentes desde la Tarea 27, y §12 mencionaba una Cloud Function `syncPublicMenu` que nunca existió; `MEMORY.md` seguía congelado en 2026-05-22 con 28 tareas ya completadas. Corregidos además el typo `aditions`→`additions` del documento original y la inconsistencia `carta`/`canva`. Registrados ADR-006 (propina porcentual a nivel de pedido, reemplaza al ADR-003) y ADR-007 (Google Sheets como fuente de verdad). A petición del usuario se evaluó además el costo de una suite de pruebas completa (estimado en 20-25 sesiones supervisadas, desproporcionado para ~3.800 líneas): se acordó la estrategia por capas del ADR-008, documentada en `tech-specs.md` §14. **Hallazgo colateral:** el CI nunca ejecutaba `npm test`, así que la única prueba del repositorio era decorativa y un PR en rojo podía fusionarse y desplegarse. | WIP se mantiene en 0. Cinco tareas encoladas en §2.5. Orden de ejecución **32 → 29 → 30 → 31 → 33**, que no coincide con la numeración. Próxima sesión: Tarea 32 (~15 min), luego Tarea 29. |
 | 2026-09-20 | Tarea 32 completada. Añadido el paso `npm test -- --watch=false` antes del build en ambos jobs de `.github/workflows/deploy-hosting.yml`, precondición de las Tareas 29-31 y 33. Verificado el gate con el exit code real del proceso (0 en verde, 1 rompiendo a propósito la única prueba existente) y confirmado en el entorno real de GitHub Actions, en el propio job `preview` del PR. PR #40. | WIP se mantiene en 0. Cuatro tareas restantes en §2.5. Orden de ejecución **29 → 30 → 31 → 33**. Próxima sesión: Tarea 29. |
+| 2026-09-20 | Tarea 29 completada. Producto con `description`/`variants`/`additions`, sin `tipAmount`/`totalPrice`; propina trasladada al pedido vía `computeOrderTotals()` (nueva, pura, compartida con el resumen del mesero); importador de Excel con las columnas nuevas y parsers extraídos/probados; `isActive` ahora se escribe también en actualizaciones del import (bug corregido); `firestore.rules` y Cloud Function `publicMenu` actualizados. Verificado en preview con datos reales: el usuario reestructuró la hoja `datos` y cargó el primer paquete completo — cierra también la reclasificación pendiente de la Tarea 27. PR #41. | WIP se mantiene en 0. Tres tareas restantes en §2.5. Orden de ejecución **30 → 31 → 33**. Próxima sesión: Tarea 30. |
