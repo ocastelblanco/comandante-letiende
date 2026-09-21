@@ -122,7 +122,7 @@ comandante/
 
 ### 4.3. Modelos de Datos Principales (Interfaces clave)
 
-> Refleja el código real en `src/app/core/models/`. El modelo **objetivo** del cambio descrito en `docs/cambio-en-modelo-de-datos.md` está en la §13 de este documento, todavía sin implementar.
+> Refleja el código real en `src/app/core/models/`. El modelo de producto/pedido con variantes, adiciones y propina a nivel de pedido se implementó en la Tarea 29 (2026-09-20). Lo que sigue pendiente de las Tareas 30/31/33 está en la §13.
 
 ```typescript
 // src/app/core/models/user.model.ts
@@ -146,14 +146,22 @@ export type ProductSubcategory =
   | 'nacionales' | 'importadas' | 'artesanales'// cervezas
   | 'combos' | 'promociones';                  // ofertas
 
+// Adición opcional de un producto (ej. "leche vegetal" en un capuchino):
+// suma su propio precio al `basePrice` cuando el mesero la selecciona.
+export interface ProductAddition {
+  addition: string;
+  additionPrice: number;
+}
+
 export interface Product {
   id: string;
   name: string;
+  description: string | null;               // carta impresa y carta digital de letiende.co
   category: ProductCategory;
-  subcategory?: ProductSubcategory | null;  // null explícito para comida y repostería
-  basePrice: number;       // PVP sin propina
-  tipAmount: number;       // valor absoluto de propina fija por unidad
-  totalPrice: number;      // basePrice + tipAmount (precio visual en carta)
+  subcategory?: ProductSubcategory | null;   // null explícito para comida y repostería
+  variants: string[];                        // opciones excluyentes, NO alteran el precio; [] si no aplica
+  additions: ProductAddition[];              // extras opcionales que SÍ suman al precio; [] si no aplica
+  basePrice: number;                         // PVP sin propina — la propina ya no vive en el producto
   isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -166,8 +174,9 @@ export interface OrderItem {
   productId: string;
   productName: string;
   quantity: number;
-  unitPrice: number;   // = product.totalPrice (base + propina), NO el precio base
-  tipAmount: number;   // propina por unidad, denormalizada del producto
+  variant: string | null;          // obligatorio (no null) si Product.variants no está vacío
+  additions: ProductAddition[];    // las seleccionadas, con su precio ya denormalizado
+  unitPrice: number;                // basePrice + Σ additionPrice — sin propina
   itemStatus: ItemStatus;
 }
 
@@ -185,15 +194,22 @@ export interface Order {
   paidAt: Timestamp | null;
   waiterId: string;         // email, no UID
   waiterName: string;
-  total: number;            // Σ unitPrice × quantity (propina ya incluida)
+  observations: string;     // dirigidas al barista; '' si no se escribió ninguna
+  subtotal: number;         // Σ unitPrice × quantity, SIN propina
+  tipPercentage: number;    // sugerido sobre el subtotal, 10 por defecto
+  tipValue: number;         // valor absoluto adicional, 0 por defecto
+  tipAmount: number;        // Math.round(subtotal × tipPercentage / 100) + tipValue
+  total: number;            // subtotal + tipAmount — el valor a cobrar
+  baristaId: string | null;
+  preparedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 ```
 
-**Discriminación contable:** la propina no se almacena agregada en el pedido. Se re-deriva por resta a partir de los ítems (`base = Σ (unitPrice − tipAmount) × qty`, `propina = Σ tipAmount × qty`) en la vista del mesero y en el consolidado del administrador.
+**Cálculo de propina:** `src/app/core/models/order-totals.ts` exporta `computeOrderTotals(subtotal, tipPercentage, tipValue)`, una función pura compartida por `OrderService.createOrder()` y el resumen del mesero — el número que se ve antes de enviar el pedido es exactamente el que queda guardado. El peso colombiano no maneja centavos: la propina porcentual se redondea con `Math.round` **antes** de sumarle `tipValue`.
 
-**Deriva conocida del modelo:** `updateOrderStatusAsBarista()` escribe `baristaId` y `preparedAt` en el documento del pedido, pero ninguno de los dos está declarado en la interfaz `Order`. Queda corregido en la §13.
+**Discriminación contable:** ya no se re-deriva por resta sobre los ítems. El consolidado del administrador y la vista del mesero leen `order.subtotal` y `order.tipAmount` directamente.
 
 **Fuente única de verdad de categorías:** `src/app/core/models/category-tree.ts` (`CATEGORY_TREE`) alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada del formulario y la validación del import de Excel. La misma jerarquía está duplicada en `firestore.rules` (`productSubcategoriesFor()`), que es la única validación real del lado servidor.
 
@@ -214,8 +230,8 @@ Tres colecciones planas, sin subcolecciones. Refleja el estado real de la base d
 | Colección | ID del documento | Estructura |
 | :--- | :--- | :--- |
 | `users` | el **email** del usuario | `{ email, displayName, role: 'admin'\|'waiter'\|'barista'\|'inactive', createdAt }` |
-| `products` | autogenerado | `{ name, category, subcategory?, basePrice, tipAmount, totalPrice, isActive, createdAt, updatedAt }` |
-| `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, total, baristaId?, preparedAt?, createdAt, updatedAt }` |
+| `products` | autogenerado | `{ name, description, category, subcategory?, variants, additions, basePrice, isActive, createdAt, updatedAt }` |
+| `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, observations, subtotal, tipPercentage, tipValue, tipAmount, total, baristaId, preparedAt, createdAt, updatedAt }` |
 
 **El ID de `users` es el email, no el UID de Firebase Auth.** `firestore.rules` resuelve el rol con `get(/databases/$(database)/documents/users/$(request.auth.token.email))`, así que cambiar esa clave rompería toda la autorización.
 
@@ -231,7 +247,30 @@ Tres colecciones planas, sin subcolecciones. Refleja el estado real de la base d
 
 ## 6. Gestión de Contenido
 
-No aplica para esta versión. El catálogo de productos y precios es administrado directamente por el perfil de Administrador a través de formularios reactivos del módulo `/admin`.
+El catálogo de productos se administra desde `/admin/products`, con formularios reactivos, y también se carga en bloque desde un documento externo de **Google Sheets** (Tarea 29, 2026-09-20) que es la fuente de verdad compartida entre tres destinos: el punto de venta, la lista de precios pública de letiende.co (`/menu.json`, §12) y la carta impresa.
+
+El documento de Google Sheets tiene dos hojas:
+
+- **`datos`** — listado plano de productos. El administrador lo exporta como XLSX y lo carga en Comandante (botón "Cargar Excel" en `/admin/products`). Es lo que se persiste en `/products`.
+- **`canva`** — conectada dinámicamente a [Canva](https://canva.com) para generar la carta impresa en PDF. Sus nombres y precios se obtienen de `datos` mediante fórmulas o un script. **Comandante no la lee.**
+
+Columnas de la hoja `datos` y de la plantilla descargable (`descargar plantilla`, `src/app/features/admin/products/products.component.ts`):
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `name` | texto | Obligatorio. Fila sin nombre se omite en silencio. |
+| `additions` | lista separada por comas | Vacío si no aplica. Ej: `leche_vegetal, licor` |
+| `variants` | lista separada por comas | Vacío si no aplica. No alteran el precio. |
+| `description` | texto | Opcional. Se publica en `/menu.json`. |
+| `category` | enum | Una de las 7 categorías raíz. |
+| `subcategory` | enum | Obligatoria salvo en `comida` y `reposteria`. |
+| `basePrice` | número | PVP sin propina. |
+| `additionPrices` | lista de números | **Paralela a `additions`**: misma cantidad de elementos. |
+| `active` | booleano | Se mapea al campo `isActive` del producto. |
+
+El parseo y la validación de estas columnas viven en `src/app/features/admin/products/import-parsers.ts` (funciones puras, con pruebas en `import-parsers.spec.ts`): rechazan la importación completa del archivo si `additionPrices` no tiene la misma cantidad de elementos que `additions`, si algún precio no es finito o es negativo, si hay variantes o adiciones duplicadas en una fila, o si `active` no es interpretable como booleano — nada se escribe hasta que todas las filas son válidas.
+
+**El importador es *upsert*, no sincronización total:** crea productos nuevos y actualiza los existentes (por la clave `nombre+categoría+subcategoría`), pero **no archiva** los que dejen de aparecer en la hoja. Decisión explícita (ver `docs/cambio-en-modelo-de-datos.md`, sección "Decisiones tomadas"): para retirar un producto hay que archivarlo desde Comandante o recargar el catálogo completo tras un borrado masivo.
 
 ---
 
@@ -380,7 +419,7 @@ Las llaves de configuración de Firebase no son consideradas secretos de alto ri
 
 ### Propósito
 
-El sitio web público **letiende.co** (repositorio separado, fuera de este proyecto) necesita mostrar el menú del centro cultural sin autenticación ni acceso a la colección privada `/products` (que requiere sesión y contiene desglose interno de negocio como `basePrice` y `tipAmount`).
+El sitio web público **letiende.co** (repositorio separado, fuera de este proyecto) necesita mostrar el menú del centro cultural sin autenticación ni acceso a la colección privada `/products` (que requiere sesión).
 
 En vez de exponer una colección de Firestore de lectura pública abierta (riesgo: queries anónimas ilimitadas contra la cuota gratuita compartida con el POS), el menú se sirve como **JSON generado on-demand por una Cloud Function HTTPS, cacheado por el CDN de Firebase Hosting**. Así, casi ninguna petición real del sitio público llega a Firestore.
 
@@ -398,184 +437,7 @@ En vez de exponer una colección de Firestore de lectura pública abierta (riesg
 
 ```json
 {
-  "updatedAt": "2026-09-15T18:30:00.000Z",
-  "items": [
-    {
-      "name": "Cerveza Artesanal",
-      "category": "cervezas",
-      "subcategory": "artesanales",
-      "totalPrice": 15000
-    }
-  ]
-}
-```
-
-| Campo | Tipo | Descripción |
-| :--- | :--- | :--- |
-| `updatedAt` | `string` (ISO 8601) | Momento exacto en que se generó la respuesta. |
-| `items` | `array` | Lista de productos activos. |
-| `items[].name` | `string` | Nombre del producto. |
-| `items[].category` | `string` | Categoría raíz (`bebidas`, `cocteles`, `licores`, `cervezas`, `comida`, `reposteria`, `ofertas`). |
-| `items[].subcategory` | `string \| null` | Subcategoría, o `null` si la categoría no aplica subcategorías. |
-| `items[].totalPrice` | `number` | Precio final a cobrar (ya incluye propina discriminada). |
-
-**Campos deliberadamente excluidos:** `basePrice`, `tipAmount`, `id`, `createdAt`, `updatedAt` por ítem, o cualquier otro campo interno de `/products`.
-
-### Consumo desde letiende.co
-
-El sitio público debe consumir el endpoint con un `fetch` simple, sin autenticación ni credenciales:
-
-```js
-const res = await fetch('https://comandante.letiende.co/menu.json');
-const { updatedAt, items } = await res.json();
-```
-
-### Permisos
-
-No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colección de Firestore, sino una función HTTPS que consulta `/products` con el Admin SDK, que ignora las reglas de seguridad del cliente. La lectura es pública y sin autenticación; el endpoint es de solo lectura y no acepta escrituras de ningún tipo.
-
----
-
-## 13. Modelo de datos objetivo (Tareas 29-31 — pendiente de implementación)
-
-> **Esta sección describe lo que todavía NO existe.** Las §4.3, §5 y §12 describen el sistema desplegado hoy. A medida que se completen las Tareas 29, 30 y 31 de `TODO.md`, cada parte de esta sección se traslada a la sección definitiva que le corresponde y esta §13 se va acortando hasta desaparecer.
->
-> Origen y justificación: `docs/cambio-en-modelo-de-datos.md`.
-
-### 13.1. Por qué cambia el modelo
-
-El catálogo de productos de Comandante deja de ser solo el menú interno del POS y pasa a ser, simultáneamente:
-
-1. el catálogo del punto de venta,
-2. la lista de precios pública de **letiende.co** (vía `GET /menu.json`), y
-3. la fuente de datos de la **carta física** de Le Tiende (vía una hoja de Google Sheets conectada a Canva).
-
-Un precio con la propina ya embebida (`totalPrice`) sirve para el primer uso pero no para los otros dos: en una carta pública el cliente debe ver el precio del producto, no un precio inflado con una propina que legalmente es voluntaria. Por eso la propina abandona el producto y pasa al pedido, donde se calcula como un porcentaje editable.
-
-### 13.2. Fuente de verdad del catálogo
-
-Un documento de **Google Sheets** con dos hojas:
-
-- **`datos`** — listado plano de productos. El administrador lo exporta como XLSX y lo carga en Comandante con el importador existente. Es lo que se persiste en `/products`.
-- **`canva`** — conectada dinámicamente a [Canva](https://canva.com) para generar la carta impresa en PDF. Sus nombres y precios se obtienen de `datos` mediante fórmulas o un script. **Comandante no la lee.**
-
-Columnas de la hoja `datos` y de la plantilla descargable:
-
-| Columna | Tipo | Notas |
-| :--- | :--- | :--- |
-| `name` | texto | Obligatorio. Fila sin nombre se omite en silencio. |
-| `additions` | lista separada por comas | Vacío si no aplica. Ej: `leche_vegetal, licor` |
-| `variants` | lista separada por comas | Vacío si no aplica. No alteran el precio. |
-| `description` | texto | Opcional. Se publica en `/menu.json`. |
-| `category` | enum | Una de las 7 categorías raíz. |
-| `subcategory` | enum | Obligatoria salvo en `comida` y `reposteria`. |
-| `basePrice` | número | PVP sin propina. |
-| `additionPrices` | lista de números | **Paralela a `additions`**: misma cantidad de elementos. |
-| `active` | booleano | Se mapea al campo `isActive` del producto. |
-
-Desaparece la columna `tipAmount`. El importador conserva su comportamiento de *upsert*: crea y actualiza, pero no archiva los productos que ya no aparezcan en la hoja.
-
-### 13.3. Interfaces objetivo
-
-```typescript
-// src/app/core/models/product.model.ts
-export interface ProductAddition {
-  addition: string;        // 'leche_vegetal'
-  additionPrice: number;   // 3500
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description: string | null;
-  category: ProductCategory;
-  subcategory?: ProductSubcategory | null;
-  variants: string[];              // [] si no aplica
-  additions: ProductAddition[];    // [] si no aplica
-  basePrice: number;
-  isActive: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-// Eliminados respecto a la §4.3: tipAmount, totalPrice
-
-// src/app/core/models/order-item.model.ts
-export interface OrderItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  variant: string | null;          // obligatorio si el producto tiene variants
-  additions: ProductAddition[];    // las seleccionadas, con su precio
-  unitPrice: number;               // basePrice + Σ additionPrice
-  itemStatus: ItemStatus;
-}
-// Eliminado respecto a la §4.3: tipAmount
-
-// src/app/core/models/order.model.ts
-export type PaymentMethod = 'datafono' | 'qr' | 'efectivo';
-
-export interface Order {
-  // …campos actuales de la §4.3…
-  observations: string;      // '' si el mesero no escribió nada
-  subtotal: number;          // Σ unitPrice × quantity
-  tipPercentage: number;     // 10 por defecto
-  tipValue: number;          // 0 por defecto (valor absoluto)
-  tipAmount: number;         // Math.round(subtotal × tipPercentage / 100) + tipValue
-  total: number;             // subtotal + tipAmount
-  baristaId: string | null;  // se declara: hoy se escribe sin estar en la interfaz
-  preparedAt: Timestamp | null;
-}
-```
-
-El peso colombiano no maneja centavos: la propina porcentual se redondea con `Math.round` **antes** de sumarle `tipValue`.
-
-La propina deja de re-derivarse por resta sobre los ítems (§4.3): se lee directamente de `order.subtotal` y `order.tipAmount`, tanto en la vista del mesero como en el consolidado del administrador.
-
-### 13.4. Medios de pago
-
-`card | cash | nequi | daviplata` se reemplaza por:
-
-| Valor | Etiqueta | Nota |
-| :--- | :--- | :--- |
-| `datafono` | Datáfono | Terminal físico. Requiere discriminar consumo y propina al digitar. |
-| `qr` | QR | **SonoQR de Bold**, adquirido por Le Tiende. Agrupa billeteras virtuales (Nequi, Daviplata, etc.) y transferencias electrónicas en un solo medio. |
-| `efectivo` | Efectivo | |
-
-La lista vive en un archivo nuevo, `src/app/core/models/payment-methods.ts`, como fuente única de verdad, siguiendo el patrón ya establecido por `category-tree.ts`. Hoy está duplicada y hardcodeada en `waiter.component.ts` (action sheet de cobro) y en `admin-reports.component.ts` (etiqueta y color del badge).
-
-`firestore.rules` no valida el valor de `paymentMethod`, así que este cambio no requiere tocar las reglas.
-
-### 13.5. Reglas de seguridad
-
-El mesero necesita poder corregir la propina de un pedido ya enviado a la barra, mientras no esté cobrado. Helper nuevo en `firestore.rules`:
-
-```javascript
-function onlyUpdatesTip() {
-  let allowed = ['tipPercentage', 'tipValue', 'tipAmount', 'total', 'updatedAt'];
-  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
-      && resource.data.paid == false;
-}
-```
-
-Se suma a las cláusulas existentes de `/orders/{orderId}`:
-
-```javascript
-allow update: if isAdmin()
-    || (isBarista() && onlyUpdatesOrderStatus())
-    || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid() || onlyUpdatesTip()));
-```
-
-El mesero sigue **sin** poder modificar los ítems de un pedido enviado, ni tocar un pedido ya cobrado.
-
-Adicionalmente, `isValidProductData()` amplía su validación (hoy solo comprueba `category`/`subcategory`) para exigir que `basePrice` sea un número no negativo y que `variants` y `additions` sean listas.
-
-### 13.6. Nuevo contrato de `GET /menu.json`
-
-Reemplaza sin compatibilidad hacia atrás al de la §12. En el momento de escribir esto **letiende.co todavía no consume el endpoint**, así que no se conserva ningún campo del contrato anterior.
-
-```json
-{
-  "updatedAt": "2026-09-19T23:45:24.778Z",
+  "updatedAt": "2026-09-20T18:30:00.000Z",
   "items": [
     {
       "name": "Capuchino",
@@ -595,20 +457,82 @@ Reemplaza sin compatibilidad hacia atrás al de la §12. En el momento de escrib
 
 | Campo | Tipo | Descripción |
 | :--- | :--- | :--- |
-| `updatedAt` | `string` (ISO 8601) | Momento en que se generó la respuesta. |
+| `updatedAt` | `string` (ISO 8601) | Momento exacto en que se generó la respuesta. |
+| `items` | `array` | Lista de productos activos. |
 | `items[].name` | `string` | Nombre del producto. |
 | `items[].description` | `string \| null` | Descripción para la carta digital. |
 | `items[].additions` | `{ addition, additionPrice }[]` | Adiciones disponibles y su costo. `[]` si no aplica. |
 | `items[].variants` | `string[]` | Variantes disponibles. No alteran el precio. `[]` si no aplica. |
-| `items[].category` | `string` | Categoría raíz. |
-| `items[].subcategory` | `string \| null` | `null` si la categoría no admite subcategorías. |
-| `items[].basePrice` | `number` | Precio del producto, **sin propina**. |
+| `items[].category` | `string` | Categoría raíz (`bebidas`, `cocteles`, `licores`, `cervezas`, `comida`, `reposteria`, `ofertas`). |
+| `items[].subcategory` | `string \| null` | Subcategoría, o `null` si la categoría no aplica subcategorías. |
+| `items[].basePrice` | `number` | Precio del producto, **sin propina** (desde la Tarea 29 la propina vive en el pedido, no en el producto). |
 
-**Campos excluidos deliberadamente:** `id`, `isActive`, `createdAt`, `updatedAt` por ítem. Se mantienen sin cambio el filtro `isActive == true`, el `Cache-Control: public, max-age=300, s-maxage=300`, el `Access-Control-Allow-Origin: *`, el `405` en métodos distintos de `GET` y el `500` ante fallo de Firestore.
+**Campos deliberadamente excluidos:** `id`, `isActive`, `createdAt`, `updatedAt` por ítem, o cualquier otro campo interno de `/products`.
 
-**Cambio de semántica importante para el consumidor:** el contrato anterior entregaba `totalPrice` (precio con la propina ya incluida). El nuevo entrega `basePrice` (precio sin propina). Para un mismo producto, el número que llega es más bajo, no es el mismo dato con otro nombre.
+> **Cambio de contrato (Tarea 29, 2026-09-20):** el formato anterior entregaba `totalPrice` (precio con la propina ya incluida). Este formato entrega `basePrice` (sin propina) y suma `description`, `additions` y `variants`. Se rompió sin capa de compatibilidad porque letiende.co todavía no consumía el endpoint en ese momento.
+
+### Consumo desde letiende.co
+
+El sitio público debe consumir el endpoint con un `fetch` simple, sin autenticación ni credenciales:
+
+```js
+const res = await fetch('https://comandante.letiende.co/menu.json');
+const { updatedAt, items } = await res.json();
+```
+
+### Permisos
+
+No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colección de Firestore, sino una función HTTPS que consulta `/products` con el Admin SDK, que ignora las reglas de seguridad del cliente. La lectura es pública y sin autenticación; el endpoint es de solo lectura y no acepta escrituras de ningún tipo.
 
 ---
+
+## 13. Cambios pendientes (Tareas 30, 31 y 33)
+
+> Lo que ya se implementó del cambio de modelo de datos (Tarea 29, 2026-09-20: variantes, adiciones, descripción, propina a nivel de pedido, `/menu.json` v2) está en las §4.3, §5, §6 y §12. Esta sección solo cubre lo que falta. Origen y justificación completa en `docs/cambio-en-modelo-de-datos.md`.
+
+### 13.1. Selección de variantes y adiciones en el pedido (Tarea 30)
+
+`OrderItem` ya declara `variant`/`additions` (§4.3), pero el mesero todavía no puede elegirlos: `waiter.component.ts` crea cada ítem con `variant: null, additions: []`. Falta la UI — botones **+ Variante** (selección única, obligatoria si `Product.variants` no está vacío) y **+ Adición** (selección múltiple, opcional) en la *card* del producto — y el campo **Observaciones** del pedido, visible para barista y administrador.
+
+### 13.2. Medios de pago (Tarea 31)
+
+`card | cash | nequi | daviplata` se reemplaza por:
+
+| Valor | Etiqueta | Nota |
+| :--- | :--- | :--- |
+| `datafono` | Datáfono | Terminal físico. Requiere discriminar consumo y propina al digitar. |
+| `qr` | QR | **SonoQR de Bold**, adquirido por Le Tiende. Agrupa billeteras virtuales (Nequi, Daviplata, etc.) y transferencias electrónicas en un solo medio. |
+| `efectivo` | Efectivo | |
+
+La lista vive en un archivo nuevo, `src/app/core/models/payment-methods.ts`, como fuente única de verdad, siguiendo el patrón ya establecido por `category-tree.ts`. Hoy está duplicada y hardcodeada en `waiter.component.ts` (action sheet de cobro) y en `admin-reports.component.ts` (etiqueta y color del badge).
+
+`firestore.rules` no valida el valor de `paymentMethod`, así que este cambio no requiere tocar las reglas.
+
+### 13.3. Propina editable después de enviar el pedido (Tarea 31)
+
+El mesero necesita poder corregir la propina de un pedido ya enviado a la barra, mientras no esté cobrado. `OrderService.createOrder()` ya persiste `tipPercentage`/`tipValue`/`tipAmount` (§4.3, Tarea 29) con un 10% fijo; falta el diálogo para editarlos y el helper de reglas que lo autorice:
+
+```javascript
+function onlyUpdatesTip() {
+  let allowed = ['tipPercentage', 'tipValue', 'tipAmount', 'total', 'updatedAt'];
+  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+      && resource.data.paid == false;
+}
+```
+
+Se suma a las cláusulas existentes de `/orders/{orderId}`:
+
+```javascript
+allow update: if isAdmin()
+    || (isBarista() && onlyUpdatesOrderStatus())
+    || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid() || onlyUpdatesTip()));
+```
+
+El mesero sigue **sin** poder modificar los ítems de un pedido enviado, ni tocar un pedido ya cobrado.
+
+### 13.4. Pruebas de `firestore.rules` (Tarea 33)
+
+Se hace **después** de la Tarea 31, para no probar dos veces el mismo helper: cubre con `@firebase/rules-unit-testing` la matriz de rol × colección × operación, incluyendo `onlyUpdatesTip()`. Detalle completo en §14 y en `TODO.md` Tarea 33.
 
 ## 14. Estrategia de Pruebas
 

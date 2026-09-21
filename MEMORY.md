@@ -8,13 +8,13 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 
 | Parámetro | Detalle |
 | :--- | :--- |
-| **Estado** | En producción, todavía sin estreno en operación real. Todo lo que hay en Firestore son datos de prueba. |
+| **Estado** | En producción. El catálogo de productos ya tiene datos reales completos (recargado por el usuario en la Tarea 29, 2026-09-20, con el modelo nuevo de variantes/adiciones); los pedidos en Firestore siguen siendo de prueba — la operación real del punto de venta aún no se ha estrenado. |
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
-| **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado. |
+| **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado — el canal de preview de cada PR comparte el mismo Firestore que producción. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 29 (ver `TODO.md` §3). |
+| **Tareas completadas** | 30 (ver `TODO.md` §3). |
 | **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. Los PR reciben un canal de vista previa (solo Hosting), y desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**: una suite en rojo bloquea el merge. |
-| **Última Sesión** | 2026-09-20 — Tarea 32 (gate de CI) implementada y verificada, PR #40. |
+| **Última Sesión** | 2026-09-20 — Tarea 29 (variantes, adiciones, propina al pedido) implementada y verificada en preview con datos reales, PR #41. |
 
 ---
 
@@ -44,9 +44,10 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Envío inmediato de comandas a la barra para inicio de preparación antes del pago.
 - `[x]` Vista de cobro posterior y registro de pago con discriminación.
 - `[x]` Listado en tiempo real de estados de pedidos y estado de pago, con alerta al quedar listo.
+- `[x]` Propina del 10 % calculada a nivel de pedido, a partir del subtotal *(Tarea 29)* — todavía no editable por el mesero: eso llega en la Tarea 31.
 - `[ ]` Selección de variantes y adiciones al añadir un producto *(Tarea 30)*.
 - `[ ]` Observaciones del pedido dirigidas al barista *(Tarea 30)*.
-- `[ ]` Propina del 10 % editable por porcentaje y valor absoluto *(Tarea 31)*.
+- `[ ]` Propina editable por porcentaje y valor absoluto *(Tarea 31)*.
 - `[ ]` Medios de pago Datáfono / QR / Efectivo *(Tarea 31)*.
 
 ### Módulo del Barista (Vista Barra)
@@ -62,13 +63,13 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Control de usuarios (lista blanca de correos autorizados y roles).
 - `[x]` Consolidado diario de ventas con rango de fecha/hora y exportación a XLSX.
 - `[x]` Endpoint público `/menu.json` para la carta de letiende.co.
-- `[ ]` Producto con descripción, variantes y adiciones *(Tarea 29)*.
-- `[ ]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro *(Tarea 29)*.
+- `[x]` Producto con descripción, variantes y adiciones *(Tarea 29, PR #41, 2026-09-20)*.
+- `[x]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro — reestructurada por el usuario y con el primer paquete completo cargado vía Excel el mismo día.
 
 ### Calidad y Pruebas
 - `[x]` Runner de pruebas configurado (Vitest vía `@angular/build:unit-test`), con el parche de `@ionic/angular` que lo desbloqueó.
 - `[x]` **El CI ejecuta la suite y bloquea el merge** *(Tarea 32, PR #40, 2026-09-20)*.
-- `[ ]` Pruebas de las funciones puras de propina y del parser del Excel *(dentro de las Tareas 29 y 31)*.
+- `[x]` Pruebas de las funciones puras de propina y del parser del Excel *(Tarea 29, `order-totals.spec.ts` + `import-parsers.spec.ts`, 28 casos)*.
 - `[ ]` Pruebas de `firestore.rules` con el emulador *(Tarea 33)*.
 - `[—]` Pruebas de componentes — **descartadas a conciencia**, ver ADR-008.
 - `[—]` Pruebas E2E — diferidas, acotadas a un solo flujo. Ver ADR-008.
@@ -115,14 +116,14 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 
 ### ADR-006: Propina Porcentual a Nivel de Pedido, Editable por el Mesero
 *   **Fecha:** 2026-09-19
-*   **Estado:** Aprobado. **Reemplaza al ADR-003.**
+*   **Estado:** Aprobado. **Reemplaza al ADR-003.** El cálculo (`subtotal`/`tipPercentage`/`tipValue`/`tipAmount`/`total`, 10 % por defecto) está implementado desde la Tarea 29 (2026-09-20, PR #41). La edición por el mesero después de enviar el pedido llega en la Tarea 31.
 *   **Decisión:** La propina deja de ser un valor fijo precalculado por producto (`Product.tipAmount` / `Product.totalPrice`) y pasa a calcularse sobre el pedido completo: 10 % del subtotal por defecto, ajustable por el mesero mediante un porcentaje y un valor absoluto que se suman. El pedido almacena `subtotal`, `tipPercentage`, `tipValue`, `tipAmount` y `total`.
 *   **Razón:** El ADR-003 era correcto mientras el catálogo era solo el menú interno del punto de venta. Dejó de serlo cuando el mismo catálogo pasó a alimentar la lista de precios pública de letiende.co y la carta impresa: un precio de carta con la propina ya embebida es incorrecto de cara al cliente, porque la propina es voluntaria por ley (ver **Propina (Exenta)** en el glosario del `PRD.md`). Además, un 10 % calculado es más flexible que un valor fijo por producto que hay que mantener a mano en 116 filas.
 *   **Consecuencias Conocidas:** La discriminación contable para el datáfono pasa de ser una *resta* (`unitPrice − tipAmount`) a una *suma* (`subtotal + tipAmount`), lo que simplifica los reportes pero obliga a tocar el consolidado del administrador. El mesero necesita permiso para modificar la propina de un pedido ya enviado a la barra: se resuelve con un helper acotado en `firestore.rules` que solo deja tocar los campos de propina y solo mientras `paid == false`. Los pedidos con el formato anterior dejan de ser legibles por los reportes; se borran, por tratarse únicamente de datos de prueba.
 
 ### ADR-007: Google Sheets como Fuente de Verdad del Catálogo
 *   **Fecha:** 2026-09-19
-*   **Estado:** Aprobado.
+*   **Estado:** Aprobado e implementado (Tarea 29, 2026-09-20, PR #41). El usuario ya reestructuró la hoja `datos` con las columnas nuevas y cargó el primer paquete completo de productos vía Excel.
 *   **Decisión:** El catálogo maestro vive en un documento de Google Sheets con dos hojas. La hoja `datos` se exporta como XLSX y se carga en Comandante con el importador existente; es la que se persiste en `/products` y se publica en `/menu.json`. La hoja `canva` se conecta dinámicamente a Canva para generar la carta impresa en PDF, y obtiene sus nombres y precios de `datos` mediante fórmulas. Comandante no lee la hoja `canva`.
 *   **Razón:** Un único punto de edición para los tres destinos del catálogo (punto de venta, carta digital de letiende.co y carta impresa), en una herramienta que el administrador ya sabe usar y que no requiere desplegar nada para cambiar un precio.
 *   **Consecuencias Conocidas:** El importador se mantiene como *upsert*: crea y actualiza, pero **no archiva** los productos que desaparezcan de la hoja. Es una decisión explícita, no una omisión — para retirar un producto hay que archivarlo desde Comandante o recargar el catálogo completo tras un borrado masivo. Comandante y la hoja pueden divergir si alguien edita un producto directamente en el panel de administración; la hoja sigue siendo la referencia a la que volver.
@@ -247,8 +248,9 @@ Rutas relativas a la raíz del repositorio.
 
 - **Fecha:** 2026-09-20
 - **Qué se hizo:**
-  - Implementada la **Tarea 32**: añadido el paso `npm test -- --watch=false` antes del build en ambos jobs de `.github/workflows/deploy-hosting.yml` (`deploy_live` y `preview`). Hasta ahora el CI nunca ejecutaba la suite.
-  - Verificado que el gate bloquea de verdad, con el **exit code real** del proceso (sin pipes que lo enmascaren — el primer intento de correr `npm test` en la sesión anterior se había interrumpido por precaución, sin necesidad: aquí se comprobó con `--watch=false` que el comando termina solo): la suite en su estado actual sale con 0; rompiendo a propósito la única prueba existente (`app.component.spec.ts`, `toBeTruthy()` → `toBeFalsy()`) sale con 1. La prueba se revirtió antes de comitear.
-  - Confirmado también en el entorno real de GitHub Actions: el job `preview` del PR #40 ejecutó el paso nuevo y pasó en verde.
-  - A pedido explícito del usuario ("vamos a dar pasos completos por cada tarea"), la documentación, la memoria y el motor JIT se actualizaron **dentro del mismo PR** que el cambio de código, en vez de en un PR de documentación separado (el patrón que había seguido la Tarea 27/28, ver PR #37). Movida la Tarea 32 al historial de `TODO.md` §3, sacada de la cola de §2.5, actualizado el diagrama de orden de ejecución (ya sin el 32) y `tech-specs.md` §14.
-- **Próxima Tarea:** **Tarea 29** — modelo de producto con variantes y adiciones, importador de Excel actualizado y `/menu.json` v2. Antes de empezar, verificar si el usuario ya reestructuró la hoja `datos` del Google Sheets. El orden restante de la cola es **29 → 30 → 31 → 33**.
+  - Adoptado un ciclo de trabajo explícito por tarea, pedido por el usuario: *feature branch* → PR → despliegue automático a un canal de preview → revisión del usuario (con ajustes si hacen falta, empujados al mismo PR) → **solo al confirmar que funciona**, se actualizan documentación/memoria/motor JIT y se empujan también al mismo PR → el usuario fusiona y borra la rama → al confirmar el usuario que el deploy a producción salió bien, se limpia la rama local.
+  - Implementada la **Tarea 29** siguiendo ese ciclo: `Product` gana `description`/`variants`/`additions`, pierde `tipAmount`/`totalPrice`; la propina se traslada al pedido (`subtotal`/`tipPercentage`/`tipValue`/`tipAmount`/`total`) vía la función pura nueva `computeOrderTotals()`; importador de Excel con las columnas nuevas y parsers extraídos a `import-parsers.ts` (antes intestables); corregido en el camino un bug real (`applyImport()` solo escribía `isActive` en filas nuevas); `firestore.rules` y la Cloud Function `publicMenu` actualizados. 28 pruebas nuevas.
+  - PR #41 abierto, con documentación deliberadamente **sin tocar** hasta la confirmación del usuario (siguiendo el ciclo acordado).
+  - El usuario reestructuró la hoja `datos` del Google Sheets y cargó el primer paquete completo de productos vía Excel contra el canal de preview del PR, confirmando que todo funciona — **cierra, de paso, la reclasificación de los 116 productos pendiente desde la Tarea 27**. Importante: el canal de preview comparte el mismo Firestore que producción (no hay staging aislado), así que esa carga ya es el catálogo real.
+  - Con la confirmación, se actualizó la documentación en el mismo PR: `tech-specs.md` (§4.3, §5, §6 y §12 reciben lo implementado; §13 se recorta a solo lo pendiente de las Tareas 30/31/33; corregida además una inconsistencia en la Tarea 31 de `TODO.md`, que decía re-extraer `computeOrderTotals()` cuando ya se extrajo en la 29), `TODO.md` (Tarea 29 movida al historial, cola actualizada) y este `MEMORY.md` (checklist, ADR-006/007 marcados como implementados, tabla de estado).
+- **Próxima Tarea:** **Tarea 30** — flujo de pedido del mesero: selección de variantes y adiciones, y observaciones dirigidas al barista. El orden restante de la cola es **30 → 31 → 33**.

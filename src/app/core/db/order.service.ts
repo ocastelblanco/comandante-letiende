@@ -16,6 +16,11 @@ import {
 import { Auth } from '@angular/fire/auth';
 import { Order, OrderStatus, PaymentMethod } from '../models/order.model';
 import { OrderItem } from '../models/order-item.model';
+import { computeOrderTotals } from '../models/order-totals';
+
+// Propina sugerida por defecto al crear un pedido — editable por el mesero
+// más adelante (Tarea 31), tanto en porcentaje como en valor absoluto.
+const DEFAULT_TIP_PERCENTAGE = 10;
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -80,15 +85,25 @@ export class OrderService {
 
   createOrder(tableNumber: string, items: OrderItem[]): Promise<unknown> {
     const user = this.auth.currentUser;
-    const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const { tipAmount, total } = computeOrderTotals(subtotal, DEFAULT_TIP_PERCENTAGE, 0);
     return addDoc(this.colRef, {
       tableNumber,
       items,
       status: 'pending' as OrderStatus,
       paid: false,
+      paymentMethod: null,
+      paidAt: null,
       waiterId: user?.email ?? '',
       waiterName: user?.displayName ?? '',
+      observations: '',
+      subtotal,
+      tipPercentage: DEFAULT_TIP_PERCENTAGE,
+      tipValue: 0,
+      tipAmount,
       total,
+      baristaId: null,
+      preparedAt: null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

@@ -1,5 +1,5 @@
 import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, effect, inject, Input, OnInit, output, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs';
 import {
@@ -10,13 +10,18 @@ import {
   IonSelect,
   IonSelectOption,
   IonSpinner,
-  IonText,
+  IonTextarea,
   ToastController,
 } from '@ionic/angular/standalone';
 import { DecimalPipe } from '@angular/common';
 import { ProductService } from '../../../core/db/product.service';
 import { Product, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
 import { CATEGORY_TREE, categoryRequiresSubcategory, getCategoryNode } from '../../../core/models/category-tree';
+
+type AdditionGroup = FormGroup<{
+  addition: FormControl<string>;
+  additionPrice: FormControl<number>;
+}>;
 
 @Component({
   selector: 'app-product-form',
@@ -27,11 +32,11 @@ import { CATEGORY_TREE, categoryRequiresSubcategory, getCategoryNode } from '../
     IonItem,
     IonLabel,
     IonInput,
+    IonTextarea,
     IonSelect,
     IonSelectOption,
     IonButton,
     IonSpinner,
-    IonText,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
@@ -39,6 +44,11 @@ import { CATEGORY_TREE, categoryRequiresSubcategory, getCategoryNode } from '../
       <ion-item>
         <ion-label position="stacked">Nombre *</ion-label>
         <ion-input formControlName="name" placeholder="Ej. Mojito" />
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Descripción</ion-label>
+        <ion-textarea formControlName="description" placeholder="Para la carta impresa y digital" [autoGrow]="true" rows="2" />
       </ion-item>
 
       <ion-item>
@@ -66,17 +76,73 @@ import { CATEGORY_TREE, categoryRequiresSubcategory, getCategoryNode } from '../
         <ion-input type="number" formControlName="basePrice" min="0" />
       </ion-item>
 
-      <ion-item>
-        <ion-label position="stacked">Propina (COP) *</ion-label>
-        <ion-input type="number" formControlName="tipAmount" min="0" />
-      </ion-item>
+      <!-- Variantes: opciones excluyentes que NO alteran el precio -->
+      <div class="px-4 pt-4">
+        <p style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+                  color:var(--ion-color-medium);margin:0 0 6px">
+          Variantes
+        </p>
+        @if (variantsArray.controls.length > 0) {
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+            @for (ctrl of variantsArray.controls; track $index) {
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                           border-radius:9999px;background:var(--ion-color-light);
+                           font-size:.8rem;color:var(--ion-color-dark)">
+                {{ ctrl.value }}
+                <button type="button" (click)="removeVariant($index)"
+                        style="border:none;background:none;cursor:pointer;color:var(--ion-color-danger);
+                               font-size:.85rem;line-height:1;padding:0">✕</button>
+              </span>
+            }
+          </div>
+        }
+        <div style="display:flex;gap:8px">
+          <input [value]="newVariantName()"
+                 (input)="newVariantName.set($any($event.target).value)"
+                 (keydown.enter)="$event.preventDefault(); addVariant()"
+                 placeholder="Ej. amber_ale"
+                 style="flex:1;border:1px solid var(--ion-color-light);border-radius:8px;
+                        padding:8px 10px;font-size:.85rem" />
+          <ion-button type="button" fill="outline" size="small" (click)="addVariant()">+ Añadir</ion-button>
+        </div>
+      </div>
 
-      <ion-item lines="none">
-        <ion-label>Total cobro en datáfono</ion-label>
-        <ion-text slot="end" class="font-bold text-lg">
-          $&nbsp;{{ totalPrice() | number : '1.0-0' }}
-        </ion-text>
-      </ion-item>
+      <!-- Adiciones: extras opcionales que SÍ suman al precio base -->
+      <div class="px-4 pt-4">
+        <p style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+                  color:var(--ion-color-medium);margin:0 0 6px">
+          Adiciones
+        </p>
+        @if (additionsArray.controls.length > 0) {
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+            @for (group of additionsArray.controls; track $index) {
+              <div style="display:flex;align-items:center;justify-content:space-between;
+                          padding:6px 10px;border-radius:8px;background:var(--ion-color-light)">
+                <span style="font-size:.85rem;color:var(--ion-color-dark)">
+                  {{ group.controls.addition.value }} — $ {{ group.controls.additionPrice.value | number:'1.0-0' }}
+                </span>
+                <button type="button" (click)="removeAddition($index)"
+                        style="border:none;background:none;cursor:pointer;color:var(--ion-color-danger);
+                               font-size:.85rem;line-height:1;padding:0">✕</button>
+              </div>
+            }
+          </div>
+        }
+        <div style="display:flex;gap:8px">
+          <input [value]="newAdditionName()"
+                 (input)="newAdditionName.set($any($event.target).value)"
+                 placeholder="Ej. leche_vegetal"
+                 style="flex:1;border:1px solid var(--ion-color-light);border-radius:8px;
+                        padding:8px 10px;font-size:.85rem" />
+          <input type="number" min="0"
+                 [value]="newAdditionPrice()"
+                 (input)="onNewAdditionPriceInput($any($event.target).value)"
+                 placeholder="Precio"
+                 style="width:96px;border:1px solid var(--ion-color-light);border-radius:8px;
+                        padding:8px 10px;font-size:.85rem" />
+          <ion-button type="button" fill="outline" size="small" (click)="addAddition()">+ Añadir</ion-button>
+        </div>
+      </div>
 
       <div class="flex gap-2 px-4 pt-4">
         <ion-button expand="block" type="submit" [disabled]="form.invalid || saving()">
@@ -106,21 +172,29 @@ export class ProductFormComponent implements OnInit {
 
   protected readonly categoryOptions = CATEGORY_TREE;
 
+  protected readonly variantsArray = new FormArray<FormControl<string>>([]);
+  protected readonly additionsArray = new FormArray<AdditionGroup>([]);
+
+  // Staging fields para los inputs de "añadir variante/adición" — no forman
+  // parte del formulario reactivo, solo controlan el input antes de empujar
+  // el valor al FormArray correspondiente.
+  protected readonly newVariantName = signal('');
+  protected readonly newAdditionName = signal('');
+  protected readonly newAdditionPrice = signal<number | null>(null);
+
   form = this.fb.nonNullable.group({
     name: ['', Validators.required],
+    description: [''],
     category: ['bebidas' as ProductCategory, Validators.required],
     subcategory: this.fb.control<ProductSubcategory | null>(null),
     basePrice: [0, [Validators.required, Validators.min(0)]],
-    tipAmount: [0, [Validators.required, Validators.min(0)]],
+    variants: this.variantsArray,
+    additions: this.additionsArray,
   });
 
   private readonly formValues = toSignal(
     this.form.valueChanges.pipe(startWith(this.form.getRawValue())),
     { initialValue: this.form.getRawValue() },
-  );
-
-  readonly totalPrice = computed(
-    () => (this.formValues().basePrice ?? 0) + (this.formValues().tipAmount ?? 0),
   );
 
   private readonly selectedCategory = computed(
@@ -162,28 +236,72 @@ export class ProductFormComponent implements OnInit {
     if (this.product) {
       this.form.patchValue({
         name: this.product.name,
+        description: this.product.description ?? '',
         category: this.product.category,
         subcategory: this.product.subcategory ?? null,
         basePrice: this.product.basePrice,
-        tipAmount: this.product.tipAmount,
       });
+      for (const variant of this.product.variants) {
+        this.variantsArray.push(new FormControl(variant, { nonNullable: true, validators: Validators.required }));
+      }
+      for (const addition of this.product.additions) {
+        this.additionsArray.push(this.buildAdditionGroup(addition.addition, addition.additionPrice));
+      }
     }
+  }
+
+  protected addVariant(): void {
+    const value = this.newVariantName().trim();
+    if (!value) return;
+    if (this.variantsArray.controls.some((c) => c.value.toLowerCase() === value.toLowerCase())) return;
+    this.variantsArray.push(new FormControl(value, { nonNullable: true, validators: Validators.required }));
+    this.newVariantName.set('');
+  }
+
+  protected removeVariant(index: number): void {
+    this.variantsArray.removeAt(index);
+  }
+
+  protected onNewAdditionPriceInput(value: string): void {
+    this.newAdditionPrice.set(value === '' ? null : Number(value));
+  }
+
+  protected addAddition(): void {
+    const name = this.newAdditionName().trim();
+    const price = this.newAdditionPrice();
+    if (!name || price === null || !isFinite(price) || price < 0) return;
+    if (this.additionsArray.controls.some((g) => g.controls.addition.value.toLowerCase() === name.toLowerCase())) return;
+    this.additionsArray.push(this.buildAdditionGroup(name, price));
+    this.newAdditionName.set('');
+    this.newAdditionPrice.set(null);
+  }
+
+  protected removeAddition(index: number): void {
+    this.additionsArray.removeAt(index);
+  }
+
+  private buildAdditionGroup(addition: string, additionPrice: number): AdditionGroup {
+    return this.fb.nonNullable.group({
+      addition: [addition, Validators.required],
+      additionPrice: [additionPrice, [Validators.required, Validators.min(0)]],
+    });
   }
 
   async submit(): Promise<void> {
     if (this.form.invalid) return;
     this.saving.set(true);
     try {
-      const { name, category, subcategory, basePrice, tipAmount } = this.form.getRawValue();
+      const { name, description, category, subcategory, basePrice, variants, additions } = this.form.getRawValue();
       const data = {
         name,
+        description: description.trim() === '' ? null : description.trim(),
         category,
         // Se guarda `null` explícito cuando la categoría no admite
         // subcategoría para limpiar cualquier valor previo en Firestore.
         subcategory: categoryRequiresSubcategory(category) ? subcategory : null,
+        variants,
+        additions,
         basePrice,
-        tipAmount,
-        totalPrice: this.totalPrice(),
         isActive: true,
       };
       if (this.product) {

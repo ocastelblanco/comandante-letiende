@@ -51,7 +51,13 @@ service cloud.firestore {
     // Valida que `category` sea una de las 7 categorías raíz permitidas y que
     // `subcategory` sea una combinación válida para esa categoría: ausente o
     // null si la categoría no tiene subcategorías, o un valor exacto de su
-    // lista si sí las tiene.
+    // lista si sí las tiene. También exige `basePrice` numérico no negativo
+    // (la propina ya no vive en el producto desde la Tarea 29) y que
+    // `variants`/`additions` sean listas.
+    // `data` es siempre el documento resultante completo (Firestore fusiona
+    // las escrituras parciales antes de evaluar las reglas), así que esto
+    // también protege `archiveProduct()`/`toggleActive()`, que solo envían
+    // `isActive` — los demás campos ya existen en el documento previo.
     function isValidProductData(data) {
       let category = data.category;
       let allowedSubcategories = productSubcategoriesFor(category);
@@ -60,7 +66,10 @@ service cloud.firestore {
             allowedSubcategories.size() == 0
               ? (!('subcategory' in data) || data.subcategory == null)
               : (('subcategory' in data) && data.subcategory in allowedSubcategories)
-          );
+          )
+          && data.basePrice is number && data.basePrice >= 0
+          && data.variants is list
+          && data.additions is list;
     }
 
     // Los baristas solo pueden tocar campos de estado al actualizar un pedido.
