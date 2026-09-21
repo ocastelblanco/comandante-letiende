@@ -16,6 +16,7 @@ import { addIcons } from 'ionicons';
 import { barChartOutline, calendarOutline, downloadOutline, personCircleOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
+import { paymentMethodColor, paymentMethodLabel } from '../../../core/models/payment-methods';
 
 interface OrderRow {
   id: string;
@@ -321,18 +322,11 @@ export class AdminReportsComponent {
   }
 
   private paymentColor(method: string | null): string {
-    if (method === 'card') return 'var(--ion-color-secondary)';
-    if (method === 'cash') return 'var(--ion-color-tertiary)';
-    if (method === 'nequi' || method === 'daviplata') return 'var(--color-purple)';
-    return 'var(--ion-color-medium)';
+    return paymentMethodColor(method);
   }
 
   private paymentLabel(method: string | null): string {
-    if (method === 'card') return 'Datáfono';
-    if (method === 'cash') return 'Efectivo';
-    if (method === 'nequi') return 'Nequi';
-    if (method === 'daviplata') return 'Daviplata';
-    return '—';
+    return paymentMethodLabel(method);
   }
 
   private async loadReport(): Promise<void> {

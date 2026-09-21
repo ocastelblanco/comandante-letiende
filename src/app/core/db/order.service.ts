@@ -83,10 +83,16 @@ export class OrderService {
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
   }
 
-  createOrder(tableNumber: string, items: OrderItem[], observations = ''): Promise<unknown> {
+  createOrder(
+    tableNumber: string,
+    items: OrderItem[],
+    observations = '',
+    tipPercentage = DEFAULT_TIP_PERCENTAGE,
+    tipValue = 0,
+  ): Promise<unknown> {
     const user = this.auth.currentUser;
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const { tipAmount, total } = computeOrderTotals(subtotal, DEFAULT_TIP_PERCENTAGE, 0);
+    const { tipAmount, total } = computeOrderTotals(subtotal, tipPercentage, tipValue);
     return addDoc(this.colRef, {
       tableNumber,
       items,
@@ -98,13 +104,23 @@ export class OrderService {
       waiterName: user?.displayName ?? '',
       observations,
       subtotal,
-      tipPercentage: DEFAULT_TIP_PERCENTAGE,
-      tipValue: 0,
+      tipPercentage,
+      tipValue,
       tipAmount,
       total,
       baristaId: null,
       preparedAt: null,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  updateOrderTip(
+    orderId: string,
+    tip: { tipPercentage: number; tipValue: number; tipAmount: number; total: number },
+  ): Promise<void> {
+    return updateDoc(doc(this.firestore, 'orders', orderId), {
+      ...tip,
       updatedAt: serverTimestamp(),
     });
   }

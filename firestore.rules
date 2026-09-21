@@ -94,6 +94,13 @@ service cloud.firestore {
           && request.resource.data.paid == true;
     }
 
+    // Los meseros pueden editar la propina de un pedido mientras no esté pagado.
+    function onlyUpdatesTip() {
+      let allowed = ['tipPercentage', 'tipValue', 'tipAmount', 'total', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+          && resource.data.paid == false;
+    }
+
     // ── Colección: users ────────────────────────────────────────────────────
     // Lectura para cualquier usuario autenticado.
     // Escrituras (alta, modificación y baja) solo para administradores.
@@ -121,7 +128,7 @@ service cloud.firestore {
       allow create: if isWaiter() || isAdmin();
       allow update: if isAdmin()
           || (isBarista() && onlyUpdatesOrderStatus())
-          || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid()));
+          || (isWaiter() && (onlyMarksDelivered() || onlyMarksPaid() || onlyUpdatesTip()));
       allow delete: if isAdmin();
     }
   }

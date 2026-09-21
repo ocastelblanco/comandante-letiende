@@ -19,31 +19,11 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-La Tarea 31 proviene de `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto; las Tareas 29 y 30, las dos primeras de esa serie, ya están completadas (ver §3, PR #41 y PR #43). La Tarea 33 es la estrategia de pruebas acordada el 2026-09-19 (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, también está completada (ver §3, PR #40).
+La Tarea 33 es la estrategia de pruebas acordada el 2026-09-19 (`tech-specs.md` §14, ADR-008 en `MEMORY.md`); la Tarea 32, la otra mitad de esa estrategia, ya está completada (ver §3, PR #40). Las Tareas 29, 30 y 31, la serie completa de `docs/cambio-en-modelo-de-datos.md`, también están completadas (ver §3, PR #41, #43 y #44).
 
-**Orden de ejecución — no coincide con la numeración:**
+El diseño técnico de lo que falta está en `tech-specs.md` §13; la estrategia de pruebas y su justificación, en `tech-specs.md` §14.
 
-```
-31 (propina y pagos)  →  33 (reglas)
-```
-
-La numeración es de creación, no de ejecución; ya hay precedentes en el historial (las Tareas 13/14 y 15/16 también se completaron fuera de orden). Cada tarea deja la aplicación compilando y desplegable por su cuenta.
-
-El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato del endpoint, reglas de seguridad) está en `tech-specs.md` §13; las decisiones acordadas, en la sección "Decisiones tomadas" de `docs/cambio-en-modelo-de-datos.md`; la estrategia de pruebas y su justificación, en `tech-specs.md` §14.
-
-### 🔜 Tarea 31: [FEATURE] Propina editable y medios de pago Datáfono / QR / Efectivo
-
-*   **Objetivo:** Implementar los pasos 11, 12, 14 y 16 del flujo, y sustituir la lista de medios de pago.
-*   **Alcance:**
-    *   Nuevo `core/models/payment-methods.ts` como fuente única de verdad (`datafono`, `qr`, `efectivo`), siguiendo el patrón de `category-tree.ts`. Reemplaza los botones cableados de `waiter.component.ts:531-546` y el par duplicado `paymentColor()`/`paymentLabel()` de `admin-reports.component.ts:325-336`. `firestore.rules` no valida el valor de `paymentMethod`, así que no requiere cambios por esto.
-    *   Diálogo de propina con dos campos numéricos que se suman — **Porcentaje** (10 por defecto, sobre el subtotal) y **Valor** (0 por defecto, absoluto) — accesible desde un botón de lápiz junto al valor de la propina, en dos sitios: la *card* Resumen antes de enviar el pedido, y la *card* expandida de un pedido ya creado, **solo cuando `!order.paid`**.
-    *   `OrderService.updateOrderTip(orderId, { tipPercentage, tipValue, tipAmount, total })`.
-    *   **`firestore.rules`** — helper `onlyUpdatesTip()` acotado a `['tipPercentage','tipValue','tipAmount','total','updatedAt']` y con `resource.data.paid == false`, sumado a las cláusulas de mesero en `/orders/{orderId}`. El mesero sigue sin poder tocar los ítems de un pedido enviado ni un pedido ya cobrado.
-    *   Reportes: etiquetas y colores de los tres medios nuevos, tanto en la tabla como en el XLSX exportado.
-*   **Pruebas:** ninguna nueva función pura que probar — `updateOrderTip()` reutiliza `computeOrderTotals()` (extraída y probada en la Tarea 29, `order-totals.spec.ts`), así que el mismo cálculo que se probó para la creación del pedido queda cubierto también para su edición.
-*   **Verificación específica:** contra el emulador, comprobar que un mesero **sí** puede cambiar la propina de un pedido sin cobrar y **no** puede cambiar sus ítems ni tocar un pedido ya cobrado. La cobertura sistemática de este comportamiento llega en la Tarea 33.
-
-### 🔜 Tarea 33: [SEGURIDAD] Pruebas de `firestore.rules` con el emulador — **después de la Tarea 31**
+### 🔜 Tarea 33: [SEGURIDAD] Pruebas de `firestore.rules` con el emulador
 
 *   **Objetivo:** Cubrir con pruebas la única frontera de seguridad real del sistema.
 *   **Por qué esta capa y no otras:** `CLAUDE.md` §5 establece explícitamente que los guardias de Angular son solo experiencia de usuario y que la autorización real vive en `firestore.rules`. Este archivo ya dejó pasar un fallo a producción (el gotcha de `&&` devolviendo `bool` en vez del string del rol, que denegaba todas las escrituras). Además no requiere refactorizar nada — las reglas ya son código aislado — y no se rompe cuando cambia la interfaz, a diferencia de las pruebas de componentes.
@@ -61,6 +41,14 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 31: [FEATURE] Propina editable y medios de pago Datáfono / QR / Efectivo
+*   **Completada:** 2026-09-21
+*   **PR:** #44 (`feature/tip-payment-methods`)
+*   **Origen:** tomada del PRD — `docs/cambio-en-modelo-de-datos.md`, pedido directo del dueño del proyecto. Implementa los pasos 11, 12, 14 y 16 del flujo del mesero.
+*   **Resultado:** Nuevo `core/models/payment-methods.ts` como fuente única de verdad de `datafono`/`qr`/`efectivo` (patrón de `category-tree.ts`), reemplaza `card`/`cash`/`nequi`/`daviplata` en `PaymentMethod`, el action sheet de cobro del mesero y las etiquetas/colores del consolidado del administrador. Propina editable con **Porcentaje** + **Valor** (se suman), accesible con un botón de lápiz tanto en la card Resumen antes de enviar el pedido como en la card expandida de un pedido ya creado (solo mientras `!order.paid`). `OrderService.createOrder()` acepta `tipPercentage`/`tipValue` opcionales; nuevo `OrderService.updateOrderTip()`. `firestore.rules` gana `onlyUpdatesTip()`, sumado a las cláusulas de mesero en `/orders/{orderId}` — validado con `firebase deploy --only firestore:rules --dry-run`. Sin pruebas nuevas: `computeOrderTotals()` ya se probó en la Tarea 29 y se reutiliza sin cambios.
+*   **Bug encontrado y corregido en el mismo PR, tras revisión en preview:** el diálogo de propina, hecho con `AlertController`, tenía dos problemas — sin labels visibles en los campos, y los cambios no se aplicaban al aceptar. Causa raíz de ambos verificada leyendo el código fuente de `@ionic/core`: `AlertInput.label` solo se renderiza para `radio`/`checkbox`, nunca para `number`/`text`; y un botón sin `handler` devuelve los valores anidados bajo `data.values.*`, no en `data.*` directamente — el código leía la ruta equivocada y siempre caía al valor anterior. Corregido reemplazando el diálogo por el patrón de overlay propio con signal de visibilidad que ya usa el repo (`tipEditOpen()`, con `ion-label position="stacked"` real). Ambos hallazgos documentados como gotchas nuevos en `CLAUDE.md` §7.
+*   **Hallazgo de proceso, no un bug de esta tarea:** el canal de preview de un PR nunca despliega `firestore.rules` (`.github/workflows/deploy-hosting.yml`, job `preview`, solo Hosting) — las reglas solo se despliegan en `deploy_live`, al hacer push a `main`. Esto explicó un tercer síntoma reportado en preview (la edición de propina de un pedido *ya creado* "se veía y luego revertía"): la escritura optimista del cliente se reflejaba al instante, pero el servidor la rechazaba contra las reglas viejas (sin `onlyUpdatesTip()`) todavía vigentes en el proyecto compartido. No se pudo verificar de punta a punta en preview; se fusionó confiando en que la regla es estructuralmente idéntica a `onlyMarksPaid()`/`onlyMarksDelivered()` (ya probadas en producción), con instrucción de re-verificar ese caso puntual ya en producción. Documentado como gotcha en `CLAUDE.md` §7 e indexado en `MEMORY.md` §7.
 
 ### ✅ Tarea 30: [FEATURE] Flujo de pedido del mesero — variantes, adiciones y observaciones
 *   **Completada:** 2026-09-21
@@ -255,3 +243,4 @@ El diseño técnico completo (interfaces objetivo, columnas del Excel, contrato 
 | 2026-09-20 | Tarea 32 completada. Añadido el paso `npm test -- --watch=false` antes del build en ambos jobs de `.github/workflows/deploy-hosting.yml`, precondición de las Tareas 29-31 y 33. Verificado el gate con el exit code real del proceso (0 en verde, 1 rompiendo a propósito la única prueba existente) y confirmado en el entorno real de GitHub Actions, en el propio job `preview` del PR. PR #40. | WIP se mantiene en 0. Cuatro tareas restantes en §2.5. Orden de ejecución **29 → 30 → 31 → 33**. Próxima sesión: Tarea 29. |
 | 2026-09-20 | Tarea 29 completada. Producto con `description`/`variants`/`additions`, sin `tipAmount`/`totalPrice`; propina trasladada al pedido vía `computeOrderTotals()` (nueva, pura, compartida con el resumen del mesero); importador de Excel con las columnas nuevas y parsers extraídos/probados; `isActive` ahora se escribe también en actualizaciones del import (bug corregido); `firestore.rules` y Cloud Function `publicMenu` actualizados. Verificado en preview con datos reales: el usuario reestructuró la hoja `datos` y cargó el primer paquete completo — cierra también la reclasificación pendiente de la Tarea 27. PR #41. | WIP se mantiene en 0. Tres tareas restantes en §2.5. Orden de ejecución **30 → 31 → 33**. Próxima sesión: Tarea 30. |
 | 2026-09-21 | Tarea 30 completada. Selección de variante (obligatoria, `ActionSheetController`) y adiciones (opcional, `AlertController` con checkboxes) en el pedido del mesero; precio unitario recalculado con las adiciones; `canSubmit()` bloquea el envío sin variante elegida; Observaciones persistidas en `Order.observations` y visibles en mesero/barista/admin; extraído `OrderCardComponent` para eliminar duplicación en `barista.component.ts`. **Incidente de proceso:** el PR #42 se fusionó por error sin pasar por la revisión de preview del ciclo acordado; se revirtió (PR #43) y se reaplicó el mismo código más esta documentación sobre ese mismo PR, para retomar el ciclo correctamente. | WIP se mantiene en 0. Dos tareas restantes en §2.5. Orden de ejecución **31 → 33**. Próxima sesión: Tarea 31. |
+| 2026-09-21 | Tarea 31 completada. `payment-methods.ts` nuevo (datáfono/QR/efectivo); propina editable con Porcentaje+Valor en dos sitios; `OrderService.updateOrderTip()`; `firestore.rules` gana `onlyUpdatesTip()`. En preview se encontraron y corrigieron dos bugs reales del diálogo de propina (sin labels, valores que no se aplicaban al aceptar — causa raíz: limitaciones de `AlertController` para inputs de texto/número, verificadas en el código fuente de `@ionic/core`) y se descubrió que el canal de preview de un PR nunca despliega `firestore.rules` (solo Hosting), lo que impide verificar de punta a punta la edición de propina de un pedido ya creado antes de fusionar. Ambos hallazgos documentados como gotchas nuevos en `CLAUDE.md` §7. PR #44. | WIP se mantiene en 0. Una tarea restante en §2.5: Tarea 33. Pendiente verificar en producción, tras el deploy, el caso de edición de propina de un pedido ya creado. |
