@@ -31,12 +31,16 @@ import {
   addCircleOutline,
   addOutline,
   arrowBackOutline,
+  cardOutline,
+  cashOutline,
   closeOutline,
   filterOutline,
   logOutOutline,
   notificationsOutline,
   optionsOutline,
+  pencilOutline,
   personCircleOutline,
+  qrCodeOutline,
   removeCircleOutline,
   timeOutline,
   trashOutline,
@@ -47,6 +51,7 @@ import { ProductService } from '../../core/db/product.service';
 import { OrderItem } from '../../core/models/order-item.model';
 import { Order, OrderStatus, PaymentMethod } from '../../core/models/order.model';
 import { computeOrderTotals } from '../../core/models/order-totals';
+import { PAYMENT_METHODS } from '../../core/models/payment-methods';
 import { Product, ProductAddition } from '../../core/models/product.model';
 
 type View = 'dashboard' | 'new-order';
@@ -213,9 +218,17 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
                         <span>Subtotal (base)</span>
                         <span>$ {{ order.subtotal | number:'1.0-0' }}</span>
                       </div>
-                      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
+                      <div style="display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:var(--ion-color-medium);padding:2px 0">
                         <span>Propina</span>
-                        <span>$ {{ order.tipAmount | number:'1.0-0' }}</span>
+                        <span style="display:flex;align-items:center;gap:4px">
+                          $ {{ order.tipAmount | number:'1.0-0' }}
+                          @if (!order.paid) {
+                            <ion-button fill="clear" size="small" (click)="editOrderTip(order, $event)"
+                                        style="margin:0;--padding-start:4px;--padding-end:4px;height:20px">
+                              <ion-icon slot="icon-only" name="pencil-outline" style="font-size:.85rem" />
+                            </ion-button>
+                          }
+                        </span>
                       </div>
                       <div style="display:flex;justify-content:space-between;font-size:.9rem;font-weight:700;color:var(--ion-color-dark);padding:4px 0 2px">
                         <span>Total</span>
@@ -385,9 +398,15 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
               <span>Subtotal (base)</span>
               <span>$ {{ orderSubtotal() | number:'1.0-0' }}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;padding:6px 16px;font-size:.8rem;color:var(--ion-color-medium)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px;font-size:.8rem;color:var(--ion-color-medium)">
               <span>Propina</span>
-              <span>$ {{ orderTip() | number:'1.0-0' }}</span>
+              <span style="display:flex;align-items:center;gap:4px">
+                $ {{ orderTip() | number:'1.0-0' }}
+                <ion-button fill="clear" size="small" (click)="openTipDialog()"
+                            style="margin:0;--padding-start:4px;--padding-end:4px;height:20px">
+                  <ion-icon slot="icon-only" name="pencil-outline" style="font-size:.9rem" />
+                </ion-button>
+              </span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:10px 16px 14px;font-size:1rem;font-weight:700;color:var(--ion-color-dark)">
               <span>Total a cobrar</span>
@@ -496,11 +515,15 @@ export class WaiterComponent {
       .reduce((s, l) => s + this.lineUnitPrice(l) * l.quantity, 0),
   );
 
-  // Propina fija del 10% a nivel de pedido (editable por el mesero en la
-  // Tarea 31). computeOrderTotals() es la misma función pura que persiste
+  // Propina editable por el mesero antes de enviar el pedido (Tarea 31).
+  // computeOrderTotals() es la misma función pura que persiste
   // OrderService.createOrder(), para que el número que ve el mesero antes de
   // enviar el pedido sea exactamente el que queda guardado.
-  private readonly orderTotals = computed(() => computeOrderTotals(this.orderSubtotal(), 10, 0));
+  readonly tipPercentage = signal(10);
+  readonly tipValue = signal(0);
+  private readonly orderTotals = computed(() =>
+    computeOrderTotals(this.orderSubtotal(), this.tipPercentage(), this.tipValue()),
+  );
   readonly orderTip = computed(() => this.orderTotals().tipAmount);
   readonly orderTotal = computed(() => this.orderTotals().total);
 
@@ -537,6 +560,10 @@ export class WaiterComponent {
       optionsOutline,
       personCircleOutline,
       timeOutline,
+      cardOutline,
+      cashOutline,
+      qrCodeOutline,
+      pencilOutline,
     });
 
     toObservable(this.orderService.activeOrders)
@@ -583,6 +610,8 @@ export class WaiterComponent {
     this._orderLines.set([]);
     this.orderIdentifier.set('');
     this.observations.set('');
+    this.tipPercentage.set(10);
+    this.tipValue.set(0);
     this._submitError.set('');
     this.view.set('new-order');
   }
@@ -615,10 +644,11 @@ export class WaiterComponent {
     const sheet = await this.actionSheetCtrl.create({
       header: 'Medio de pago',
       buttons: [
-        { text: '💳 Datáfono', data: { method: 'card' as PaymentMethod } },
-        { text: '💵 Efectivo', data: { method: 'cash' as PaymentMethod } },
-        { text: '📱 Nequi', data: { method: 'nequi' as PaymentMethod } },
-        { text: '📱 Daviplata', data: { method: 'daviplata' as PaymentMethod } },
+        ...PAYMENT_METHODS.map((m) => ({
+          text: m.label,
+          icon: m.icon,
+          data: { method: m.value as PaymentMethod },
+        })),
         { text: 'Cancelar', role: 'cancel' },
       ],
     });
@@ -626,6 +656,57 @@ export class WaiterComponent {
     const { data, role } = await sheet.onWillDismiss<{ method: PaymentMethod }>();
     if (role === 'cancel' || !data) return;
     await this.orderService.markOrderPaid(order.id, data.method);
+  }
+
+  // Diálogo compartido para editar la propina, tanto antes de enviar el
+  // pedido (card Resumen) como después (card expandida del mesero).
+  // Devuelve null si el mesero cancela.
+  private async promptTipEdit(
+    currentPercentage: number,
+    currentValue: number,
+  ): Promise<{ percentage: number; value: number } | null> {
+    const alert = await this.alertCtrl.create({
+      header: 'Editar propina',
+      inputs: [
+        { name: 'tipPercentage', type: 'number', placeholder: 'Porcentaje', value: currentPercentage },
+        { name: 'tipValue', type: 'number', placeholder: 'Valor', value: currentValue },
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Aceptar', role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { data, role } = await alert.onWillDismiss<{ tipPercentage: string; tipValue: string }>();
+    if (role !== 'confirm' || !data) return null;
+    const percentage = Number(data.tipPercentage);
+    const value = Number(data.tipValue);
+    return {
+      percentage: data.tipPercentage === '' || Number.isNaN(percentage) ? currentPercentage : percentage,
+      value: data.tipValue === '' || Number.isNaN(value) ? currentValue : value,
+    };
+  }
+
+  async openTipDialog(): Promise<void> {
+    const result = await this.promptTipEdit(this.tipPercentage(), this.tipValue());
+    if (!result) return;
+    this.tipPercentage.set(result.percentage);
+    this.tipValue.set(result.value);
+  }
+
+  // Solo aplica a pedidos aún no cobrados (order.paid === false); una vez
+  // cobrado el pedido queda inmutable.
+  async editOrderTip(order: Order, event: Event): Promise<void> {
+    event.stopPropagation();
+    const result = await this.promptTipEdit(order.tipPercentage, order.tipValue);
+    if (!result) return;
+    const { tipAmount, total } = computeOrderTotals(order.subtotal, result.percentage, result.value);
+    await this.orderService.updateOrderTip(order.id, {
+      tipPercentage: result.percentage,
+      tipValue: result.value,
+      tipAmount,
+      total,
+    });
   }
 
   timeAgo(timestamp: Timestamp): string {
@@ -787,7 +868,13 @@ export class WaiterComponent {
           unitPrice: this.lineUnitPrice(l),
           itemStatus: 'pending' as const,
         }));
-      await this.orderService.createOrder(identifier, items, this.observations().trim());
+      await this.orderService.createOrder(
+        identifier,
+        items,
+        this.observations().trim(),
+        this.tipPercentage(),
+        this.tipValue(),
+      );
       this.view.set('dashboard');
     } catch (err) {
       console.error('[submitOrder] createOrder failed:', err);

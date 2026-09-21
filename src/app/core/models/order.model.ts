@@ -2,7 +2,7 @@ import { Timestamp } from '@angular/fire/firestore';
 import { OrderItem } from './order-item.model';
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-export type PaymentMethod = 'card' | 'cash' | 'nequi' | 'daviplata';
+export type PaymentMethod = 'datafono' | 'qr' | 'efectivo';
 
 export interface Order {
   id: string;
