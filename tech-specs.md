@@ -488,13 +488,9 @@ No aplica ninguna regla de `firestore.rules`: el endpoint no expone una colecci�
 
 ---
 
-## 13. Cambios pendientes (Tarea 33)
+## 13. Cambios pendientes (ninguno)
 
-> Lo que ya se implementó del cambio de modelo de datos está en las §4.3, §5, §6 y §12 (Tarea 29, 2026-09-20: variantes, adiciones, descripción, propina a nivel de pedido, `/menu.json` v2), en `waiter.component.ts`/`barista.component.ts`/`admin-orders.component.ts` (Tarea 30, 2026-09-21: selección de variante/adición y observaciones) y en `payment-methods.ts`/`OrderService.updateOrderTip()`/`onlyUpdatesTip()` (Tarea 31, 2026-09-21: medios de pago nuevos y propina editable — detalle completo en `TODO.md` §3). Esta sección solo cubre lo que falta: las pruebas de `firestore.rules`. Origen y justificación completa en `docs/cambio-en-modelo-de-datos.md`.
-
-### 13.1. Pruebas de `firestore.rules` (Tarea 33)
-
-Se hace **después** de la Tarea 31, para no probar dos veces el mismo helper: cubre con `@firebase/rules-unit-testing` la matriz de rol × colección × operación, incluyendo `onlyUpdatesTip()`. Detalle completo en §14 y en `TODO.md` Tarea 33.
+> Sección histórica: describía el cambio de modelo de datos de `docs/cambio-en-modelo-de-datos.md` mientras estaba pendiente. Las tres tareas que cubría (29, 30 y 31) y su prueba asociada (33) ya están implementadas — variantes/adiciones/propina a nivel de pedido en §4.3/§5/§6/§12; selección de variante/adición y observaciones en `waiter.component.ts`/`barista.component.ts`/`admin-orders.component.ts`; medios de pago y propina editable en `payment-methods.ts`/`OrderService.updateOrderTip()`/`onlyUpdatesTip()`; la matriz de pruebas de `firestore.rules` en `firestore.rules.spec.ts` (§14). Detalle completo de cada una en `TODO.md` §3. Se conserva el número de esta sección para no romper las referencias cruzadas de otros documentos; queda vacía hasta que un cambio nuevo la ocupe.
 
 ## 14. Estrategia de Pruebas
 
@@ -522,7 +518,7 @@ El criterio es cubrir **lo que puede causar daño real**: aritmética de dinero 
 | :--- | :--- | :--- | :--- | :--- |
 | **0. Gate de CI** | ~15 min | Que las pruebas signifiquen algo | Nula | ✅ **Hecho** — Tarea 32, PR #40 |
 | **1. Funciones puras** | ~1 sesión | Propina, parseo del catálogo, categorías | Nula | ✅ Dentro de las Tareas 29 y 31 |
-| **2. `firestore.rules`** | ~1-2 sesiones | La única frontera de seguridad real | Muy baja | ✅ **Tarea 33**, tras la 31 |
+| **2. `firestore.rules`** | ~1-2 sesiones | La única frontera de seguridad real | Muy baja | ✅ **Hecho** — Tarea 33, PR #45 |
 | **3. Servicios de Firestore** | ~1-2 sesiones | Queries, lotes, transiciones de estado | Media | 🟡 Opcional, sin encolar |
 | **4. Componentes** | ~8-12 sesiones | Poco, en la práctica | Alta | ❌ Descartada |
 | **5. E2E (Playwright)** | ~5-7 sesiones | El camino del dinero completo | Media-alta | 🟡 Diferida, acotada a un flujo |
@@ -541,12 +537,12 @@ Si el objetivo es que esos dos componentes sean más mantenibles, **partirlos ap
 - `computeOrderTotals(items, tipPercentage, tipValue)` — 10 % por defecto, redondeo a pesos sin centavos, porcentaje 0, valor absoluto solo, y ambos combinados.
 - `core/models/category-tree.ts` — ya es puro hoy: `isValidCategory()`, `isValidSubcategory()`, `categoryRequiresSubcategory()`, `getCategoryNode()`.
 
-**Capa 2 — reglas de seguridad** (Tarea 33): matriz de rol × colección × operación con `@firebase/rules-unit-testing` contra el emulador. Detalle en `TODO.md` Tarea 33.
+**Capa 2 — reglas de seguridad** (Tarea 33, ✅ implementada): `firestore.rules.spec.ts`, 52 casos con `@firebase/rules-unit-testing` contra el emulador real, matriz de rol × colección × operación. Corre solo en CI (`.github/workflows/deploy-hosting.yml`, ambos jobs) — decisión explícita del dueño del proyecto de no instalar Java localmente. Detalle en `TODO.md` §3.
 
-### Momento de ejecución
+### Momento de ejecución (histórico)
 
-El orden importa. Las Tareas 29-31 reescriben justo la lógica de precios, propina e importación: escribir pruebas contra el código actual sería escribirlas contra código que está por desaparecer.
+El orden importaba porque las Tareas 29-31 reescribían justo la lógica de precios, propina e importación: escribir pruebas contra el código de entonces habría sido escribirlas contra código por desaparecer. Las cuatro etapas ya están completadas:
 
 1. ~~**Antes de la Tarea 29** — Tarea 32 (gate de CI).~~ **Hecha** (2026-09-20, PR #40). Sin esto, todo lo demás habría sido decorativo.
-2. **Dentro de las Tareas 29 y 31** — capa 1, contra la forma nueva del código.
-3. **Después de la Tarea 31** — Tarea 33, cuando las reglas ya incluyan `onlyUpdatesTip()` y no haya que probarlas dos veces.
+2. ~~**Dentro de las Tareas 29 y 31** — capa 1, contra la forma nueva del código.~~ **Hecha.**
+3. ~~**Después de la Tarea 31** — Tarea 33, cuando las reglas ya incluyeran `onlyUpdatesTip()`.~~ **Hecha** (2026-09-21, PR #45).
