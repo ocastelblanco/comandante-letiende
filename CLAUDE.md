@@ -309,3 +309,15 @@ styles: [`
 **Causa raíz:** el aviso no es por el `node-version` que el propio workflow configura para *construir la app* (eso es un input de `actions/setup-node`, independiente) — es sobre el runtime de Node.js que usa GitHub Actions internamente para **ejecutar el código JavaScript de cada acción** del workflow. Cada acción declara su propio runtime en su `action.yml` (`using: 'node20'` o `'node24'`). Añadir una acción nueva sin verificar esto reintroduce el aviso aunque el resto del workflow ya esté en Node 24 — pasó con `actions/setup-java@v4` (Tarea 33), que todavía declaraba `node20`.
 
 **Solución:** al agregar cualquier acción nueva a `.github/workflows/`, revisar en el propio log de CI si dispara el aviso de deprecación (o, antes de agregarla, buscar su changelog/release notes por una versión más reciente que declare explícitamente soporte para Node 24). En este caso, `actions/setup-java@v4` → `@v5` lo resolvió — mismo patrón que `actions/checkout@v4`→`@v5` y `actions/setup-node@v4`→`@v5` en la Tarea 28. No asumir que "ya migramos a Node 24" es un estado permanente: es una propiedad por-acción que hay que revisar cada vez que se agrega una acción nueva.
+
+### ⚠️ `firebase deploy --only functions --force` no puede configurar la política de limpieza de Artifact Registry
+
+**Síntoma:** El deploy de Cloud Functions termina bien (`Skipped` o `Successful update`), pero muestra: `No cleanup policy detected for repositories in us-central1`, seguido de `Failed to set up cleanup policy for repositories in region us-central1`, incluso pasando `--force` en el comando de deploy.
+
+**Causa raíz:** `--force` solo evita el *prompt* interactivo de confirmación — no sustituye un permiso IAM que falte. La cuenta de servicio de CI (`firebase-adminsdk-fbsvc@...`, roles documentados en la Tarea 27) no tiene permiso para configurar políticas de limpieza en Artifact Registry, así que el intento automático de Firebase durante el deploy falla silenciosamente (el deploy de la función en sí no se ve afectado). Sin la política, las imágenes de contenedor de cada deploy con cambios de código se acumulan indefinidamente — costo pequeño pero creciente.
+
+**Solución:** no hace falta ampliar los permisos de la cuenta de servicio de CI. Se configura **una sola vez**, en local, con una cuenta que sí tenga permisos suficientes en el proyecto (la del dueño, ya autenticada vía `firebase login`):
+```bash
+npx firebase-tools functions:artifacts:setpolicy --project comandante-letiende --days 1 --force
+```
+La política queda fijada en el repositorio de Artifact Registry (`gcf-artifacts`), no en la cuenta de servicio — los deploys de CI posteriores ya no intentan configurarla porque detectan que ya existe.
