@@ -12,9 +12,9 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
 | **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado — el canal de preview de cada PR comparte el mismo Firestore que producción. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 34 (ver `TODO.md` §3). Cola de tareas vacía — próxima a evaluar contra `PRD.md`. |
+| **Tareas completadas** | 35 (ver `TODO.md` §3). Serie de ajustes 35-39 en curso; cola: 36 → 38 → 39 → 37. |
 | **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. **Los PR reciben un canal de vista previa que solo despliega Hosting — nunca `firestore.rules`** (ver gotcha en §7): un cambio de reglas no se puede verificar de punta a punta en preview, solo tras fusionar (mitigado desde la Tarea 33 con pruebas de reglas contra el emulador real, corriendo solo en CI). Desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**, y desde la Tarea 33 también `firestore.rules.spec.ts` vía `firebase emulators:exec` (con `actions/setup-java@v5`, Temurin): una suite en rojo bloquea el merge. |
-| **Última Sesión** | 2026-09-21 — Confirmado en producción que la edición de propina de un pedido ya creado (Tarea 31) funciona correctamente. Tarea 33 (pruebas de `firestore.rules` con el emulador, PR #45) implementada y fusionada — cierra el ciclo completo. |
+| **Última Sesión** | 2026-09-24 — Serie de ajustes 35-39 acordada. Tarea 35 (búsqueda insensible a tildes, PR #48) fusionada. |
 
 ---
 
@@ -64,6 +64,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Consolidado diario de ventas con rango de fecha/hora y exportación a XLSX.
 - `[x]` Endpoint público `/menu.json` para la carta de letiende.co.
 - `[x]` Producto con descripción, variantes y adiciones *(Tarea 29, PR #41, 2026-09-20)*.
+- `[x]` Búsqueda de productos (mesero y administrador) insensible a mayúsculas, tildes, diéresis y ñ *(Tarea 35, PR #48, 2026-09-24)*.
 - `[x]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro — reestructurada por el usuario y con el primer paquete completo cargado vía Excel el mismo día.
 
 ### Calidad y Pruebas
@@ -208,6 +209,7 @@ Se usa `onSnapshot` directamente, no `collectionData()`, para controlar la desus
 - **Componentes Standalone con plantilla y estilos en línea.** Salvo `app.component`, ningún componente tiene archivos `.html`/`.css` separados. No existe carpeta `shared/`.
 - **Fuente única de verdad para las enumeraciones de dominio.** `core/models/category-tree.ts` alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada y la validación del import. Mismo patrón aplicado a `core/models/payment-methods.ts` (Tarea 31): es el que copiar para cualquier lista cerrada nueva.
 - **Diálogos con los controladores de Ionic.** No se usa `ion-modal` en ningún punto del proyecto: las elecciones simples van con `ActionSheetController`, las confirmaciones y los formularios de un solo campo `checkbox`/`radio` con `AlertController`. Para más de un campo de texto/número con label real, `AlertController` no alcanza (ver gotcha en §7) — usar un overlay propio con un *signal* de visibilidad, como el formulario de productos o el diálogo de propina del mesero (`tipEditOpen()`).
+- **Comparación de texto para búsquedas con `normalizeText()`** (`core/utils/normalize-text.ts`, Tarea 35). Nunca comparar con `toLowerCase()` a secas: no cubre tildes ni ñ. Usarla en cualquier búsqueda o clave de deduplicación nueva.
 - **Escrituras masivas en lotes de 500.** `writeBatch` con el límite de Firestore, en `importProducts()` y `deleteAllProducts()`.
 
 ---
@@ -250,6 +252,15 @@ Rutas relativas a la raíz del repositorio.
 ---
 
 ## 9. Contexto de la Sesión Actual
+
+- **Fecha:** 2026-09-24
+- **Qué se hizo:**
+  - El dueño pidió cinco ajustes; se planificaron como la serie **Tareas 35-39**, un PR por tarea, orden 35 → 36 → 38 → 39 → 37 (detalle en `TODO.md` §2.5).
+  - **Tarea 35 completada** (PR #48): `normalizeText()` compartido para búsquedas sin tildes/diéresis/ñ (mesero, administrador y dedupe del import).
+  - Diagnóstico ya hecho para las siguientes (no repetir): (36) el corte inferior en móvil viene de `:host { display:block; height:100% }` pisando el flex de `.ion-page`; (39) el "congelamiento" es un `onSnapshot` sin callback de error en servicios singleton — reproducido por el usuario cerrando y reabriendo sesión del mesero; se descartó la recarga automática.
+- **Próxima Tarea:** 36 — contenido cortado en móvil (administrador y barista).
+
+### Sesión anterior
 
 - **Fecha:** 2026-09-22
 - **Qué se hizo:**
