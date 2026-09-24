@@ -53,6 +53,7 @@ import { Order, OrderStatus, PaymentMethod } from '../../core/models/order.model
 import { computeOrderTotals } from '../../core/models/order-totals';
 import { PAYMENT_METHODS } from '../../core/models/payment-methods';
 import { Product, ProductAddition } from '../../core/models/product.model';
+import { normalizeText } from '../../core/utils/normalize-text';
 
 type View = 'dashboard' | 'new-order';
 
@@ -811,14 +812,16 @@ export class WaiterComponent {
   filterLine(lineId: number, event: Event): void {
     const query =
       (event as CustomEvent<{ value: string | null | undefined }>).detail.value ?? '';
+    // Búsqueda insensible a mayúsculas, tildes, diéresis y ñ: "mit" encuentra "Mítica".
+    const needle = normalizeText(query);
     const filtered =
-      query.trim().length > 0
+      needle.length > 0
         ? this.productService
           .activeProducts()
           .filter(
             (p) =>
-              p.name.toLowerCase().includes(query.toLowerCase()) ||
-              p.category.toLowerCase().includes(query.toLowerCase()),
+              normalizeText(p.name).includes(needle) ||
+              normalizeText(p.category).includes(needle),
           )
           .slice(0, 6)
         : [];
