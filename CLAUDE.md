@@ -321,3 +321,12 @@ styles: [`
 npx firebase-tools functions:artifacts:setpolicy --project comandante-letiende --days 1 --force
 ```
 La política queda fijada en el repositorio de Artifact Registry (`gcf-artifacts`), no en la cuenta de servicio — los deploys de CI posteriores ya no intentan configurarla porque detectan que ya existe.
+
+### ⚠️ Página de Ionic con `:host { display: block; height: 100% }` — el contenido se corta por abajo
+
+**Síntoma:** en móvil, el contenido de una página con `ion-header` + `ion-content` (barista, vistas del administrador) queda cortado en la parte inferior, aunque no haya footer; en el administrador la barra de navegación inferior fija tapa además lo poco que queda.
+
+**Causa raíz:** `IonRouterOutlet` añade la clase `.ion-page` al elemento host del componente, y esa clase aplica `display:flex; flex-direction:column; position:absolute; top/bottom:0` (verificado en `ionic.bundle.css`). Un `:host { display: block; height: 100%; }` en los `styles` del componente **pisa** ese `display:flex` (el CSS del componente se inyecta después, con igual especificidad). Con `display:block`, `ion-content` (que mide `height:100%`) se apila *debajo* del `ion-header` en vez de repartirse la altura, y se desborda por abajo exactamente la altura del header, recortado por el `overflow:hidden` de la página.
+
+**Solución:** no declarar `display` ni `height` en el `:host` de una página que use `ion-header`/`ion-content`; el `.ion-page` que pone Ionic ya resuelve el layout (ver también el gotcha de `<ion-page>` más arriba). La excepción es una página sin header que se centra con `position:fixed` (el login). Se corrigió en la Tarea 36 en barista y en las cinco vistas del administrador.
+
