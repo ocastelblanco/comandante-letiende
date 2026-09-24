@@ -149,6 +149,15 @@ beforeEach(async () => {
       paidAt: serverTimestamp(),
       ...baseOrderFields,
     });
+    await setDoc(doc(db, 'orders/order-delivered-unpaid'), {
+      tableNumber: 'Mesa 4',
+      status: 'delivered',
+      paid: false,
+      paymentMethod: null,
+      paidAt: null,
+      deliveredAt: serverTimestamp(),
+      ...baseOrderFields,
+    });
     await setDoc(doc(db, 'orders/order-ready'), {
       tableNumber: 'Mesa 3',
       status: 'ready',
@@ -438,6 +447,66 @@ describe('/orders', () => {
     await assertSucceeds(
       updateDoc(doc(waiterDb(), 'orders/order-ready'), {
         status: 'delivered',
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('mesero puede marcar entregado registrando deliveredAt', async () => {
+    await assertSucceeds(
+      updateDoc(doc(waiterDb(), 'orders/order-ready'), {
+        status: 'delivered',
+        deliveredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('mesero no puede reescribir deliveredAt de un pedido ya entregado', async () => {
+    await assertFails(
+      updateDoc(doc(waiterDb(), 'orders/order-delivered-unpaid'), {
+        status: 'delivered',
+        deliveredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('mesero no puede fijar deliveredAt sin marcar el pedido como entregado', async () => {
+    await assertFails(
+      updateDoc(doc(waiterDb(), 'orders/order-unpaid'), {
+        deliveredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('mesero puede cobrar un pedido ya entregado y sin cobrar', async () => {
+    await assertSucceeds(
+      updateDoc(doc(waiterDb(), 'orders/order-delivered-unpaid'), {
+        paid: true,
+        paymentMethod: 'efectivo',
+        paidAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('barista no puede escribir deliveredAt', async () => {
+    await assertFails(
+      updateDoc(doc(baristaDb(), 'orders/order-ready'), {
+        status: 'delivered',
+        deliveredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('admin puede marcar entregado registrando deliveredAt', async () => {
+    await assertSucceeds(
+      updateDoc(doc(adminDb(), 'orders/order-ready'), {
+        status: 'delivered',
+        deliveredAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }),
     );
