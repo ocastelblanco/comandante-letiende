@@ -88,7 +88,7 @@ const NAV = [
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main style="flex:1;overflow:auto;position:relative;padding-bottom:64px"
+    <main style="flex:1;overflow:auto;position:relative;padding-bottom:calc(64px + env(safe-area-inset-bottom))"
           class="lg:!pb-0">
       <ion-router-outlet />
     </main>

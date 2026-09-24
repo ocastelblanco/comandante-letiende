@@ -19,7 +19,6 @@ import { OrderService } from '../../../core/db/order.service';
   standalone: true,
   imports: [DecimalPipe, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar],
   styles: [`
-    :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `
