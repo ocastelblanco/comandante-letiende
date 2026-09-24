@@ -37,6 +37,7 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ProductService } from '../../../core/db/product.service';
+import { normalizeText } from '../../../core/utils/normalize-text';
 import { Product, ProductAddition, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
 import {
   CATEGORY_SEGMENT_OPTIONS,
@@ -511,12 +512,12 @@ export class ProductsComponent {
   );
 
   protected readonly filteredProducts = computed(() => {
-    const q = this.searchQuery().toLowerCase().trim();
+    const q = normalizeText(this.searchQuery());
     const cat = this.activeCategory();
     return this.productService.products().filter(
       (p) =>
         (cat === 'all' || p.category === (cat as ProductCategory)) &&
-        (q === '' || p.name.toLowerCase().includes(q)),
+        (q === '' || normalizeText(p.name).includes(q)),
     );
   });
 
@@ -869,15 +870,6 @@ export class ProductsComponent {
     }
   }
 
-  private normalizeStr(s: string): string {
-    return s
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
   /**
    * Clave de deduplicación para el import de Excel: el nombre solo no basta
    * porque, con la jerarquía de categorías, dos productos pueden compartir
@@ -889,6 +881,6 @@ export class ProductsComponent {
     category: ProductCategory,
     subcategory: ProductSubcategory | null,
   ): string {
-    return `${this.normalizeStr(name)}|${category}|${subcategory ?? ''}`;
+    return `${normalizeText(name)}|${category}|${subcategory ?? ''}`;
   }
 }
