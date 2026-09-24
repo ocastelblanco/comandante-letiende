@@ -4,6 +4,7 @@ import {
   ActionSheetController,
   IonButton,
   IonButtons,
+  IonChip,
   IonContent,
   IonHeader,
   IonIcon,
@@ -50,6 +51,7 @@ const DELIVERED_FILTERS: { value: DeliveredFilter; label: string }[] = [
     DecimalPipe,
     IonButton,
     IonButtons,
+    IonChip,
     IonContent,
     IonHeader,
     IonIcon,
@@ -129,13 +131,12 @@ const DELIVERED_FILTERS: { value: DeliveredFilter; label: string }[] = [
         @if (activeTab() === 'delivered') {
           <div class="flex flex-wrap items-center gap-2 mb-4">
             @for (f of deliveredFilters; track f.value) {
-              <button type="button" (click)="deliveredFilter.set(f.value)"
-                      class="text-xs font-semibold px-3.5 py-1.5 rounded-full"
-                      [style.background]="deliveredFilter() === f.value ? 'var(--ion-color-primary)' : '#fff'"
-                      [style.color]="deliveredFilter() === f.value ? 'var(--ion-color-primary-contrast)' : 'rgba(35,12,0,.6)'"
-                      style="border:none;box-shadow:0 1px 3px rgba(35,12,0,.08);cursor:pointer">
+              <ion-chip (click)="deliveredFilter.set(f.value)"
+                        [style.--background]="deliveredFilter() === f.value ? 'var(--ion-color-primary)' : 'var(--color-cream)'"
+                        [style.--color]="deliveredFilter() === f.value ? 'var(--ion-color-primary-contrast)' : 'var(--color-espresso)'"
+                        style="margin:0;font-weight:600;font-size:.8rem;cursor:pointer">
                 {{ f.label }}
-              </button>
+              </ion-chip>
             }
             <span class="text-xs text-espresso/60 ml-1">Últimas 24 horas</span>
           </div>
