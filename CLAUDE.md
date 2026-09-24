@@ -330,3 +330,11 @@ La política queda fijada en el repositorio de Artifact Registry (`gcf-artifacts
 
 **Solución:** no declarar `display` ni `height` en el `:host` de una página que use `ion-header`/`ion-content`; el `.ion-page` que pone Ionic ya resuelve el layout (ver también el gotcha de `<ion-page>` más arriba). La excepción es una página sin header que se centra con `position:fixed` (el login). Se corrigió en la Tarea 36 en barista y en las cinco vistas del administrador.
 
+### ⚠️ `onSnapshot` sin callback de error — la pantalla se "congela" y nada lo avisa
+
+**Síntoma:** las interfaces dejan de actualizarse en tiempo real (p. ej. el mesero no ve un pedido pasar a `listo`) hasta que se recarga la página. Reproducible: el mesero cierra sesión, la barra cambia un pedido, el mesero vuelve a entrar en la misma pestaña.
+
+**Causa raíz:** si el listener de `onSnapshot` recibe un error definitivo (`permission-denied` por cierre de sesión o token vencido, `resource-exhausted`, error interno), Firestore lo **cancela para siempre**. Los servicios `providedIn: 'root'` son singletons que se suscribían una sola vez en el constructor y **sin** tercer argumento (callback de error): el listener moría sin dejar rastro y las señales conservaban el último estado. Los cortes de red transitorios, en cambio, el SDK los reconecta solo.
+
+**Solución:** nunca llamar `onSnapshot` a pelo en un servicio. Usar `connectWhileAuthenticated()` (`core/db/live-listener.ts`), que envuelve el listener en `ResilientListener` (reintento con espera exponencial, aviso de estado), lo ata a `AuthService.isAuthenticated` (se conecta al iniciar sesión; al cerrarla se cancela y se limpia la señal, OWASP A07) y lo registra en `RealtimeStatusService` (aviso global y reintento al volver a la pestaña o recuperar la red). Una recarga automática periódica **no** es la solución: pierde el pedido en curso, gasta cuota del plan Spark y oculta la causa.
+

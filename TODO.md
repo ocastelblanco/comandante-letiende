@@ -15,24 +15,29 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ## 2. Tareas Activas (WIP: 1)
 
-### 🔄 Tarea 38: [FEATURE] Nombre del mesero en el reporte de ventas
-*   **Rama / PR:** `feature/report-waiter-name`
-*   **Origen:** ajuste pedido por el dueño del proyecto (serie 35-39, ver §2.5).
-*   **Alcance:** columna "Mesero" (`order.waiterName`, con `waiterId` como respaldo si la cuenta no tiene `displayName`) en la tabla del consolidado y en la hoja de Excel exportada; ajustes de `colspan` del pie y ancho mínimo de la tabla.
+### 🔄 Tarea 39: [FEATURE] Listeners de Firestore resilientes ("congelamiento")
+*   **Rama / PR:** `fix/resilient-realtime-listeners`
+*   **Origen:** ajuste pedido por el dueño del proyecto (serie 35-39). Las interfaces "se congelan": no actualizan pedidos en tiempo real tras un periodo de inactividad o un primer flujo de pedido. Reproducido por el usuario: el mesero cierra sesión, la barra marca un pedido `listo`, el mesero vuelve a entrar y no lo ve hasta recargar.
+*   **Causa raíz:** los tres servicios raíz (`OrderService`, `ProductService`, `UserService`) hacían `onSnapshot` **sin callback de error**, una sola vez, en el constructor de un singleton. Ante un error definitivo (p. ej. `permission-denied` al cerrar sesión o con un token vencido) Firestore cancela el listener para siempre, sin aviso, y nada lo recreaba; la pantalla seguía mostrando el último estado. Además las señales no se limpiaban al cerrar sesión (OWASP A07).
+*   **Alcance:** `ResilientListener` (pura, probada con temporizadores falsos: error → aviso → reintento con backoff 1 s…60 s, `reviveIfFailed()`, `disconnect()`, descarte de callbacks viejos); `connectWhileAuthenticated()` ata cada listener a `AuthService.isAuthenticated` (se conecta al iniciar sesión, se cancela y se limpia la señal al cerrarla); `RealtimeStatusService` agrega el estado y reanima los listeners caídos en `visibilitychange` y `online`; `ConnectionBannerComponent` global con "Sin conexión en tiempo real. Reintentando… [Reintentar]". **Descartada** la recarga automática periódica del frontend (pierde el pedido en curso, gasta cuota y oculta la causa).
 
 ---
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por tarea. Orden de ejecución **38 → 39 → 37** (las 35 y 36 ya están completadas; la 39 va antes que la 37 para que los listeners nuevos de la 37 ya nazcan con manejo de errores).
+Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por tarea. Orden de ejecución **39 → 37** (las 35, 36 y 38 ya están completadas; la 39 va antes que la 37 para que los listeners nuevos de la 37 ya nazcan con manejo de errores).
 
-*   **Tarea 38: [FEATURE] Nombre del mesero en el reporte de ventas.** Columna "Mesero" (`waiterName`) en la tabla y en el Excel exportado.
-*   **Tarea 39: [FEATURE] Listeners de Firestore resilientes ("congelamiento").** Los `onSnapshot` de `OrderService`/`ProductService`/`UserService` no tienen callback de error y se crean una sola vez en el constructor de un singleton: un error definitivo (p. ej. `permission-denied` al cerrar sesión) cancela el listener para siempre. Reproducido por el usuario: el mesero cierra sesión, la barra marca un pedido listo, el mesero vuelve a entrar y no ve el cambio hasta recargar. Solución: listeners atados al estado de autenticación (se limpian las señales al cerrar sesión — A07), callback de error con reintento y backoff, re-suscripción en `visibilitychange` y aviso visible de desconexión. **Descartada** la recarga automática periódica (pierde el pedido en curso, gasta cuota, oculta la causa).
 *   **Tarea 37: [FEATURE] Pedidos entregados sin cobrar siguen activos.** Segundo listener `status == 'delivered' && paid == false` sumado a `activeOrders`; campo nuevo `deliveredAt` (regla `onlyMarksDelivered()` + índice `(status, deliveredAt)` + pruebas de reglas). Administrador: dashboard sin KPI "En cola", con tarjeta "ENTREGADOS {N} sin cobrar" y chip "Pedidos activos" en `--text-2xl`; pestaña nueva *Entregados* (últimas 24 h por `deliveredAt`, filtro todos/cobrados/sin cobrar, listener solo mientras la pestaña está abierta, botón de cobro excepcional para el administrador). Borde izquierdo `--ion-color-secondary` para los no cobrados en *Listos*, *Entregados*, *Todos*, dashboard y lista del mesero. Mesero: "Listos para entrega o cobro" incluye los entregados sin cobrar.
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 38: [FEATURE] Nombre del mesero en el reporte de ventas
+*   **Completada:** 2026-09-24
+*   **PR:** #51 (`feature/report-waiter-name`)
+*   **Origen:** ajuste pedido por el dueño del proyecto (serie 35-39).
+*   **Resultado:** columna **Mesero** (`order.waiterName`, con `waiterId` de respaldo si la cuenta de Google no tiene `displayName`) en la tabla del consolidado y en la hoja de Excel exportada (la fila TOTAL la deja vacía); `colspan` del pie 4 → 5 y ancho mínimo 700 → 780 px. Verificado por el usuario en preview.
 
 ### ✅ Tarea 36: [FEATURE] Contenido cortado en la parte inferior en móvil (administrador y barista)
 *   **Completada:** 2026-09-24
@@ -266,3 +271,4 @@ Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por ta
 | 2026-09-22 | PR #46 fusionado y desplegado sin errores; advertencia nueva en el job `deploy_live` al desplegar `functions`: sin política de limpieza de imágenes en Artifact Registry (`us-central1`), y el intento automático de Firebase de configurarla falló por permisos de la cuenta de servicio de CI. Tarea 34 completada (externa, sin slot de WIP): configurada una sola vez en local con la cuenta del dueño del proyecto (`firebase functions:artifacts:setpolicy --days 1 --force`). Gotcha nuevo documentado en `CLAUDE.md` §7. | WIP se mantiene en 0. Cola de tareas sigue vacía. |
 | 2026-09-24 | Serie de ajustes 35-39 acordada con el dueño (búsqueda sin tildes, layout móvil, reporte con mesero, listeners resilientes, entregados sin cobrar); un PR por tarea. Tarea 35 completada: `normalizeText()` compartido, usado en la búsqueda del mesero, la del administrador y el dedupe del import de Excel. PR #48. | WIP se mantiene en 0. Cola: 36 → 38 → 39 → 37. Próxima sesión: Tarea 36. |
 | 2026-09-24 | Tarea 36 completada (PR #50): la causa era el `:host { display:block }` de cada página pisando el flex de `.ion-page`; gotcha nuevo en `CLAUDE.md` §7. Tarea 38 pasa a activa: columna Mesero en el reporte y en el Excel. | WIP = 1 (Tarea 38). Cola: 39 → 37. |
+| 2026-09-24 | Tarea 38 completada (PR #51). Tarea 39 pasa a activa: el "congelamiento" era `onSnapshot` sin callback de error en servicios singleton (un error definitivo lo cancelaba para siempre y nada lo recreaba; reproducido cerrando y reabriendo sesión del mesero). Solución: `ResilientListener` + listeners atados a la sesión + aviso global; se descartó la recarga automática. Gotcha nuevo en `CLAUDE.md` §7. | WIP = 1 (Tarea 39). Cola: 37. |
