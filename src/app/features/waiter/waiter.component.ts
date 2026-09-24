@@ -51,6 +51,7 @@ import { ProductService } from '../../core/db/product.service';
 import { OrderItem } from '../../core/models/order-item.model';
 import { Order, OrderStatus, PaymentMethod } from '../../core/models/order.model';
 import { computeOrderTotals } from '../../core/models/order-totals';
+import { isDeliveredUnpaid } from '../../core/models/order-status';
 import { PAYMENT_METHODS } from '../../core/models/payment-methods';
 import { Product, ProductAddition } from '../../core/models/product.model';
 import { normalizeText } from '../../core/utils/normalize-text';
@@ -144,7 +145,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 
         <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px">
           <span style="font-size:1rem;font-weight:700;color:var(--ion-color-dark)">
-            {{ filterReady() ? 'Listos para entregar' : 'Pedidos Activos' }}
+            {{ filterReady() ? 'Listos para entrega o cobro' : 'Pedidos Activos' }}
           </span>
           <ion-button fill="clear" size="small" (click)="filterReady.update(v => !v)"
                       [style.--color]="filterReady() ? 'var(--ion-color-secondary)' : 'rgba(var(--ion-color-primary-rgb),0.4)'">
@@ -155,7 +156,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
         @if (filteredOrders().length === 0) {
           <div style="padding:48px 24px;text-align:center;opacity:.5">
             @if (filterReady()) {
-              <p style="font-size:1rem">No hay pedidos listos aún.</p>
+              <p style="font-size:1rem">No hay pedidos listos para entrega o cobro.</p>
             } @else {
               <p style="font-size:1rem">No hay pedidos activos.</p>
               <p style="font-size:.875rem;margin-top:4px">Usa el botón + para crear uno.</p>
@@ -164,7 +165,8 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
         } @else {
           <div style="padding:0 12px 96px;display:flex;flex-direction:column;gap:10px">
             @for (order of filteredOrders(); track order.id) {
-              <ion-card button (click)="toggleExpand(order.id)" style="margin:0;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)">
+              <ion-card button (click)="toggleExpand(order.id)" style="margin:0;border-radius:16px;box-shadow:0 1px 4px rgba(35,12,0,.08)"
+                        [style.border-left]="isDeliveredUnpaid(order) ? '4px solid var(--ion-color-secondary)' : null">
                 <ion-card-content style="padding:14px 16px">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                     <span style="font-size:1rem;font-weight:700;color:var(--ion-color-dark)">{{ order.tableNumber }}</span>
@@ -542,9 +544,11 @@ export class WaiterComponent {
   });
 
   readonly filterReady = signal(false);
+  // Un pedido entregado pero sin cobrar sigue activo: el mesero debe poder cobrarlo.
+  protected readonly isDeliveredUnpaid = isDeliveredUnpaid;
   readonly filteredOrders = computed(() =>
     this.filterReady()
-      ? this.orderService.activeOrders().filter((o) => o.status === 'ready')
+      ? this.orderService.activeOrders().filter((o) => o.status === 'ready' || isDeliveredUnpaid(o))
       : this.orderService.activeOrders(),
   );
 
@@ -624,6 +628,9 @@ export class WaiterComponent {
 
         const newlyReady: string[] = [];
         for (const order of curr) {
+          // Un pedido que pasa de 'ready' a 'delivered' sale de un listener y entra por otro
+          // (ver OrderService): reaparece sin historial previo y no debe volver a avisar.
+          if (order.status === 'delivered') continue;
           for (let i = 0; i < order.items.length; i++) {
             const key = `${order.id}:${i}`;
             if (order.items[i].itemStatus === 'ready' && !prevReady.has(key)) {

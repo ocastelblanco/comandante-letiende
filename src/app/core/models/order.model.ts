@@ -32,6 +32,9 @@ export interface Order {
   // 'ready'; declarados aquí para que dejen de ser un campo fantasma.
   baristaId: string | null;
   preparedAt: Timestamp | null;
+  // Se escribe al pasar a 'delivered' (Tarea 37). Los pedidos entregados antes de
+  // ese cambio no lo tienen (undefined/null). Sirve para la ventana de "últimas 24 h".
+  deliveredAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -24,6 +24,11 @@ export class RealtimeStatusService {
     this.listeners.set(key, listener);
   }
 
+  unregister(key: string): void {
+    this.listeners.delete(key);
+    this.setDown(key, false);
+  }
+
   setDown(key: string, down: boolean): void {
     this.downKeys.update((keys) => {
       const next = new Set(keys);

@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import {
+  ActionSheetController,
   IonButton,
   IonButtons,
   IonContent,
@@ -14,6 +15,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
+  bagCheckOutline,
   checkmarkCircleOutline,
   flameOutline,
   listOutline,
@@ -22,10 +24,24 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
-import { Order, OrderStatus } from '../../../core/models/order.model';
+import { Order, OrderStatus, PaymentMethod } from '../../../core/models/order.model';
+import {
+  isDeliveredUnpaid,
+  orderBorderColor,
+  orderStatusColor,
+  ORDER_STATUS_LABELS,
+} from '../../../core/models/order-status';
+import { PAYMENT_METHODS } from '../../../core/models/payment-methods';
 import { OrderItem } from '../../../core/models/order-item.model';
 
-type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
+type FilterTab = 'all' | 'pending' | 'preparing' | 'ready' | 'delivered';
+type DeliveredFilter = 'all' | 'paid' | 'unpaid';
+
+const DELIVERED_FILTERS: { value: DeliveredFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'paid', label: 'Cobrados' },
+  { value: 'unpaid', label: 'Sin cobrar' },
+];
 
 @Component({
   selector: 'app-admin-orders',
@@ -97,7 +113,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
               <ion-label class="hidden lg:block">
                 {{ tab.label }}
                 @if (tab.count() > 0) {
-                  <span style="opacity:.6;font-size:.7rem">({{ tab.count() }})</span>
+                  <span style="opacity:.6;font-size:.7rem">({{ tab.count() }}{{ tab.suffix }})</span>
                 }
               </ion-label>
             </ion-segment-button>
@@ -109,17 +125,35 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
           {{ activeTabLabel() }}
         </p>
 
+        <!-- Entregados: últimas 24 h, con filtro por estado de cobro -->
+        @if (activeTab() === 'delivered') {
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            @for (f of deliveredFilters; track f.value) {
+              <button type="button" (click)="deliveredFilter.set(f.value)"
+                      class="text-xs font-semibold px-3.5 py-1.5 rounded-full"
+                      [style.background]="deliveredFilter() === f.value ? 'var(--ion-color-primary)' : '#fff'"
+                      [style.color]="deliveredFilter() === f.value ? 'var(--ion-color-primary-contrast)' : 'rgba(35,12,0,.6)'"
+                      style="border:none;box-shadow:0 1px 3px rgba(35,12,0,.08);cursor:pointer">
+                {{ f.label }}
+              </button>
+            }
+            <span class="text-xs text-espresso/60 ml-1">Últimas 24 horas</span>
+          </div>
+        }
+
         <!-- Orders list -->
         @if (filteredOrders().length === 0) {
           <div class="bg-white rounded-2xl p-12 text-center
                       shadow-[0_1px_3px_rgba(35,12,0,0.08)]">
-            <p class="text-espresso/64 text-sm">No hay pedidos en este estado.</p>
+            <p class="text-espresso/64 text-sm">
+              {{ activeTab() === 'delivered' ? 'No hay pedidos entregados para este filtro.' : 'No hay pedidos en este estado.' }}
+            </p>
           </div>
         } @else {
           <div class="flex flex-col gap-3">
             @for (order of filteredOrders(); track order.id) {
               <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)] overflow-hidden"
-                   [style.border-left]="'4px solid ' + statusColor(order.status)">
+                   [style.border-left]="'4px solid ' + borderColor(order)">
                 <div class="p-4">
                   <!-- Header row -->
                   <div class="flex items-start justify-between gap-3">
@@ -130,7 +164,7 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                         </span>
                         <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide"
                               [style.background]="statusColor(order.status)"
-                              style="color:var(--ion-color-primary)">
+                              [style.color]="order.status === 'delivered' ? '#fff' : 'var(--ion-color-primary)'">
                           {{ statusLabel(order.status) }}
                         </span>
                         @if (order.paid) {
@@ -189,6 +223,13 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
                         Marcar como entregada
                       </ion-button>
                     }
+                    @if (isDeliveredUnpaid(order)) {
+                      <!-- Flujo excepcional: lo normal es que cobre el mesero -->
+                      <ion-button expand="block" color="secondary" class="btn-rounded"
+                                  (click)="charge(order)">
+                        Cobrar pedido
+                      </ion-button>
+                    }
                   </div>
                 </div>
               </div>
@@ -203,42 +244,81 @@ type FilterTab = 'all' | 'pending' | 'preparing' | 'ready';
 export class AdminOrdersComponent {
   private auth = inject(AuthService);
   private orderService = inject(OrderService);
+  private actionSheetCtrl = inject(ActionSheetController);
 
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly orders = this.orderService.activeOrders;
   protected readonly activeTab = signal<FilterTab>('all');
 
+  protected readonly deliveredFilters = DELIVERED_FILTERS;
+  protected readonly deliveredFilter = signal<DeliveredFilter>('all');
+  protected readonly isDeliveredUnpaid = isDeliveredUnpaid;
+
+  // Entregados de las últimas 24 h. El listener solo existe mientras la pestaña
+  // "Entregados" está abierta (cuota del plan Spark): se cancela al salir de ella.
+  private readonly recentDelivered = signal<Order[]>([]);
+
   protected readonly tabs = [
-    { value: 'all' as FilterTab, label: 'Todos', icon: 'list-outline', count: computed(() => this.orders().length) },
-    { value: 'pending' as FilterTab, label: 'Pendientes', icon: 'time-outline', count: computed(() => this.orders().filter(o => o.status === 'pending').length) },
-    { value: 'preparing' as FilterTab, label: 'Preparando', icon: 'flame-outline', count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
-    { value: 'ready' as FilterTab, label: 'Listos', icon: 'checkmark-circle-outline', count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
+    { value: 'all' as FilterTab, label: 'Todos', icon: 'list-outline', suffix: '', count: computed(() => this.orders().length) },
+    { value: 'pending' as FilterTab, label: 'Pendientes', icon: 'time-outline', suffix: '', count: computed(() => this.orders().filter(o => o.status === 'pending').length) },
+    { value: 'preparing' as FilterTab, label: 'Preparando', icon: 'flame-outline', suffix: '', count: computed(() => this.orders().filter(o => o.status === 'preparing').length) },
+    { value: 'ready' as FilterTab, label: 'Listos', icon: 'checkmark-circle-outline', suffix: '', count: computed(() => this.orders().filter(o => o.status === 'ready').length) },
+    // El contador de esta pestaña son los entregados SIN COBRAR (ya están en memoria);
+    // la lista completa de 24 h solo se carga al abrirla.
+    { value: 'delivered' as FilterTab, label: 'Entregados', icon: 'bag-check-outline', suffix: ' sin cobrar', count: computed(() => this.orders().filter(isDeliveredUnpaid).length) },
   ];
 
   protected readonly activeTabLabel = computed(() =>
     this.tabs.find(t => t.value === this.activeTab())?.label ?? '',
   );
 
+  // Últimas 24 h + los entregados sin cobrar de cualquier antigüedad (siguen requiriendo
+  // acción, por eso no se ocultan al pasar las 24 h). Sin duplicados, más recientes primero.
+  private readonly deliveredOrders = computed(() => {
+    const byId = new Map<string, Order>();
+    for (const o of this.recentDelivered()) byId.set(o.id, o);
+    for (const o of this.orders()) if (isDeliveredUnpaid(o)) byId.set(o.id, o);
+    const time = (o: Order) => (o.deliveredAt ?? o.updatedAt ?? o.createdAt)?.seconds ?? 0;
+    return [...byId.values()].sort((a, b) => time(b) - time(a));
+  });
+
   protected readonly filteredOrders = computed(() => {
     const tab = this.activeTab();
-    return tab === 'all' ? this.orders() : this.orders().filter(o => o.status === tab);
+    if (tab === 'all') return this.orders();
+    if (tab === 'delivered') {
+      const filter = this.deliveredFilter();
+      return this.deliveredOrders().filter((o) =>
+        filter === 'all' ? true : filter === 'paid' ? o.paid : !o.paid,
+      );
+    }
+    return this.orders().filter(o => o.status === tab);
   });
 
   constructor() {
-    addIcons({ checkmarkCircleOutline, flameOutline, listOutline, personCircleOutline, timeOutline });
+    addIcons({ bagCheckOutline, checkmarkCircleOutline, flameOutline, listOutline, personCircleOutline, timeOutline });
+
+    effect((onCleanup) => {
+      if (this.activeTab() !== 'delivered') {
+        this.recentDelivered.set([]);
+        return;
+      }
+      const stop = this.orderService.watchRecentDelivered((orders) => this.recentDelivered.set(orders));
+      onCleanup(stop);
+    });
   }
 
   onTabChange(ev: Event): void {
     this.activeTab.set((ev as CustomEvent).detail.value as FilterTab);
   }
 
-  protected statusColor(s: string): string {
-    return s === 'preparing' ? 'var(--ion-color-secondary)'
-         : s === 'ready'     ? 'var(--ion-color-tertiary)'
-         :                     'var(--ion-color-light)';
+  protected borderColor(order: Order): string {
+    return orderBorderColor(order);
   }
-  protected statusLabel(s: string): string {
-    return s === 'preparing' ? 'Preparando' : s === 'ready' ? 'Lista' : 'Pendiente';
+  protected statusColor(s: OrderStatus): string {
+    return orderStatusColor(s);
+  }
+  protected statusLabel(s: OrderStatus): string {
+    return ORDER_STATUS_LABELS[s];
   }
 
   // Arma el texto de la chip incluyendo variante y adiciones cuando existan,
@@ -257,5 +337,24 @@ export class AdminOrdersComponent {
 
   async updateStatus(order: Order, status: OrderStatus): Promise<void> {
     await this.orderService.updateOrderStatus(order.id, status);
+  }
+
+  // Cobro por parte del administrador: caso extraordinario (p. ej. el mesero no está).
+  async charge(order: Order): Promise<void> {
+    const sheet = await this.actionSheetCtrl.create({
+      header: `Medio de pago · ${order.tableNumber}`,
+      buttons: [
+        ...PAYMENT_METHODS.map((m) => ({
+          text: m.label,
+          icon: m.icon,
+          data: { method: m.value as PaymentMethod },
+        })),
+        { text: 'Cancelar', role: 'cancel' },
+      ],
+    });
+    await sheet.present();
+    const { data, role } = await sheet.onWillDismiss<{ method: PaymentMethod }>();
+    if (role === 'cancel' || !data) return;
+    await this.orderService.markOrderPaid(order.id, data.method);
   }
 }
