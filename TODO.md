@@ -13,18 +13,15 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 1)
+## 2. Tareas Activas (WIP: 0)
 
-### 🔄 Tarea 35: [FEATURE] Búsqueda de productos insensible a tildes, diéresis y ñ
-*   **Rama / PR:** `feature/accent-insensitive-search`
-*   **Origen:** ajustes pedidos por el dueño del proyecto el 2026-09-24 (serie 35-39, ver §2.5). La búsqueda del mesero distinguía letras tildadas: "mit" no encontraba "Mítica".
-*   **Alcance:** utilidad pura compartida `core/utils/normalize-text.ts` (`normalizeText()`: NFD + sin diacríticos + minúsculas + espacios colapsados), con pruebas; usada en la búsqueda de producto del mesero (nombre y categoría), en el buscador de productos del administrador y en la clave de deduplicación del import de Excel (reemplaza el `normalizeStr()` privado de `products.component.ts`).
+Ninguna tarea activa. Siguiente en la cola: **Tarea 36**.
 
 ---
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por tarea. Orden de ejecución **35 → 36 → 38 → 39 → 37** (la 39 va antes que la 37 para que los listeners nuevos de la 37 ya nazcan con manejo de errores).
+Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por tarea. Orden de ejecución **36 → 38 → 39 → 37** (la 35 ya está completada; la 39 va antes que la 37 para que los listeners nuevos de la 37 ya nazcan con manejo de errores).
 
 *   **Tarea 36: [FEATURE] Contenido cortado en la parte inferior en móvil (administrador y barista).** Causa probable: `:host { display: block; height: 100%; }` en las páginas pisa el `display:flex; flex-direction:column` que `.ion-page` aplica al host, así que `ion-content` ocupa el 100 % además del `ion-header`. En el administrador se suma la barra inferior fija y la falta de `viewport-fit=cover` (`env(safe-area-inset-bottom)` = 0 en iOS). Verificar en navegador con viewport móvil.
 *   **Tarea 38: [FEATURE] Nombre del mesero en el reporte de ventas.** Columna "Mesero" (`waiterName`) en la tabla y en el Excel exportado.
@@ -34,6 +31,12 @@ Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por ta
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 35: [FEATURE] Búsqueda de productos insensible a tildes, diéresis y ñ
+*   **Completada:** 2026-09-24
+*   **PR:** #48 (`feature/accent-insensitive-search`)
+*   **Origen:** ajuste pedido por el dueño del proyecto (serie 35-39, ver §2.5). La búsqueda del mesero distinguía letras tildadas: "mit" no encontraba "Mítica".
+*   **Resultado:** utilidad pura compartida `core/utils/normalize-text.ts` (`normalizeText()`: NFD + sin diacríticos + minúsculas + espacios colapsados), con `normalize-text.spec.ts` (6 casos nuevos; suite en 34/34). Usada en la búsqueda de producto del mesero (nombre y categoría), en el buscador de productos del administrador (que tenía el mismo defecto) y en la clave de deduplicación del import de Excel, donde reemplaza al `normalizeStr()` privado de `products.component.ts` sin cambiar su comportamiento. Verificado por el usuario en preview antes de fusionar.
 
 ### ✅ Tarea 34: [INFRA] Política de limpieza de Artifact Registry para Cloud Functions
 *   **Completada:** 2026-09-22
@@ -252,3 +255,4 @@ Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por ta
 | 2026-09-21 | Tarea 31 completada. `payment-methods.ts` nuevo (datáfono/QR/efectivo); propina editable con Porcentaje+Valor en dos sitios; `OrderService.updateOrderTip()`; `firestore.rules` gana `onlyUpdatesTip()`. En preview se encontraron y corrigieron dos bugs reales del diálogo de propina (sin labels, valores que no se aplicaban al aceptar — causa raíz: limitaciones de `AlertController` para inputs de texto/número, verificadas en el código fuente de `@ionic/core`) y se descubrió que el canal de preview de un PR nunca despliega `firestore.rules` (solo Hosting), lo que impide verificar de punta a punta la edición de propina de un pedido ya creado antes de fusionar. Ambos hallazgos documentados como gotchas nuevos en `CLAUDE.md` §7. PR #44. | WIP se mantiene en 0. Una tarea restante en §2.5: Tarea 33. Pendiente verificar en producción, tras el deploy, el caso de edición de propina de un pedido ya creado. |
 | 2026-09-21 | Confirmado en producción: la edición de propina de un pedido ya creado funciona correctamente (el pendiente de la Tarea 31 quedó resuelto por el deploy real de `firestore.rules`). Tarea 33 completada: `firestore.rules.spec.ts` con 52 casos contra el emulador (rol × colección × operación), corriendo solo en CI por decisión explícita del usuario (sin Java local). Corrección menor detectada en el primer run de CI y resuelta en el mismo ciclo: `actions/setup-java@v4`→`@v5` (v4 aún declaraba runtime Node 20, disparando el mismo aviso de deprecación ya resuelto para `checkout`/`setup-node` en la Tarea 28). PR #45. | WIP se mantiene en 0. **Cola de tareas vacía** — se cierra el ciclo completo de `docs/cambio-en-modelo-de-datos.md` y del ADR-008. Próxima tarea a evaluar contra `PRD.md` cuando el usuario retome. |
 | 2026-09-22 | PR #46 fusionado y desplegado sin errores; advertencia nueva en el job `deploy_live` al desplegar `functions`: sin política de limpieza de imágenes en Artifact Registry (`us-central1`), y el intento automático de Firebase de configurarla falló por permisos de la cuenta de servicio de CI. Tarea 34 completada (externa, sin slot de WIP): configurada una sola vez en local con la cuenta del dueño del proyecto (`firebase functions:artifacts:setpolicy --days 1 --force`). Gotcha nuevo documentado en `CLAUDE.md` §7. | WIP se mantiene en 0. Cola de tareas sigue vacía. |
+| 2026-09-24 | Serie de ajustes 35-39 acordada con el dueño (búsqueda sin tildes, layout móvil, reporte con mesero, listeners resilientes, entregados sin cobrar); un PR por tarea. Tarea 35 completada: `normalizeText()` compartido, usado en la búsqueda del mesero, la del administrador y el dedupe del import de Excel. PR #48. | WIP se mantiene en 0. Cola: 36 → 38 → 39 → 37. Próxima sesión: Tarea 36. |

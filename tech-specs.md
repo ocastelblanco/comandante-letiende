@@ -74,7 +74,8 @@ comandante/
 │   │   ├── core/
 │   │   │   ├── auth/             # auth.service.ts, auth.guard.ts
 │   │   │   ├── db/               # order.service.ts, product.service.ts, user.service.ts
-│   │   │   └── models/           # Interfaces + category-tree.ts (fuente única de categorías)
+│   │   │   ├── models/           # Interfaces + category-tree.ts (fuente única de categorías)
+│   │   │   └── utils/            # normalize-text.ts: comparación sin tildes/diéresis/ñ para búsquedas
 │   │   ├── features/             # Una carpeta por perfil de usuario
 │   │   │   ├── admin/            # dashboard, orders, products, reports, users
 │   │   │   ├── barista/
