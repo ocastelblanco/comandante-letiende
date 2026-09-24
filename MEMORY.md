@@ -12,9 +12,9 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
 | **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado — el canal de preview de cada PR comparte el mismo Firestore que producción. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 38 (ver `TODO.md` §3). Serie de ajustes 35-39 en curso; activa: 39; cola: 37. |
+| **Tareas completadas** | 39 (ver `TODO.md` §3). Serie de ajustes 35-39: solo queda la Tarea 37 (activa). |
 | **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. **Los PR reciben un canal de vista previa que solo despliega Hosting — nunca `firestore.rules`** (ver gotcha en §7): un cambio de reglas no se puede verificar de punta a punta en preview, solo tras fusionar (mitigado desde la Tarea 33 con pruebas de reglas contra el emulador real, corriendo solo en CI). Desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**, y desde la Tarea 33 también `firestore.rules.spec.ts` vía `firebase emulators:exec` (con `actions/setup-java@v5`, Temurin): una suite en rojo bloquea el merge. |
-| **Última Sesión** | 2026-09-24 — Serie de ajustes 35-39: Tareas 35, 36 y 38 fusionadas; Tarea 39 (listeners resilientes) en curso. |
+| **Última Sesión** | 2026-09-24 — Serie de ajustes 35-39: Tareas 35, 36, 38 y 39 fusionadas; Tarea 37 (entregados sin cobrar) en curso, con PR previo de reglas (#53). |
 
 ---
 
@@ -67,6 +67,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Búsqueda de productos (mesero y administrador) insensible a mayúsculas, tildes, diéresis y ñ *(Tarea 35, PR #48, 2026-09-24)*.
 - `[x]` Contenido de barista y administrador ya no se corta abajo en móvil *(Tarea 36, PR #50, 2026-09-24)*.
 - `[x]` Nombre del mesero en el reporte de ventas y en el Excel *(Tarea 38, PR #51, 2026-09-24)*.
+- `[x]` Listeners de tiempo real resilientes y atados a la sesión, con aviso de desconexión *(Tarea 39, PR #52, 2026-09-24)*.
 - `[x]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro — reestructurada por el usuario y con el primer paquete completo cargado vía Excel el mismo día.
 
 ### Calidad y Pruebas
@@ -234,6 +235,7 @@ Hallazgos verificados empíricamente durante el desarrollo. El detalle completo,
 | `firebase deploy --only functions --force` no logra configurar la política de limpieza de Artifact Registry — advertencia en cada deploy. | `--force` solo evita el *prompt* interactivo; la cuenta de servicio de CI no tiene permiso IAM para configurar la política. | `npx firebase-tools functions:artifacts:setpolicy --project comandante-letiende --days 1 --force`, una sola vez, en local con una cuenta con permisos suficientes (Tarea 34). Queda fijada en el repositorio de Artifact Registry, no en la cuenta de servicio. |
 | Contenido cortado abajo en móvil en una página con `ion-header` + `ion-content`. | `:host { display:block; height:100% }` pisa el `display:flex` en columna de `.ion-page`; `ion-content` se apila bajo el header y se desborda. | No declarar `display`/`height` en el `:host` de las páginas de Ionic (salvo el login, con `position:fixed`). |
 | La interfaz deja de actualizarse en tiempo real ("congelada") hasta recargar; típico tras cerrar sesión y volver a entrar. | `onSnapshot` sin callback de error en un servicio singleton: un error definitivo cancela el listener para siempre y nada lo recrea. | `connectWhileAuthenticated()` / `ResilientListener`; no usar recarga automática. |
+| En preview, una escritura de un campo nuevo revierte, o una consulta nueva falla por falta de índice. | El preview no despliega reglas y **ningún job del CI despliega `firestore.indexes.json`**. | Reglas en un PR previo compatible hacia atrás; consultas resolubles con índices de campo único. |
 
 ---
 
@@ -259,11 +261,12 @@ Rutas relativas a la raíz del repositorio.
 - **Fecha:** 2026-09-24
 - **Qué se hizo:**
   - El dueño pidió cinco ajustes; se planificaron como la serie **Tareas 35-39**, un PR por tarea, orden 35 → 36 → 38 → 39 → 37 (detalle en `TODO.md` §2.5).
+  - **Tarea 39 completada** (PR #52). **Tarea 37** en curso: reglas separadas en el PR #53 (prerrequisito, para poder probar en preview); consulta de 24 h por `deliveredAt` sin índice compuesto.
   - **Tarea 38 completada** (PR #51): columna Mesero en reporte y Excel. **Tarea 39** (listeners resilientes) en curso.
   - **Tarea 36 completada** (PR #50): causa = `:host { display:block }` pisando `.ion-page`; corregido en barista y las cinco vistas del administrador; gotcha en `CLAUDE.md` §7. **Tarea 38** (mesero en el reporte) en curso.
   - **Tarea 35 completada** (PR #48): `normalizeText()` compartido para búsquedas sin tildes/diéresis/ñ (mesero, administrador y dedupe del import).
   - Diagnóstico ya hecho para las siguientes (no repetir): (36) el corte inferior en móvil viene de `:host { display:block; height:100% }` pisando el flex de `.ion-page`; (39) el "congelamiento" es un `onSnapshot` sin callback de error en servicios singleton — reproducido por el usuario cerrando y reabriendo sesión del mesero; se descartó la recarga automática.
-- **Próxima Tarea:** 39 en curso; luego 37 (entregados sin cobrar).
+- **Próxima Tarea:** 37 en curso (última de la serie 35-39).
 
 ### Sesión anterior
 

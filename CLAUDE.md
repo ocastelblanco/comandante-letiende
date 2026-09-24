@@ -338,3 +338,11 @@ La política queda fijada en el repositorio de Artifact Registry (`gcf-artifacts
 
 **Solución:** nunca llamar `onSnapshot` a pelo en un servicio. Usar `connectWhileAuthenticated()` (`core/db/live-listener.ts`), que envuelve el listener en `ResilientListener` (reintento con espera exponencial, aviso de estado), lo ata a `AuthService.isAuthenticated` (se conecta al iniciar sesión; al cerrarla se cancela y se limpia la señal, OWASP A07) y lo registra en `RealtimeStatusService` (aviso global y reintento al volver a la pestaña o recuperar la red). Una recarga automática periódica **no** es la solución: pierde el pedido en curso, gasta cuota del plan Spark y oculta la causa.
 
+### ⚠️ Un campo nuevo que el cliente escribe exige desplegar antes `firestore.rules`, y el CI no despliega índices
+
+**Síntoma:** en el canal de preview de un PR, una acción que escribe un campo nuevo (p. ej. `deliveredAt` al entregar un pedido) "se ve y luego revierte", o una consulta nueva falla con `failed-precondition` ("The query requires an index").
+
+**Causa raíz:** dos límites del pipeline, ambos verificados en `.github/workflows/deploy-hosting.yml`. (1) El job `preview` solo despliega Hosting, así que el cliente del PR corre contra las reglas de `main` (ver el gotcha del canal de preview). (2) Ni siquiera `deploy_live` despliega `firestore.indexes.json`: solo corre `firebase deploy --only firestore:rules,functions`.
+
+**Solución:** (1) si una tarea necesita ampliar una regla para que el cliente escriba un campo nuevo, **separar la regla en un PR previo, compatible hacia atrás** (aceptar el campo sin exigirlo), y fusionarlo antes; así el PR de la funcionalidad se puede probar de punta a punta en preview. La Tarea 37 lo hizo así (PR de `onlyMarksDelivered()` + `deliveredAt`). (2) diseñar las consultas para que se resuelvan con índices de campo único: varias igualdades (`status == 'delivered' && paid == false`), o un único rango con `orderBy` sobre el mismo campo (`deliveredAt >= x` + `orderBy('deliveredAt')`), filtrando el resto en el cliente. Si de verdad hace falta un índice compuesto, desplegarlo a mano (`firebase deploy --only firestore:indexes`) antes de fusionar.
+
