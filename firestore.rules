@@ -79,10 +79,12 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 
-    // Los meseros solo pueden marcar un pedido como 'delivered' (entregado).
+    // Los meseros solo pueden marcar un pedido como 'delivered' (entregado), y solo una vez:
+    // 'deliveredAt' (Tarea 37) es la marca de tiempo de esa transición, no se reescribe.
     function onlyMarksDelivered() {
-      let allowed = ['status', 'updatedAt'];
+      let allowed = ['status', 'updatedAt', 'deliveredAt'];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+          && resource.data.status != 'delivered'
           && request.resource.data.status == 'delivered';
     }
 
