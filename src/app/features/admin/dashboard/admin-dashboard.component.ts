@@ -13,6 +13,13 @@ import { addIcons } from 'ionicons';
 import { personCircleOutline } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderService } from '../../../core/db/order.service';
+import { Order } from '../../../core/models/order.model';
+import {
+  isDeliveredUnpaid,
+  orderBorderColor,
+  orderStatusColor,
+  ORDER_STATUS_LABELS,
+} from '../../../core/models/order-status';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -73,7 +80,7 @@ import { OrderService } from '../../../core/db/order.service';
         <div class="bg-white rounded-2xl shadow-[0_1px_3px_rgba(35,12,0,0.12)] overflow-hidden">
           <div class="px-5 py-4 border-b border-espresso/8 flex items-center gap-3">
             <h2 class="flex-1 text-base font-semibold text-espresso">Pedidos activos</h2>
-            <span class="bg-cream text-espresso text-xs font-bold px-2.5 py-0.5 rounded-full">
+            <span class="bg-cream text-espresso text-2xl font-bold px-3.5 py-0.5 rounded-full">
               {{ activeOrders().length }}
             </span>
           </div>
@@ -86,7 +93,7 @@ import { OrderService } from '../../../core/db/order.service';
             <div class="divide-y divide-espresso/8">
               @for (order of activeOrders(); track order.id) {
                 <div class="flex items-center gap-4 px-5 py-3.5"
-                     [style.border-left]="'4px solid ' + statusColor(order.status)">
+                     [style.border-left]="'4px solid ' + borderColor(order)">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                       <span class="text-sm font-semibold text-espresso">
@@ -104,9 +111,9 @@ import { OrderService } from '../../../core/db/order.service';
                       &#36;{{ order.total | number:'1.0-0' }}
                     </p>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                          [style.background]="statusColor(order.status)"
-                          style="color:var(--ion-color-primary)">
-                      {{ statusLabel(order.status) }}
+                          [style.background]="statusColor(order)"
+                          [style.color]="order.status === 'delivered' ? '#fff' : 'var(--ion-color-primary)'">
+                      {{ statusLabel(order) }}
                     </span>
                   </div>
                 </div>
@@ -139,11 +146,13 @@ export class AdminDashboardComponent {
     const pending = orders.filter(o => o.status === 'pending').length;
     const preparing = orders.filter(o => o.status === 'preparing').length;
     const ready = orders.filter(o => o.status === 'ready').length;
+    const deliveredUnpaid = orders.filter(isDeliveredUnpaid).length;
     return [
-      { label: 'En cola', value: `${orders.length}`, sub: 'pedidos activos' },
       { label: 'Pendientes', value: `${pending}`, sub: 'por preparar' },
       { label: 'Preparando', value: `${preparing}`, sub: 'en barra' },
       { label: 'Listos', value: `${ready}`, sub: 'por entregar' },
+      // Entregados que aún no se cobran: siguen activos hasta que se cobren.
+      { label: 'Entregados', value: `${deliveredUnpaid}`, sub: 'sin cobrar' },
     ];
   });
 
@@ -151,12 +160,13 @@ export class AdminDashboardComponent {
     addIcons({ personCircleOutline });
   }
 
-  protected statusColor(s: string): string {
-    return s === 'preparing' ? 'var(--ion-color-secondary)'
-         : s === 'ready'     ? 'var(--ion-color-tertiary)'
-         :                     'var(--ion-color-light)';
+  protected borderColor(order: Order): string {
+    return orderBorderColor(order);
   }
-  protected statusLabel(s: string): string {
-    return s === 'preparing' ? 'Preparando' : s === 'ready' ? 'Lista' : 'Pendiente';
+  protected statusColor(order: Order): string {
+    return orderStatusColor(order.status);
+  }
+  protected statusLabel(order: Order): string {
+    return ORDER_STATUS_LABELS[order.status];
   }
 }

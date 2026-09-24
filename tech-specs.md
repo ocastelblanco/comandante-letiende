@@ -74,7 +74,7 @@ comandante/
 │   │   ├── core/
 │   │   │   ├── auth/             # auth.service.ts, auth.guard.ts
 │   │   │   ├── db/               # order/product/user.service.ts + live-listener.ts, resilient-listener.ts, realtime-status.service.ts (listeners de tiempo real resilientes)
-│   │   │   ├── models/           # Interfaces + category-tree.ts (fuente única de categorías)
+│   │   │   ├── models/           # Interfaces + category-tree.ts (fuente única de categorías) + order-status.ts (etiquetas, colores y "entregado sin cobrar")
 │   │   │   ├── ui/               # connection-banner.component.ts (aviso global de conexión)
 │   │   │   └── utils/            # normalize-text.ts: comparación sin tildes/diéresis/ñ para búsquedas
 │   │   ├── features/             # Una carpeta por perfil de usuario
@@ -204,6 +204,7 @@ export interface Order {
   total: number;            // subtotal + tipAmount — el valor a cobrar
   baristaId: string | null;
   preparedAt: Timestamp | null;
+  deliveredAt?: Timestamp | null; // al pasar a 'delivered' (Tarea 37); ausente en pedidos anteriores
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -235,11 +236,13 @@ Tres colecciones planas, sin subcolecciones. Refleja el estado real de la base d
 | :--- | :--- | :--- |
 | `users` | el **email** del usuario | `{ email, displayName, role: 'admin'\|'waiter'\|'barista'\|'inactive', createdAt }` |
 | `products` | autogenerado | `{ name, description, category, subcategory?, variants, additions, basePrice, isActive, createdAt, updatedAt }` |
-| `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, observations, subtotal, tipPercentage, tipValue, tipAmount, total, baristaId, preparedAt, createdAt, updatedAt }` |
+| `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, observations, subtotal, tipPercentage, tipValue, tipAmount, total, baristaId, preparedAt, deliveredAt, createdAt, updatedAt }` |
 
 **El ID de `users` es el email, no el UID de Firebase Auth.** `firestore.rules` resuelve el rol con `get(/databases/$(database)/documents/users/$(request.auth.token.email))`, así que cambiar esa clave rompería toda la autorización.
 
-Índices compuestos declarados en `firestore.indexes.json` (solo para `orders`, que es la única colección consultada con filtro + orden).
+Índices compuestos declarados en `firestore.indexes.json` (solo para `orders`, que es la única colección consultada con filtro + orden). **El CI no despliega índices** (solo `firestore:rules,functions`): una consulta nueva debe poder resolverse con índices de campo único (igualdades múltiples, o un solo rango + `orderBy` sobre ese mismo campo), como las de la Tarea 37.
+
+**Qué es un pedido "activo" (Tarea 37).** `OrderService.activeOrders` une dos listeners: los pedidos `pending`/`preparing`/`ready` y los `delivered` con `paid == false` — un pedido entregado pero sin cobrar sigue activo hasta que se cobre. La pestaña *Entregados* del administrador suma un tercer listener (`watchRecentDelivered()`, `deliveredAt >= ahora − 24 h`) que solo vive mientras esa pestaña está abierta.
 
 ### Servicios Externos Utilizados
 - **Firebase Auth:** Gestión de sesión de Google.
