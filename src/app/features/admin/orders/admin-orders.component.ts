@@ -134,7 +134,7 @@ const DELIVERED_FILTERS: { value: DeliveredFilter; label: string }[] = [
               <ion-chip (click)="deliveredFilter.set(f.value)"
                         [style.--background]="deliveredFilter() === f.value ? 'var(--ion-color-primary)' : 'var(--color-cream)'"
                         [style.--color]="deliveredFilter() === f.value ? 'var(--ion-color-primary-contrast)' : 'var(--color-espresso)'"
-                        style="margin:0;font-weight:600;font-size:.8rem;cursor:pointer">
+                        style="margin:0;padding-left:8px;padding-right:8px;font-weight:600;font-size:.8rem;cursor:pointer">
                 {{ f.label }}
               </ion-chip>
             }
