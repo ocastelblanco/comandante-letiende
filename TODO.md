@@ -13,13 +13,23 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 0)
+## 2. Tareas Activas (WIP: 1)
+
+### 🔄 Tarea 35: [FEATURE] Búsqueda de productos insensible a tildes, diéresis y ñ
+*   **Rama / PR:** `feature/accent-insensitive-search`
+*   **Origen:** ajustes pedidos por el dueño del proyecto el 2026-09-24 (serie 35-39, ver §2.5). La búsqueda del mesero distinguía letras tildadas: "mit" no encontraba "Mítica".
+*   **Alcance:** utilidad pura compartida `core/utils/normalize-text.ts` (`normalizeText()`: NFD + sin diacríticos + minúsculas + espacios colapsados), con pruebas; usada en la búsqueda de producto del mesero (nombre y categoría), en el buscador de productos del administrador y en la clave de deduplicación del import de Excel (reemplaza el `normalizeStr()` privado de `products.component.ts`).
 
 ---
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-**Vacía.** La serie completa de `docs/cambio-en-modelo-de-datos.md` (Tareas 29, 30 y 31) y la estrategia de pruebas por capas del ADR-008 (Tareas 32 y 33) quedaron completadas (ver §3, PR #40, #41, #43, #44 y #45). Próxima tarea a evaluar contra `PRD.md` cuando el usuario retome el ciclo.
+Serie de ajustes acordada con el dueño del proyecto el 2026-09-24. Un PR por tarea. Orden de ejecución **35 → 36 → 38 → 39 → 37** (la 39 va antes que la 37 para que los listeners nuevos de la 37 ya nazcan con manejo de errores).
+
+*   **Tarea 36: [FEATURE] Contenido cortado en la parte inferior en móvil (administrador y barista).** Causa probable: `:host { display: block; height: 100%; }` en las páginas pisa el `display:flex; flex-direction:column` que `.ion-page` aplica al host, así que `ion-content` ocupa el 100 % además del `ion-header`. En el administrador se suma la barra inferior fija y la falta de `viewport-fit=cover` (`env(safe-area-inset-bottom)` = 0 en iOS). Verificar en navegador con viewport móvil.
+*   **Tarea 38: [FEATURE] Nombre del mesero en el reporte de ventas.** Columna "Mesero" (`waiterName`) en la tabla y en el Excel exportado.
+*   **Tarea 39: [FEATURE] Listeners de Firestore resilientes ("congelamiento").** Los `onSnapshot` de `OrderService`/`ProductService`/`UserService` no tienen callback de error y se crean una sola vez en el constructor de un singleton: un error definitivo (p. ej. `permission-denied` al cerrar sesión) cancela el listener para siempre. Reproducido por el usuario: el mesero cierra sesión, la barra marca un pedido listo, el mesero vuelve a entrar y no ve el cambio hasta recargar. Solución: listeners atados al estado de autenticación (se limpian las señales al cerrar sesión — A07), callback de error con reintento y backoff, re-suscripción en `visibilitychange` y aviso visible de desconexión. **Descartada** la recarga automática periódica (pierde el pedido en curso, gasta cuota, oculta la causa).
+*   **Tarea 37: [FEATURE] Pedidos entregados sin cobrar siguen activos.** Segundo listener `status == 'delivered' && paid == false` sumado a `activeOrders`; campo nuevo `deliveredAt` (regla `onlyMarksDelivered()` + índice `(status, deliveredAt)` + pruebas de reglas). Administrador: dashboard sin KPI "En cola", con tarjeta "ENTREGADOS {N} sin cobrar" y chip "Pedidos activos" en `--text-2xl`; pestaña nueva *Entregados* (últimas 24 h por `deliveredAt`, filtro todos/cobrados/sin cobrar, listener solo mientras la pestaña está abierta, botón de cobro excepcional para el administrador). Borde izquierdo `--ion-color-secondary` para los no cobrados en *Listos*, *Entregados*, *Todos*, dashboard y lista del mesero. Mesero: "Listos para entrega o cobro" incluye los entregados sin cobrar.
 
 ---
 
