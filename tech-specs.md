@@ -73,8 +73,9 @@ comandante/
 │   ├── app/
 │   │   ├── core/
 │   │   │   ├── auth/             # auth.service.ts, auth.guard.ts
-│   │   │   ├── db/               # order.service.ts, product.service.ts, user.service.ts
+│   │   │   ├── db/               # order/product/user.service.ts + live-listener.ts, resilient-listener.ts, realtime-status.service.ts (listeners de tiempo real resilientes)
 │   │   │   ├── models/           # Interfaces + category-tree.ts (fuente única de categorías)
+│   │   │   ├── ui/               # connection-banner.component.ts (aviso global de conexión)
 │   │   │   └── utils/            # normalize-text.ts: comparación sin tildes/diéresis/ñ para búsquedas
 │   │   ├── features/             # Una carpeta por perfil de usuario
 │   │   │   ├── admin/            # dashboard, orders, products, reports, users
