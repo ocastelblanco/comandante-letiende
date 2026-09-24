@@ -45,7 +45,6 @@ import { UserRole } from '../../../core/models/user.model';
     IonToolbar,
   ],
   styles: [`
-    :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `

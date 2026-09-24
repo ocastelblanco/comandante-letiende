@@ -20,7 +20,6 @@ import { OrderCardComponent } from './order-card.component';
   selector: 'app-barista',
   standalone: true,
   imports: [IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar, OrderCardComponent],
-  styles: [`:host { display: block; height: 100%; }`],
   template: `
     <ion-header class="ion-no-border">
       <ion-toolbar>

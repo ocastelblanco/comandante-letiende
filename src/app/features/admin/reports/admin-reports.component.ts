@@ -45,7 +45,6 @@ interface OrderRow {
     IonToolbar,
   ],
   styles: [`
-    :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
     input[type="datetime-local"] {
       padding: 8px 12px;

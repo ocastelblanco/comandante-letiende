@@ -88,7 +88,6 @@ interface ImportError {
     ProductFormComponent,
   ],
   styles: [`
-    :host { display: block; height: 100%; }
     @media (min-width: 1024px) { ion-header { display: none; } }
   `],
   template: `
