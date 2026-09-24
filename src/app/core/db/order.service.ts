@@ -1,4 +1,4 @@
-import { DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import {
   addDoc,
   collection,
@@ -8,6 +8,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  QuerySnapshot,
   serverTimestamp,
   Timestamp,
   updateDoc,
@@ -17,6 +18,7 @@ import { Auth } from '@angular/fire/auth';
 import { Order, OrderStatus, PaymentMethod } from '../models/order.model';
 import { OrderItem } from '../models/order-item.model';
 import { computeOrderTotals } from '../models/order-totals';
+import { connectWhileAuthenticated } from './live-listener';
 
 // Propina sugerida por defecto al crear un pedido — editable por el mesero
 // más adelante (Tarea 31), tanto en porcentaje como en valor absoluto.
@@ -36,13 +38,17 @@ export class OrderService {
       this.colRef,
       where('status', 'in', ['pending', 'preparing', 'ready']),
     );
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const orders = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }) as Order)
-        .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
-      this._activeOrders.set(orders);
-    });
-    inject(DestroyRef).onDestroy(unsubscribe);
+    connectWhileAuthenticated<QuerySnapshot>(
+      'orders',
+      (next, error) => onSnapshot(q, next, error),
+      (snap) => {
+        const orders = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }) as Order)
+          .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
+        this._activeOrders.set(orders);
+      },
+      () => this._activeOrders.set([]),
+    );
   }
 
   markOrderPaid(orderId: string, paymentMethod: PaymentMethod): Promise<void> {

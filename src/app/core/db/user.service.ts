@@ -1,14 +1,16 @@
-import { DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import {
   collection,
   doc,
   Firestore,
   onSnapshot,
+  QuerySnapshot,
   serverTimestamp,
   setDoc,
   updateDoc,
 } from '@angular/fire/firestore';
 import { AppUser, UserRole } from '../models/user.model';
+import { connectWhileAuthenticated } from './live-listener';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
@@ -19,10 +21,12 @@ export class UserService {
   readonly users = this._users.asReadonly();
 
   constructor() {
-    const unsubscribe = onSnapshot(this.colRef, (snap) => {
-      this._users.set(snap.docs.map((d) => d.data() as AppUser));
-    });
-    inject(DestroyRef).onDestroy(unsubscribe);
+    connectWhileAuthenticated<QuerySnapshot>(
+      'users',
+      (next, error) => onSnapshot(this.colRef, next, error),
+      (snap) => this._users.set(snap.docs.map((d) => d.data() as AppUser)),
+      () => this._users.set([]),
+    );
   }
 
   // El documento usa el email como ID para que el administrador pueda crear

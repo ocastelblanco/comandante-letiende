@@ -1,4 +1,4 @@
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import {
   addDoc,
   collection,
@@ -6,11 +6,13 @@ import {
   Firestore,
   getDocs,
   onSnapshot,
+  QuerySnapshot,
   serverTimestamp,
   updateDoc,
   writeBatch,
 } from '@angular/fire/firestore';
 import { Product } from '../models/product.model';
+import { connectWhileAuthenticated } from './live-listener';
 
 /** Límite máximo de operaciones por lote impuesto por Firestore. */
 const FIRESTORE_BATCH_LIMIT = 500;
@@ -27,12 +29,12 @@ export class ProductService {
   readonly activeProducts = computed(() => this._products().filter((p) => p.isActive));
 
   constructor() {
-    const unsubscribe = onSnapshot(this.colRef, (snap) => {
-      this._products.set(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product),
-      );
-    });
-    inject(DestroyRef).onDestroy(unsubscribe);
+    connectWhileAuthenticated<QuerySnapshot>(
+      'products',
+      (next, error) => onSnapshot(this.colRef, next, error),
+      (snap) => this._products.set(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product)),
+      () => this._products.set([]),
+    );
   }
 
   addProduct(data: ProductInput): Promise<unknown> {
