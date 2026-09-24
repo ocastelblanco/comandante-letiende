@@ -21,6 +21,7 @@ import { paymentMethodColor, paymentMethodLabel } from '../../../core/models/pay
 interface OrderRow {
   id: string;
   tableNumber: string;
+  waiterName: string;
   paidAtLabel: string;
   paymentLabel: string;
   paymentColor: string;
@@ -140,12 +141,16 @@ interface OrderRow {
           </div>
           <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);overflow:hidden">
             <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;min-width:700px">
+              <table style="width:100%;border-collapse:collapse;min-width:780px">
                 <thead>
                   <tr style="background:var(--ion-color-primary)">
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Pedido
+                    </th>
+                    <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
+                      Mesero
                     </th>
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast);white-space:nowrap">
@@ -179,6 +184,9 @@ interface OrderRow {
                       <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);font-weight:600">
                         {{ row.tableNumber }}
                       </td>
+                      <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark)">
+                        {{ row.waiterName }}
+                      </td>
                       <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);white-space:nowrap">
                         {{ row.paidAtLabel }}
                       </td>
@@ -207,7 +215,7 @@ interface OrderRow {
                 </tbody>
                 <tfoot>
                   <tr style="background:var(--ion-background-color);border-top:2px solid var(--ion-color-light)">
-                    <td colspan="4" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary)">
+                    <td colspan="5" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary)">
                       Total del rango
                     </td>
                     <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary);
@@ -277,6 +285,7 @@ export class AdminReportsComponent {
 
     const rows = this.orders().map((r) => ({
       'Pedido': r.tableNumber,
+      'Mesero': r.waiterName,
       'Hora de cobro': r.paidAtLabel,
       'Medio de pago': r.paymentLabel,
       'Ítems': r.itemsLabel,
@@ -286,6 +295,7 @@ export class AdminReportsComponent {
     }));
     rows.push({
       'Pedido': 'TOTAL',
+      'Mesero': '',
       'Hora de cobro': '',
       'Medio de pago': '',
       'Ítems': '',
@@ -340,6 +350,8 @@ export class AdminReportsComponent {
       const rows: OrderRow[] = rawOrders.map((order) => ({
         id: order.id,
         tableNumber: order.tableNumber,
+        // waiterName puede venir vacío si la cuenta de Google no tiene displayName.
+        waiterName: order.waiterName || order.waiterId,
         paidAtLabel: this.formatPaidAt(order.paidAt ?? null),
         paymentLabel: this.paymentLabel(order.paymentMethod ?? null),
         paymentColor: this.paymentColor(order.paymentMethod ?? null),
