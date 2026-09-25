@@ -13,22 +13,27 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 1)
+## 2. Tareas Activas (WIP: 0)
 
-### 🔄 Tarea 37: [FEATURE] Pedidos entregados sin cobrar siguen activos
-*   **Rama / PR:** `feature/delivered-unpaid-orders`. Prerrequisito: PR #53 (`feature/delivered-at-rules`, reglas + pruebas), fusionado antes para poder probar en preview.
-*   **Origen:** ajuste pedido por el dueño del proyecto (serie 35-39). Un pedido entregado sin cobrar desaparecía de las listas del mesero y del administrador y ya no se podía cobrar.
-*   **Alcance:** `OrderService.activeOrders` une los pedidos `pending`/`preparing`/`ready` con los `delivered` y `paid == false` (segundo listener, solo igualdades: sin índice compuesto). Campo nuevo `Order.deliveredAt` (se escribe en `updateOrderStatus('delivered')`; regla `onlyMarksDelivered()` actualizada en el PR #53). `core/models/order-status.ts` (etiquetas, colores, `isDeliveredUnpaid()`, `orderBorderColor()`, con pruebas). Administrador — dashboard: sin KPI "En cola", KPI nuevo "ENTREGADOS {N} sin cobrar", chip de "Pedidos activos" en `text-2xl`; pedidos: pestaña *Entregados* (últimas 24 h por `deliveredAt` + entregados sin cobrar de cualquier antigüedad, filtro Todos/Cobrados/Sin cobrar, listener solo mientras la pestaña está abierta), borde `--ion-color-secondary` para listos y entregados sin cobrar, botón **Cobrar pedido** (flujo excepcional). Mesero: "Listos para entrega o cobro" incluye los entregados sin cobrar, con borde `secondary`; la detección de "ítem recién listo" ignora los `delivered` (al pasar de un listener a otro reaparecen sin historial y darían una alerta falsa).
+Ninguna tarea activa. Cola vacía.
 
 ---
 
 ## 2.5. Cola de Tareas (siguiente ciclo)
 
-**Vacía** salvo la tarea activa de la serie de ajustes 35-39 (ver §2). Próxima a evaluar contra `PRD.md` cuando el usuario retome el ciclo.
+**Vacía.** La serie de ajustes 35-39 (2026-09-24) quedó completa (ver §3, PR #48, #50, #51, #52, #53 y #54). Próxima tarea a evaluar contra `PRD.md` cuando el usuario retome el ciclo.
 
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 37: [FEATURE] Pedidos entregados sin cobrar siguen activos
+*   **Completada:** 2026-09-24
+*   **PR:** #54 (`feature/delivered-unpaid-orders`), con el PR #53 (`feature/delivered-at-rules`: reglas + pruebas) fusionado antes como prerrequisito.
+*   **Origen:** ajuste pedido por el dueño del proyecto (serie 35-39). Un pedido entregado sin cobrar desaparecía de las listas del mesero y del administrador y ya no se podía cobrar.
+*   **Resultado:** `OrderService.activeOrders` une los pedidos en curso con los `delivered` y `paid == false` (segundo listener, solo igualdades: sin índice compuesto). Campo nuevo `Order.deliveredAt`, escrito al pasar a `delivered`; `onlyMarksDelivered()` lo acepta (compatible hacia atrás) y solo mientras el pedido no está entregado. `core/models/order-status.ts` con `isDeliveredUnpaid()`/`orderBorderColor()` y pruebas. Administrador: dashboard sin "En cola", con "ENTREGADOS {N} sin cobrar" y chip de "Pedidos activos" en `text-2xl`; pestaña *Entregados* (últimas 24 h por `deliveredAt` + entregados sin cobrar de cualquier antigüedad, filtro Todos/Cobrados/Sin cobrar con `ion-chip`, listener solo con la pestaña abierta), borde `--ion-color-secondary` para listos y entregados sin cobrar, botón *Cobrar pedido* (flujo excepcional). Mesero: "Listos para entrega o cobro" incluye los entregados sin cobrar; la alerta de "ítem recién listo" ignora los `delivered` (reaparecen sin historial al cambiar de listener). Suites: 49 pruebas de la app y 58 de reglas. Verificado por el usuario en preview.
+*   **Decisión de proceso:** como el preview no despliega `firestore.rules` y el CI no despliega índices, las reglas se separaron en un PR previo y la consulta de 24 h se diseñó sin índice compuesto. Documentado como gotcha en `CLAUDE.md` §7.
+*   **Ajuste tras revisión:** los selectores del filtro pasaron de botones a `ion-chip`, con 8 px de padding lateral.
 
 ### ✅ Tarea 39: [FEATURE] Listeners de Firestore resilientes ("congelamiento")
 *   **Completada:** 2026-09-24
@@ -277,3 +282,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-09-24 | Tarea 36 completada (PR #50): la causa era el `:host { display:block }` de cada página pisando el flex de `.ion-page`; gotcha nuevo en `CLAUDE.md` §7. Tarea 38 pasa a activa: columna Mesero en el reporte y en el Excel. | WIP = 1 (Tarea 38). Cola: 39 → 37. |
 | 2026-09-24 | Tarea 38 completada (PR #51). Tarea 39 pasa a activa: el "congelamiento" era `onSnapshot` sin callback de error en servicios singleton (un error definitivo lo cancelaba para siempre y nada lo recreaba; reproducido cerrando y reabriendo sesión del mesero). Solución: `ResilientListener` + listeners atados a la sesión + aviso global; se descartó la recarga automática. Gotcha nuevo en `CLAUDE.md` §7. | WIP = 1 (Tarea 39). Cola: 37. |
 | 2026-09-24 | Tarea 39 completada (PR #52). Tarea 37 pasa a activa. Decisión de proceso: como el preview no despliega reglas y el CI tampoco despliega índices, los cambios de `firestore.rules` (`deliveredAt`) van en un PR previo compatible hacia atrás (#53) y la consulta de 24 h se diseñó sin índice compuesto. Gotcha nuevo en `CLAUDE.md` §7. | WIP = 1 (Tarea 37). Cola vacía. |
+| 2026-09-24 | Tarea 37 completada (PR #54, con #53 como prerrequisito de reglas). Cierra la serie de ajustes 35-39: búsqueda sin tildes (#48), layout móvil (#50), mesero en el reporte (#51), listeners resilientes (#52), entregados sin cobrar (#53/#54). | WIP = 0. **Cola vacía.** |
