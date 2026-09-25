@@ -13,13 +13,9 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 1)
+## 2. Tareas Activas (WIP: 0)
 
-### 🔄 Tarea 40: [INFRA] Limpieza automática de canales de preview de Firebase Hosting
-*   **Rama / PR:** `feature/ci-preview-cleanup`. Tarea externa a la serie de ajustes (como la 34).
-*   **Origen:** tras varias decenas de despliegues, Hosting acumuló 17 canales de preview activos (cada uno expira a los 7 días) y otros tantos dominios en *Authentication → Configuración → Dominios autorizados*. Cada preview es una copia completa de la app apuntando al Firestore y Auth de producción, así que un enlace viejo es usable con datos reales.
-*   **Hecho fuera del PR (2026-09-25):** borrados a mano los 17 canales con `firebase hosting:channel:delete` (el comando también quita el dominio de Firebase Auth; verificado en `node_modules/firebase-tools/lib/commands/hosting-channel-delete.js`).
-*   **Alcance del PR:** nuevo job `cleanup_preview` en `.github/workflows/deploy-hosting.yml` que, al cerrar o fusionar un PR, borra su canal (busca por el prefijo `pr<número>-`); el job `preview` no corre en el evento `closed`; `expires: 3d` como respaldo. El propio PR es la primera prueba real: su canal debe desaparecer al fusionarlo.
+Ninguna tarea activa. Cola vacía.
 
 ---
 
@@ -30,6 +26,13 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 ---
 
 ## 3. Historial de Tareas Completadas
+
+### ✅ Tarea 40: [INFRA] Limpieza automática de canales de preview de Firebase Hosting
+*   **Completada:** 2026-09-25
+*   **PR:** #56 (`feature/ci-preview-cleanup`). Externa a la serie de ajustes 35-39, sin slot de WIP (como la 34).
+*   **Origen:** Hosting acumuló 17 canales de preview activos (cada uno expira a los 7 días) y otros tantos dominios en *Authentication → Dominios autorizados*. Cada preview es una copia completa de la app apuntando al Firestore y Auth de producción (no hay staging aislado), así que un enlace viejo es usable con datos reales, y la app iba a operar en real esa misma noche.
+*   **Resultado:** los 17 canales existentes se borraron a mano (`firebase hosting:channel:delete`, que también quita el dominio de Firebase Auth — verificado en el código de `firebase-tools`). Job nuevo `cleanup_preview` en `.github/workflows/deploy-hosting.yml`: al cerrar o fusionar un PR busca los canales con prefijo `pr<número>-` y los borra; el job `preview` se salta el evento `closed`; `expires: 3d` como respaldo; `continue-on-error` para no marcar en rojo un PR ya cerrado. **Verificado en producción con el propio PR #56:** al fusionarlo eliminó el canal de preview y el dominio autorizado, lo que confirma que la cuenta de servicio de CI sí tiene los permisos necesarios.
+*   **Contexto operativo (no es código):** para vaciar los pedidos de prueba tras la última capacitación, el dueño eligió borrar `orders` a mano desde la consola de Firebase; se descartó agregar un botón en la app (no quiso más interfaces ni despliegues). En Firestore una colección no existe sin documentos, así que borrar la colección equivale a borrar sus documentos y la app la recrea al crear el siguiente pedido.
 
 ### ✅ Tarea 37: [FEATURE] Pedidos entregados sin cobrar siguen activos
 *   **Completada:** 2026-09-24
@@ -287,3 +290,4 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 | 2026-09-24 | Tarea 38 completada (PR #51). Tarea 39 pasa a activa: el "congelamiento" era `onSnapshot` sin callback de error en servicios singleton (un error definitivo lo cancelaba para siempre y nada lo recreaba; reproducido cerrando y reabriendo sesión del mesero). Solución: `ResilientListener` + listeners atados a la sesión + aviso global; se descartó la recarga automática. Gotcha nuevo en `CLAUDE.md` §7. | WIP = 1 (Tarea 39). Cola: 37. |
 | 2026-09-24 | Tarea 39 completada (PR #52). Tarea 37 pasa a activa. Decisión de proceso: como el preview no despliega reglas y el CI tampoco despliega índices, los cambios de `firestore.rules` (`deliveredAt`) van en un PR previo compatible hacia atrás (#53) y la consulta de 24 h se diseñó sin índice compuesto. Gotcha nuevo en `CLAUDE.md` §7. | WIP = 1 (Tarea 37). Cola vacía. |
 | 2026-09-24 | Tarea 37 completada (PR #54, con #53 como prerrequisito de reglas). Cierra la serie de ajustes 35-39: búsqueda sin tildes (#48), layout móvil (#50), mesero en el reporte (#51), listeners resilientes (#52), entregados sin cobrar (#53/#54). | WIP = 0. **Cola vacía.** |
+| 2026-09-25 | Tarea 40 completada (PR #56): limpieza manual de 17 canales de preview y job `cleanup_preview` que borra el canal (y su dominio de Auth) al cerrar cada PR; verificado en producción con el propio PR. Decisión operativa: los pedidos de prueba se vacían desde la consola de Firebase, sin botón en la app. Preparación del primer uso real (esa noche). | WIP = 0. Cola vacía. |
