@@ -13,9 +13,13 @@ Este documento es el motor de planificación del proyecto. Contiene estrictament
 
 ---
 
-## 2. Tareas Activas (WIP: 0)
+## 2. Tareas Activas (WIP: 1)
 
-Ninguna tarea activa. Cola vacía.
+### 🔄 Tarea 40: [INFRA] Limpieza automática de canales de preview de Firebase Hosting
+*   **Rama / PR:** `feature/ci-preview-cleanup`. Tarea externa a la serie de ajustes (como la 34).
+*   **Origen:** tras varias decenas de despliegues, Hosting acumuló 17 canales de preview activos (cada uno expira a los 7 días) y otros tantos dominios en *Authentication → Configuración → Dominios autorizados*. Cada preview es una copia completa de la app apuntando al Firestore y Auth de producción, así que un enlace viejo es usable con datos reales.
+*   **Hecho fuera del PR (2026-09-25):** borrados a mano los 17 canales con `firebase hosting:channel:delete` (el comando también quita el dominio de Firebase Auth; verificado en `node_modules/firebase-tools/lib/commands/hosting-channel-delete.js`).
+*   **Alcance del PR:** nuevo job `cleanup_preview` en `.github/workflows/deploy-hosting.yml` que, al cerrar o fusionar un PR, borra su canal (busca por el prefijo `pr<número>-`); el job `preview` no corre en el evento `closed`; `expires: 3d` como respaldo. El propio PR es la primera prueba real: su canal debe desaparecer al fusionarlo.
 
 ---
 
