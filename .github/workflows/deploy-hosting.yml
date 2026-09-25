@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # Además de los tipos por defecto (opened, synchronize, reopened), 'closed' dispara
+    # el job cleanup_preview, que borra el canal de preview del PR.
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   # ── Producción: despliega al canal live en cada merge a main ─────────────
@@ -61,7 +64,7 @@ jobs:
 
   # ── Preview: genera URL única y la comenta en la PR automáticamente ──────
   preview:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
       checks: write
@@ -99,3 +102,42 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE }}
           projectId: comandante-letiende
+          # Respaldo por si el job cleanup_preview falla: el canal expira solo (por defecto, 7 días).
+          expires: 3d
+
+  # ── Limpieza: al cerrar o fusionar un PR, borra su canal de preview ───────
+  # Un canal de preview es una copia completa de la app apuntando al Firestore y Auth de
+  # producción (no hay entorno de staging aislado), y cada uno queda como dominio autorizado
+  # en Firebase Auth. `hosting:channel:delete` borra el canal (con sus releases y versiones,
+  # en menos de 24 h) y también quita su dominio de Firebase Auth.
+  cleanup_preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # Que la limpieza falle no debe marcar en rojo un PR ya cerrado; el canal expira solo.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Borrar el canal de preview del PR
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_COMANDANTE_LETIENDE }}' > /tmp/sa.json
+          # El id del canal es pr<número>-<rama> (truncado); se busca por el prefijo "pr<número>-".
+          channels=$(npx firebase-tools hosting:channel:list --project comandante-letiende --json \
+            | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8'));const p='pr'+process.env.PR_NUMBER+'-';console.log(d.result.channels.map(c=>c.name.split('/').pop()).filter(n=>n.startsWith(p)).join(' '))")
+          if [ -z "$channels" ]; then
+            echo "El PR #$PR_NUMBER no tiene canal de preview; nada que borrar."
+          fi
+          for channel in $channels; do
+            npx firebase-tools hosting:channel:delete "$channel" --project comandante-letiende --force
+          done
+          rm /tmp/sa.json
