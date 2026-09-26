@@ -27,6 +27,12 @@ Ninguna tarea activa. Cola vacía.
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 41: [UI] Reportes en la barra de navegación móvil del administrador
+*   **Completada:** 2026-09-26
+*   **PR:** #58 (`claude/mobile-reportes-section-7ihf5d`). Tarea puntual pedida por el dueño, sin slot de WIP.
+*   **Origen:** en móvil (< 1024 px) la sección *Reportes* no era accesible: la barra de navegación inferior de `admin.component.ts` usaba `NAV.slice(0, 4)` y *Reportes* es la quinta entrada.
+*   **Resultado:** la barra inferior recorre la misma lista `nav` que la barra lateral de escritorio (se eliminó `mobileNav`): Dashboard, Pedidos, Productos, Usuarios, Reportes y Salir. Cualquier sección nueva aparece en ambas navegaciones sin más cambios. La vista `admin-reports.component.ts` ya era responsiva (encabezado móvil, tabla con scroll horizontal dentro de su tarjeta) y no se modificó. Pendiente de confirmar a ojo en pantallas de 320 px: con 6 botones cada uno mide ~53 px.
+
 ### ✅ Tarea 40: [INFRA] Limpieza automática de canales de preview de Firebase Hosting
 *   **Completada:** 2026-09-25
 *   **PR:** #56 (`feature/ci-preview-cleanup`). Externa a la serie de ajustes 35-39, sin slot de WIP (como la 34).
@@ -291,3 +297,4 @@ Ninguna tarea activa. Cola vacía.
 | 2026-09-24 | Tarea 39 completada (PR #52). Tarea 37 pasa a activa. Decisión de proceso: como el preview no despliega reglas y el CI tampoco despliega índices, los cambios de `firestore.rules` (`deliveredAt`) van en un PR previo compatible hacia atrás (#53) y la consulta de 24 h se diseñó sin índice compuesto. Gotcha nuevo en `CLAUDE.md` §7. | WIP = 1 (Tarea 37). Cola vacía. |
 | 2026-09-24 | Tarea 37 completada (PR #54, con #53 como prerrequisito de reglas). Cierra la serie de ajustes 35-39: búsqueda sin tildes (#48), layout móvil (#50), mesero en el reporte (#51), listeners resilientes (#52), entregados sin cobrar (#53/#54). | WIP = 0. **Cola vacía.** |
 | 2026-09-25 | Tarea 40 completada (PR #56): limpieza manual de 17 canales de preview y job `cleanup_preview` que borra el canal (y su dominio de Auth) al cerrar cada PR; verificado en producción con el propio PR. Decisión operativa: los pedidos de prueba se vacían desde la consola de Firebase, sin botón en la app. Preparación del primer uso real (esa noche). | WIP = 0. Cola vacía. |
+| 2026-09-26 | Tarea 41 completada (PR #58): *Reportes* agregado a la barra de navegación inferior móvil del administrador (antes `NAV.slice(0, 4)` la dejaba fuera). | WIP = 0. Cola vacía. |

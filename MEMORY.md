@@ -12,9 +12,9 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
 | **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado — el canal de preview de cada PR comparte el mismo Firestore que producción. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 40 (ver `TODO.md` §3). Cola de tareas vacía — próxima a evaluar contra `PRD.md`. |
+| **Tareas completadas** | 41 (ver `TODO.md` §3). Cola de tareas vacía — próxima a evaluar contra `PRD.md`. |
 | **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. **Los PR reciben un canal de vista previa que solo despliega Hosting — nunca `firestore.rules`** (ver gotcha en §7): un cambio de reglas no se puede verificar de punta a punta en preview, solo tras fusionar (mitigado desde la Tarea 33 con pruebas de reglas contra el emulador real, corriendo solo en CI). Desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**, y desde la Tarea 33 también `firestore.rules.spec.ts` vía `firebase emulators:exec` (con `actions/setup-java@v5`, Temurin): una suite en rojo bloquea el merge. |
-| **Última Sesión** | 2026-09-25 — Tarea 40 (limpieza automática de previews, PR #56). Primer uso real de la app esa noche; pedidos de prueba vaciados desde la consola de Firebase. |
+| **Última Sesión** | 2026-09-26 — Tarea 41 (Reportes en la barra de navegación móvil del administrador, PR #58). Cola vacía. |
 
 ---
 
@@ -70,6 +70,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Listeners de tiempo real resilientes y atados a la sesión, con aviso de desconexión *(Tarea 39, PR #52, 2026-09-24)*.
 - `[x]` Pedidos entregados sin cobrar siguen activos; pestaña *Entregados* y cobro excepcional del administrador *(Tarea 37, PR #53/#54, 2026-09-24)*.
 - `[x]` Los canales de preview se borran solos al cerrar cada PR, junto con su dominio de Firebase Auth *(Tarea 40, PR #56, 2026-09-25)*.
+- `[x]` Sección *Reportes* accesible desde la barra de navegación inferior móvil del administrador *(Tarea 41, PR #58, 2026-09-26)*.
 - `[x]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro — reestructurada por el usuario y con el primer paquete completo cargado vía Excel el mismo día.
 
 ### Calidad y Pruebas
@@ -259,6 +260,13 @@ Rutas relativas a la raíz del repositorio.
 ---
 
 ## 9. Contexto de la Sesión Actual
+
+- **Fecha:** 2026-09-26
+- **Qué se hizo:**
+  - **Tarea 41 completada** (PR #58): la barra inferior móvil del administrador solo mostraba `NAV.slice(0, 4)` y dejaba *Reportes* fuera. Ahora recorre la misma lista `nav` que la barra lateral de escritorio (se eliminó `mobileNav`). La vista de Reportes no requirió cambios: ya era responsiva.
+- **Próxima Tarea:** ninguna en cola. Reevaluar contra `PRD.md` tras los primeros días de operación real.
+
+### Sesión anterior
 
 - **Fecha:** 2026-09-25
 - **Qué se hizo:**
