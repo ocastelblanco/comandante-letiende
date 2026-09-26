@@ -97,7 +97,7 @@ const NAV = [
     <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-espresso flex items-stretch"
          style="height:calc(64px + env(safe-area-inset-bottom));
                 padding-bottom:env(safe-area-inset-bottom)">
-      @for (item of mobileNav; track item.path) {
+      @for (item of nav; track item.path) {
         <a [routerLink]="item.path"
            routerLinkActive="mobile-nav-active"
            class="mobile-nav-item flex-1 flex flex-col items-center justify-center gap-1
@@ -120,7 +120,6 @@ export class AdminComponent {
   private auth = inject(AuthService);
 
   protected readonly nav = NAV;
-  protected readonly mobileNav = NAV.slice(0, 4);
 
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly displayName = computed(() => this.auth.currentUser()?.displayName ?? 'Admin');
