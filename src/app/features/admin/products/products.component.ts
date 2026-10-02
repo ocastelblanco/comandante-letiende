@@ -10,8 +10,8 @@ import {
   IonFabButton,
   IonHeader,
   IonIcon,
-  IonChip,
-  IonLabel,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToolbar,
   ToastController,
@@ -38,7 +38,7 @@ import { ProductService } from '../../../core/db/product.service';
 import { normalizeText } from '../../../core/utils/normalize-text';
 import { Product, ProductAddition, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
 import {
-  CATEGORY_FILTER_CHIPS,
+  CATEGORY_FILTER_OPTIONS,
   categoryFilterKey,
   categoryRequiresSubcategory,
   getCategoryNode,
@@ -74,31 +74,19 @@ interface ImportError {
     DecimalPipe,
     IonButton,
     IonButtons,
-    IonChip,
     IonContent,
     IonFab,
     IonFabButton,
     IonHeader,
     IonIcon,
-    IonLabel,
+    IonSelect,
+    IonSelectOption,
     IonTitle,
     IonToolbar,
     ProductFormComponent,
   ],
   styles: [`
     @media (min-width: 1024px) { ion-header { display: none; } }
-    .filter-chip {
-      --background: white;
-      --color: rgba(35, 12, 0, 0.6);
-      margin: 0;
-      box-shadow: 0 1px 3px rgba(35, 12, 0, 0.08);
-    }
-    .filter-chip ion-icon { color: rgba(35, 12, 0, 0.45); }
-    .filter-chip.active {
-      --background: var(--ion-color-primary);
-      --color: var(--ion-color-primary-contrast);
-    }
-    .filter-chip.active ion-icon { color: var(--ion-color-primary-contrast); }
   `],
   template: `
     <!-- Hidden file input for Excel import (desktop only) -->
@@ -339,20 +327,22 @@ interface ImportError {
                  shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-3
                  focus:outline-none focus:ring-2 focus:ring-orange/25" />
 
-        <!-- Filtro por categoría: chips acumulativos (ninguno activo = todos) -->
-        <div class="flex flex-wrap gap-2 mt-[1em] mb-5">
-          @for (chip of filterChips; track chip.key) {
-            <ion-chip class="filter-chip" [class.active]="activeFilters().has(chip.key)"
-                      role="button" [attr.aria-pressed]="activeFilters().has(chip.key)"
-                      (click)="toggleFilter(chip.key)">
-              <ion-icon [name]="chip.icon" />
-              <ion-label>{{ chip.label }}</ion-label>
-            </ion-chip>
-          }
-          @if (activeFilters().size > 0) {
-            <ion-chip class="filter-chip" role="button" (click)="activeFilters.set(emptyFilters)">
-              <ion-label>Quitar filtros</ion-label>
-            </ion-chip>
+        <!-- Filtro por categoría: selección múltiple, todas marcadas al inicio -->
+        <div class="flex items-center gap-2 mt-[1em] mb-5">
+          <ion-select class="flex-1 bg-white rounded-xl px-4 shadow-[0_1px_3px_rgba(35,12,0,0.08)]"
+                      aria-label="Categorías" [multiple]="true" interface="alert"
+                      [interfaceOptions]="{ header: 'Categorías visibles' }"
+                      cancelText="Cancelar" okText="Aplicar"
+                      [value]="selectedFilters()" [selectedText]="filterSummary()"
+                      (ionChange)="onFiltersChange($event)">
+            @for (opt of filterOptions; track opt.key) {
+              <ion-select-option [value]="opt.key">{{ opt.label }}</ion-select-option>
+            }
+          </ion-select>
+          @if (!allFiltersSelected()) {
+            <ion-button fill="clear" size="small" (click)="selectedFilters.set(allFilterKeys)">
+              Ver todas
+            </ion-button>
           }
         </div>
 
@@ -490,13 +480,22 @@ export class ProductsComponent {
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
 
-  protected readonly filterChips = CATEGORY_FILTER_CHIPS;
-  protected readonly emptyFilters: ReadonlySet<string> = new Set<string>();
+  protected readonly filterOptions = CATEGORY_FILTER_OPTIONS;
+  protected readonly allFilterKeys: readonly string[] = CATEGORY_FILTER_OPTIONS.map((o) => o.key);
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly showForm = signal(false);
   protected readonly editingProduct = signal<Product | undefined>(undefined);
   protected readonly searchQuery = signal('');
-  protected readonly activeFilters = signal<ReadonlySet<string>>(this.emptyFilters);
+  protected readonly selectedFilters = signal<readonly string[]>(this.allFilterKeys);
+  protected readonly allFiltersSelected = computed(
+    () => this.selectedFilters().length === this.allFilterKeys.length,
+  );
+  protected readonly filterSummary = computed(() => {
+    const count = this.selectedFilters().length;
+    if (count === this.allFilterKeys.length) return 'Todas las categorías';
+    if (count === 0) return 'Ninguna categoría';
+    return `${count} de ${this.allFilterKeys.length} categorías`;
+  });
 
   protected readonly showImportPreview = signal(false);
   protected readonly importRows = signal<ImportRow[]>([]);
@@ -509,10 +508,11 @@ export class ProductsComponent {
 
   protected readonly filteredProducts = computed(() => {
     const q = normalizeText(this.searchQuery());
-    const filters = this.activeFilters();
+    const all = this.allFiltersSelected();
+    const selected = new Set(this.selectedFilters());
     return this.productService.products().filter(
       (p) =>
-        (filters.size === 0 || filters.has(categoryFilterKey(p.category, p.subcategory))) &&
+        (all || selected.has(categoryFilterKey(p.category, p.subcategory))) &&
         (q === '' || normalizeText(p.name).includes(q)),
     );
   });
@@ -540,12 +540,9 @@ export class ProductsComponent {
     return getCategoryNode(cat)?.icon ?? 'pricetag-outline';
   }
 
-  toggleFilter(key: string): void {
-    this.activeFilters.update((current) => {
-      const next = new Set(current);
-      if (!next.delete(key)) next.add(key);
-      return next;
-    });
+  onFiltersChange(ev: Event): void {
+    const value = (ev as CustomEvent).detail.value as string[] | null;
+    this.selectedFilters.set(value ?? []);
   }
 
   openAdd(): void {

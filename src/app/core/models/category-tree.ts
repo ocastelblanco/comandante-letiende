@@ -7,6 +7,8 @@ import { ProductCategory, ProductSubcategory } from './product.model';
 export interface CategorySubcategoryOption {
   readonly value: ProductSubcategory;
   readonly label: string;
+  /** Etiqueta del filtro de UI cuando "Categoría subcategoría" no se lee bien. */
+  readonly filterLabel?: string;
 }
 
 export interface CategoryTreeNode {
@@ -42,8 +44,8 @@ export const CATEGORY_TREE: readonly CategoryTreeNode[] = [
     label: 'Licores',
     icon: 'flask-outline',
     subcategories: [
-      { value: 'trago', label: 'Trago' },
-      { value: 'botella', label: 'Botella' },
+      { value: 'trago', label: 'Trago', filterLabel: 'Licores por trago' },
+      { value: 'botella', label: 'Botella', filterLabel: 'Licores por botella' },
     ],
   },
   {
@@ -73,18 +75,16 @@ export const CATEGORY_TREE: readonly CategoryTreeNode[] = [
     label: 'Combos y promociones',
     icon: 'pricetag-outline',
     subcategories: [
-      { value: 'combos', label: 'Combos' },
-      { value: 'promociones', label: 'Promociones' },
+      { value: 'combos', label: 'Combos', filterLabel: 'Combos' },
+      { value: 'promociones', label: 'Promociones', filterLabel: 'Promociones' },
     ],
   },
 ];
 
-export interface CategoryFilterChip {
-  /** Clave única del chip; ver `categoryFilterKey()`. */
+export interface CategoryFilterOption {
+  /** Clave única de la opción; ver `categoryFilterKey()`. */
   readonly key: string;
-  /** Ícono de la categoría raíz (compartido por todas sus subcategorías). */
-  readonly icon: string;
-  /** Subcategoría si la categoría la tiene; si no, el nombre de la categoría. */
+  /** Ej. "Bebidas calientes", o solo "Comida" si la categoría no tiene subcategorías. */
   readonly label: string;
 }
 
@@ -94,14 +94,17 @@ export function categoryFilterKey(category: string, subcategory: string | null |
 }
 
 /**
- * Chips del filtro de UI: uno por cada subcategoría (o uno por la categoría
- * cuando no tiene subcategorías). El ícono identifica la categoría y el texto
- * la subcategoría, así que agregar subcategorías no exige íconos nuevos.
+ * Opciones del filtro de UI: una por cada subcategoría (o una por la categoría
+ * cuando no tiene subcategorías), derivadas del árbol para que una subcategoría
+ * nueva aparezca en el filtro sin tocar la vista.
  */
-export const CATEGORY_FILTER_CHIPS: readonly CategoryFilterChip[] = CATEGORY_TREE.flatMap((c) =>
+export const CATEGORY_FILTER_OPTIONS: readonly CategoryFilterOption[] = CATEGORY_TREE.flatMap((c) =>
   c.subcategories.length > 0
-    ? c.subcategories.map((s) => ({ key: categoryFilterKey(c.value, s.value), icon: c.icon, label: s.label }))
-    : [{ key: categoryFilterKey(c.value, null), icon: c.icon, label: c.label }],
+    ? c.subcategories.map((s) => ({
+        key: categoryFilterKey(c.value, s.value),
+        label: s.filterLabel ?? `${c.label} ${s.label.toLowerCase()}`,
+      }))
+    : [{ key: categoryFilterKey(c.value, null), label: c.label }],
 );
 
 export function getCategoryNode(category: string): CategoryTreeNode | undefined {
