@@ -216,7 +216,7 @@ export interface Order {
 
 **Fuente única de verdad de medios de pago:** `src/app/core/models/payment-methods.ts` (`PAYMENT_METHODS`) alimenta el action sheet de cobro del mesero y las etiquetas/colores del consolidado del administrador, siguiendo el mismo patrón que `category-tree.ts`.
 
-**Fuente única de verdad de categorías:** `src/app/core/models/category-tree.ts` (`CATEGORY_TREE`) alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada del formulario y la validación del import de Excel. La misma jerarquía está duplicada en `firestore.rules` (`productSubcategoriesFor()`), que es la única validación real del lado servidor.
+**Fuente única de verdad de categorías:** `src/app/core/models/category-tree.ts` (`CATEGORY_TREE`) alimenta el tipo de TypeScript, el filtro de la interfaz, los selects en cascada del formulario y la validación del import de Excel. El filtro de *Productos* del administrador usa `CATEGORY_FILTER_OPTIONS`: una opción por subcategoría (o por categoría sin subcategorías), identificada con `categoryFilterKey(category, subcategory)` y etiquetada «Categoría subcategoría» salvo que la subcategoría declare `filterLabel` (Tarea 42). La misma jerarquía está duplicada en `firestore.rules` (`productSubcategoriesFor()`), que es la única validación real del lado servidor.
 
 ### 4.4. Sistema de Estilos y Temas
 - **Tematización con Ionic:** El proyecto utiliza variables CSS configuradas en `src/theme/variables.css` para manejar colores institucionales (paleta elegante y oscura de Le Tiende, adecuada para ambientes de teatro/bar).
