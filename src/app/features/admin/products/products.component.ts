@@ -10,9 +10,8 @@ import {
   IonFabButton,
   IonHeader,
   IonIcon,
+  IonChip,
   IonLabel,
-  IonSegment,
-  IonSegmentButton,
   IonTitle,
   IonToolbar,
   ToastController,
@@ -27,7 +26,6 @@ import {
   eyeOffOutline,
   eyeOutline,
   flaskOutline,
-  gridOutline,
   iceCreamOutline,
   personCircleOutline,
   pricetagOutline,
@@ -40,7 +38,8 @@ import { ProductService } from '../../../core/db/product.service';
 import { normalizeText } from '../../../core/utils/normalize-text';
 import { Product, ProductAddition, ProductCategory, ProductSubcategory } from '../../../core/models/product.model';
 import {
-  CATEGORY_SEGMENT_OPTIONS,
+  CATEGORY_FILTER_CHIPS,
+  categoryFilterKey,
   categoryRequiresSubcategory,
   getCategoryNode,
   isValidCategory,
@@ -75,20 +74,31 @@ interface ImportError {
     DecimalPipe,
     IonButton,
     IonButtons,
+    IonChip,
     IonContent,
     IonFab,
     IonFabButton,
     IonHeader,
     IonIcon,
     IonLabel,
-    IonSegment,
-    IonSegmentButton,
     IonTitle,
     IonToolbar,
     ProductFormComponent,
   ],
   styles: [`
     @media (min-width: 1024px) { ion-header { display: none; } }
+    .filter-chip {
+      --background: white;
+      --color: rgba(35, 12, 0, 0.6);
+      margin: 0;
+      box-shadow: 0 1px 3px rgba(35, 12, 0, 0.08);
+    }
+    .filter-chip ion-icon { color: rgba(35, 12, 0, 0.45); }
+    .filter-chip.active {
+      --background: var(--ion-color-primary);
+      --color: var(--ion-color-primary-contrast);
+    }
+    .filter-chip.active ion-icon { color: var(--ion-color-primary-contrast); }
   `],
   template: `
     <!-- Hidden file input for Excel import (desktop only) -->
@@ -329,32 +339,22 @@ interface ImportError {
                  shadow-[0_1px_3px_rgba(35,12,0,0.08)] mb-3
                  focus:outline-none focus:ring-2 focus:ring-orange/25" />
 
-        <!-- Category segment -->
-        <ion-segment class="mt-[1em]" [value]="activeCategory()" (ionChange)="onCategoryChange($event)"
-                     style="--background:white;
-                            box-shadow:0 1px 3px rgba(35,12,0,0.08);
-                            border-radius:16px;
-                            padding:4px;
-                            margin-bottom:20px">
-          @for (cat of categories; track cat.value) {
-            <ion-segment-button class="min-w-[4em]" [value]="cat.value"
-                                style="--color:rgba(35,12,0,0.5);
-                                       --color-checked:var(--ion-color-primary-contrast);
-                                       --background-checked:var(--ion-color-primary);
-                                       --indicator-color:transparent;
-                                       --indicator-height:0;
-                                       --border-radius:12px;
-                                       --min-width:0">
-              <ion-icon [name]="cat.icon" class="lg:hidden" style="font-size:1.3rem;margin:0" />
-              <ion-label class="hidden lg:block">{{ cat.label }}</ion-label>
-            </ion-segment-button>
+        <!-- Filtro por categoría: chips acumulativos (ninguno activo = todos) -->
+        <div class="flex flex-wrap gap-2 mt-[1em] mb-5">
+          @for (chip of filterChips; track chip.key) {
+            <ion-chip class="filter-chip" [class.active]="activeFilters().has(chip.key)"
+                      role="button" [attr.aria-pressed]="activeFilters().has(chip.key)"
+                      (click)="toggleFilter(chip.key)">
+              <ion-icon [name]="chip.icon" />
+              <ion-label>{{ chip.label }}</ion-label>
+            </ion-chip>
           }
-        </ion-segment>
-
-        <!-- Active category label — mobile only -->
-        <p class="lg:hidden text-sm font-semibold text-espresso mb-3 px-1">
-          {{ activeCategoryLabel() }}
-        </p>
+          @if (activeFilters().size > 0) {
+            <ion-chip class="filter-chip" role="button" (click)="activeFilters.set(emptyFilters)">
+              <ion-label>Quitar filtros</ion-label>
+            </ion-chip>
+          }
+        </div>
 
         <!-- Mobile: lista de productos -->
         <div class="lg:hidden flex flex-col gap-2 pb-32">
@@ -490,12 +490,13 @@ export class ProductsComponent {
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
 
-  protected readonly categories = CATEGORY_SEGMENT_OPTIONS;
+  protected readonly filterChips = CATEGORY_FILTER_CHIPS;
+  protected readonly emptyFilters: ReadonlySet<string> = new Set<string>();
   protected readonly photoURL = computed(() => this.auth.currentUser()?.photoURL ?? null);
   protected readonly showForm = signal(false);
   protected readonly editingProduct = signal<Product | undefined>(undefined);
   protected readonly searchQuery = signal('');
-  protected readonly activeCategory = signal('all');
+  protected readonly activeFilters = signal<ReadonlySet<string>>(this.emptyFilters);
 
   protected readonly showImportPreview = signal(false);
   protected readonly importRows = signal<ImportRow[]>([]);
@@ -506,16 +507,12 @@ export class ProductsComponent {
   protected readonly newCount = computed(() => this.importRows().filter((r) => r.isNew).length);
   protected readonly updateCount = computed(() => this.importRows().filter((r) => !r.isNew).length);
 
-  protected readonly activeCategoryLabel = computed(() =>
-    this.categories.find((c) => c.value === this.activeCategory())?.label ?? '',
-  );
-
   protected readonly filteredProducts = computed(() => {
     const q = normalizeText(this.searchQuery());
-    const cat = this.activeCategory();
+    const filters = this.activeFilters();
     return this.productService.products().filter(
       (p) =>
-        (cat === 'all' || p.category === (cat as ProductCategory)) &&
+        (filters.size === 0 || filters.has(categoryFilterKey(p.category, p.subcategory))) &&
         (q === '' || normalizeText(p.name).includes(q)),
     );
   });
@@ -530,7 +527,6 @@ export class ProductsComponent {
       eyeOffOutline,
       eyeOutline,
       flaskOutline,
-      gridOutline,
       iceCreamOutline,
       wineOutline,
       restaurantOutline,
@@ -544,8 +540,12 @@ export class ProductsComponent {
     return getCategoryNode(cat)?.icon ?? 'pricetag-outline';
   }
 
-  onCategoryChange(ev: Event): void {
-    this.activeCategory.set((ev as CustomEvent).detail.value as string);
+  toggleFilter(key: string): void {
+    this.activeFilters.update((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   }
 
   openAdd(): void {

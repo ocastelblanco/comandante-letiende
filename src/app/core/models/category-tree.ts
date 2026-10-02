@@ -79,11 +79,30 @@ export const CATEGORY_TREE: readonly CategoryTreeNode[] = [
   },
 ];
 
-/** Opciones para el segmento de filtro de UI: "Todos" + las 7 categorías raíz. */
-export const CATEGORY_SEGMENT_OPTIONS: { value: string; label: string; icon: string }[] = [
-  { value: 'all', label: 'Todos', icon: 'grid-outline' },
-  ...CATEGORY_TREE.map((c) => ({ value: c.value, label: c.label, icon: c.icon })),
-];
+export interface CategoryFilterChip {
+  /** Clave única del chip; ver `categoryFilterKey()`. */
+  readonly key: string;
+  /** Ícono de la categoría raíz (compartido por todas sus subcategorías). */
+  readonly icon: string;
+  /** Subcategoría si la categoría la tiene; si no, el nombre de la categoría. */
+  readonly label: string;
+}
+
+/** Clave de filtro de un producto: `categoria` o `categoria/subcategoria`. */
+export function categoryFilterKey(category: string, subcategory: string | null | undefined): string {
+  return subcategory ? `${category}/${subcategory}` : category;
+}
+
+/**
+ * Chips del filtro de UI: uno por cada subcategoría (o uno por la categoría
+ * cuando no tiene subcategorías). El ícono identifica la categoría y el texto
+ * la subcategoría, así que agregar subcategorías no exige íconos nuevos.
+ */
+export const CATEGORY_FILTER_CHIPS: readonly CategoryFilterChip[] = CATEGORY_TREE.flatMap((c) =>
+  c.subcategories.length > 0
+    ? c.subcategories.map((s) => ({ key: categoryFilterKey(c.value, s.value), icon: c.icon, label: s.label }))
+    : [{ key: categoryFilterKey(c.value, null), icon: c.icon, label: c.label }],
+);
 
 export function getCategoryNode(category: string): CategoryTreeNode | undefined {
   return CATEGORY_TREE.find((c) => c.value === category);
