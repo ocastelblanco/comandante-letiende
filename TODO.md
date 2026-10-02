@@ -27,6 +27,12 @@ Ninguna tarea activa. Cola vacía.
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 42: [UI] Filtro de categorías de Productos como selección múltiple
+*   **Completada:** 2026-10-02
+*   **PR:** #61 (`feature/admin-product-filter-chips`). Tarea puntual pedida por el dueño, sin slot de WIP.
+*   **Origen:** el `ion-segment` de 8 íconos (Todos + 7 categorías) en *Productos* del administrador no cabía en todos los celulares y solo filtraba por categoría raíz, con un ícono por categoría que no escala si crecen las subcategorías.
+*   **Resultado:** un único `ion-select` múltiple (`interface="alert"`), al estilo de los filtros de Google Sheets: una opción por subcategoría, o por categoría si no tiene subcategorías (15 en total, p. ej. «Bebidas calientes», «Cervezas artesanales», «Comida»). Al inicio todas están marcadas; desmarcar oculta esos productos. El campo resume la selección («Todas las categorías», «12 de 15 categorías», «Ninguna categoría») y aparece **Ver todas** cuando hay alguna oculta. `CATEGORY_SEGMENT_OPTIONS` se reemplazó por `CATEGORY_FILTER_OPTIONS` + `categoryFilterKey()` en `category-tree.ts`, derivados del árbol; el campo opcional `filterLabel` de la subcategoría corrige etiquetas que no se leen bien al concatenar («Licores por trago», «Combos»). Se probó antes una versión con 15 chips acumulativos (ícono de categoría + texto de subcategoría) y el dueño la descartó en preview por tener demasiados elementos. Limitación conocida: `ion-select` no admite «Seleccionar todo / Borrar» dentro de la lista; si se pide, hay que pasar a un overlay propio con checkboxes. Verificado por el usuario en preview.
+
 ### ✅ Tarea 41: [UI] Reportes en la barra de navegación móvil del administrador
 *   **Completada:** 2026-09-26
 *   **PR:** #58 (`claude/mobile-reportes-section-7ihf5d`). Tarea puntual pedida por el dueño, sin slot de WIP.
@@ -298,3 +304,4 @@ Ninguna tarea activa. Cola vacía.
 | 2026-09-24 | Tarea 37 completada (PR #54, con #53 como prerrequisito de reglas). Cierra la serie de ajustes 35-39: búsqueda sin tildes (#48), layout móvil (#50), mesero en el reporte (#51), listeners resilientes (#52), entregados sin cobrar (#53/#54). | WIP = 0. **Cola vacía.** |
 | 2026-09-25 | Tarea 40 completada (PR #56): limpieza manual de 17 canales de preview y job `cleanup_preview` que borra el canal (y su dominio de Auth) al cerrar cada PR; verificado en producción con el propio PR. Decisión operativa: los pedidos de prueba se vacían desde la consola de Firebase, sin botón en la app. Preparación del primer uso real (esa noche). | WIP = 0. Cola vacía. |
 | 2026-09-26 | Tarea 41 completada (PR #58): *Reportes* agregado a la barra de navegación inferior móvil del administrador (antes `NAV.slice(0, 4)` la dejaba fuera). | WIP = 0. Cola vacía. |
+| 2026-10-02 | Tarea 42 completada (PR #61): filtro de categorías de *Productos* (administrador) pasa de `ion-segment` a `ion-select` múltiple por subcategoría, todas marcadas al inicio. Primero se probaron chips acumulativos; el dueño los descartó en preview por exceso de elementos. | WIP = 0. Cola vacía. |
