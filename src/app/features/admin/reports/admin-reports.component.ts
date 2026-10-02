@@ -26,6 +26,7 @@ interface OrderRow {
   paymentLabel: string;
   paymentColor: string;
   itemsLabel: string;
+  observations: string;
   base: number;
   tip: number;
   total: number;
@@ -141,7 +142,7 @@ interface OrderRow {
           </div>
           <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(35,12,0,.1);overflow:hidden">
             <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;min-width:780px">
+              <table style="width:100%;border-collapse:collapse;min-width:960px">
                 <thead>
                   <tr style="background:var(--ion-color-primary)">
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
@@ -163,6 +164,10 @@ interface OrderRow {
                     <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
                       Ítems
+                    </th>
+                    <th style="text-align:left;padding:10px 16px;font-size:.7rem;font-weight:700;
+                               text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
+                      Observaciones
                     </th>
                     <th style="text-align:right;padding:10px 16px;font-size:.7rem;font-weight:700;
                                text-transform:uppercase;letter-spacing:.06em;color:var(--ion-color-primary-contrast)">
@@ -200,6 +205,9 @@ interface OrderRow {
                       <td style="padding:10px 16px;font-size:.8rem;color:var(--ion-color-medium);max-width:220px">
                         {{ row.itemsLabel }}
                       </td>
+                      <td style="padding:10px 16px;font-size:.8rem;color:var(--ion-color-medium);max-width:220px">
+                        {{ row.observations }}
+                      </td>
                       <td style="padding:10px 16px;font-size:.875rem;color:var(--ion-color-dark);text-align:right;white-space:nowrap">
                         $ {{ row.base | number:'1.0-0' }}
                       </td>
@@ -215,7 +223,7 @@ interface OrderRow {
                 </tbody>
                 <tfoot>
                   <tr style="background:var(--ion-background-color);border-top:2px solid var(--ion-color-light)">
-                    <td colspan="5" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary)">
+                    <td colspan="6" style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary)">
                       Total del rango
                     </td>
                     <td style="padding:12px 16px;font-size:.875rem;font-weight:700;color:var(--ion-color-primary);
@@ -289,6 +297,7 @@ export class AdminReportsComponent {
       'Hora de cobro': r.paidAtLabel,
       'Medio de pago': r.paymentLabel,
       'Ítems': r.itemsLabel,
+      'Observaciones': r.observations,
       'Base ($)': r.base,
       'Propina ($)': r.tip,
       'Total ($)': r.total,
@@ -299,6 +308,7 @@ export class AdminReportsComponent {
       'Hora de cobro': '',
       'Medio de pago': '',
       'Ítems': '',
+      'Observaciones': '',
       'Base ($)': this.totals().base,
       'Propina ($)': this.totals().tip,
       'Total ($)': this.totals().total,
@@ -356,6 +366,8 @@ export class AdminReportsComponent {
         paymentLabel: this.paymentLabel(order.paymentMethod ?? null),
         paymentColor: this.paymentColor(order.paymentMethod ?? null),
         itemsLabel: order.items.map((i) => `${i.productName} ×${i.quantity}`).join(', '),
+        // Pedidos antiguos pueden no traer el campo.
+        observations: order.observations ?? '',
         // Desde la Tarea 29 la propina vive en el pedido, no por ítem: ya no
         // se re-deriva restando `unitPrice - tipAmount` sobre cada línea.
         base: order.subtotal,
