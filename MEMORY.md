@@ -12,9 +12,9 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 | **Producción** | `https://comandante.letiende.co` (Firebase Hosting, proyecto `comandante-letiende`). |
 | **Staging** | `.firebaserc` declara `staging` y `production`, pero **ambos apuntan al mismo proyecto Firebase**. No hay un entorno de staging real aislado — el canal de preview de cada PR comparte el mismo Firestore que producción. |
 | **Ramas** | `main` (producción, protegida, solo recibe merges vía PR aprobado por un humano). Las ramas `feature/*`, `fix/*`, `docs/*`, `refactor/*` y `hotfix/*` se crean desde `main`. **No existe la rama `develop`.** |
-| **Tareas completadas** | 42 (ver `TODO.md` §3). Cola de tareas vacía — próxima a evaluar contra `PRD.md`. |
+| **Tareas completadas** | 43 (ver `TODO.md` §3). Cola de tareas vacía — próxima a evaluar contra `PRD.md`. |
 | **CI/CD** | `.github/workflows/deploy-hosting.yml` — push a `main` despliega Hosting, reglas de Firestore y Cloud Functions. **Los PR reciben un canal de vista previa que solo despliega Hosting — nunca `firestore.rules`** (ver gotcha en §7): un cambio de reglas no se puede verificar de punta a punta en preview, solo tras fusionar (mitigado desde la Tarea 33 con pruebas de reglas contra el emulador real, corriendo solo en CI). Desde la Tarea 32 **ambos jobs ejecutan `npm test -- --watch=false` antes del build**, y desde la Tarea 33 también `firestore.rules.spec.ts` vía `firebase emulators:exec` (con `actions/setup-java@v5`, Temurin): una suite en rojo bloquea el merge. |
-| **Última Sesión** | 2026-10-02 — Tarea 42 (filtro de categorías de Productos como selección múltiple, PR #61). Cola vacía. |
+| **Última Sesión** | 2026-10-16 — Tarea 43 (validación del correo al crear usuarios y borrado de usuarios, PR #62). Cola vacía. |
 
 ---
 
@@ -72,6 +72,7 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 - `[x]` Los canales de preview se borran solos al cerrar cada PR, junto con su dominio de Firebase Auth *(Tarea 40, PR #56, 2026-09-25)*.
 - `[x]` Sección *Reportes* accesible desde la barra de navegación inferior móvil del administrador *(Tarea 41, PR #58, 2026-09-26)*.
 - `[x]` Filtro de categorías de *Productos* (administrador) como selección múltiple por subcategoría, todas marcadas al inicio *(Tarea 42, PR #61, 2026-10-02)*.
+- `[x]` Correo validado (dominio completo, sin duplicados, normalizado) al crear usuarios, y borrado de usuarios desde el panel del administrador *(Tarea 43, PR #62, 2026-10-16)*.
 - `[x]` Catálogo cargado desde la hoja `datos` del Google Sheets maestro — reestructurada por el usuario y con el primer paquete completo cargado vía Excel el mismo día.
 
 ### Calidad y Pruebas
@@ -217,6 +218,7 @@ export class ProductService {
 - **Diálogos con los controladores de Ionic.** No se usa `ion-modal` en ningún punto del proyecto: las elecciones simples van con `ActionSheetController`, las confirmaciones y los formularios de un solo campo `checkbox`/`radio` con `AlertController`. Para más de un campo de texto/número con label real, `AlertController` no alcanza (ver gotcha en §7) — usar un overlay propio con un *signal* de visibilidad, como el formulario de productos o el diálogo de propina del mesero (`tipEditOpen()`).
 - **Comparación de texto para búsquedas con `normalizeText()`** (`core/utils/normalize-text.ts`, Tarea 35). Nunca comparar con `toLowerCase()` a secas: no cubre tildes ni ñ. Usarla en cualquier búsqueda o clave de deduplicación nueva.
 - **Filtros con muchas opciones: un `ion-select` múltiple, no chips ni segmentos.** El dueño descartó en preview 15 chips acumulativos por exceso de elementos (Tarea 42); el patrón aprobado es el de los filtros de Google Sheets: todas las opciones marcadas al inicio, desmarcar oculta, resumen en el propio campo y un botón *Ver todas*.
+- **Correos como ID de `/users`: siempre `normalizeEmail()`** (`core/utils/email.ts`, Tarea 43). El login busca el documento por el correo exacto que devuelve Google, así que un espacio, una mayúscula o un `.com` faltante dejan al usuario sin acceso. No usar `Validators.email` de Angular solo: acepta `usuario@gmail`; usar `isValidEmail()`.
 - **Escrituras masivas en lotes de 500.** `writeBatch` con el límite de Firestore, en `importProducts()` y `deleteAllProducts()`.
 
 ---
@@ -262,6 +264,15 @@ Rutas relativas a la raíz del repositorio.
 ---
 
 ## 9. Contexto de la Sesión Actual
+
+- **Fecha:** 2026-10-16
+- **Qué se hizo:**
+  - **Integración con Siigo evaluada y suspendida.** El dueño quiere que al cobrar un pedido se genere el documento en el POS de Siigo. Se revisó la documentación: el **MCP oficial** (`https://mcp.siigo.com`) no sirve, porque está pensado para asistentes de IA con login humano (OAuth) y exige confirmación manual en cada creación, y solo cubre facturas de venta, clientes y productos. La vía correcta sería la **API REST** (`POST https://api.siigo.com/auth` con `username` + `access_key` + header `Partner-Id`, token de 24 h, sin sandbox público) desde una Cloud Function con trigger al marcar `paid`. Una asesora de Siigo confirmó que el plan actual no incluye la API, así que se suspendió hasta cambiar de plan. Pendientes de decidir al retomar: documento POS electrónico vs. factura de venta (validar con el contador), cobro por pedido o por producto, cliente consumidor final, tratamiento de la propina, mapeo de formas de pago y de productos a códigos de Siigo, y estrategia ante fallas (estado de sincronización con reintentos idempotentes, sin bloquear el cobro). Primer paso al retomar: un PR exploratorio que autentique y liste comprobantes, formas de pago y productos.
+  - **Diagnóstico de un acceso rechazado:** una colaboradora veía «Este correo no está autorizado…». Auth mostraba su ingreso con el correo correcto; el documento de `/users` se había creado sin el `.com` final.
+  - **Tarea 43 completada** (PR #62): `core/utils/email.ts` (`normalizeEmail`, `isValidEmail`), validación y normalización del correo en el formulario de *Usuarios*, rechazo de duplicados y botón de borrar con confirmación que solo elimina el documento de `/users` (no la cuenta de Auth, compartida con otras aplicaciones), oculto para el administrador raíz y la cuenta conectada.
+- **Próxima Tarea:** ninguna en cola. Reevaluar contra `PRD.md` tras los primeros días de operación real; la integración con Siigo queda a la espera del cambio de plan.
+
+### Sesión anterior
 
 - **Fecha:** 2026-10-02
 - **Qué se hizo:**
