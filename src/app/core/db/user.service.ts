@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import {
   collection,
+  deleteDoc,
   doc,
   Firestore,
   onSnapshot,
@@ -42,5 +43,11 @@ export class UserService {
 
   updateUserRole(email: string, role: UserRole): Promise<void> {
     return updateDoc(doc(this.firestore, 'users', email), { role });
+  }
+
+  // Solo borra el acceso a Comandante. La cuenta de Firebase Auth se comparte
+  // con otras aplicaciones y se administra desde la consola de Firebase.
+  deleteUser(email: string): Promise<void> {
+    return deleteDoc(doc(this.firestore, 'users', email));
   }
 }
