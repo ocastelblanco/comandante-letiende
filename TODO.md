@@ -27,6 +27,13 @@ Ninguna tarea activa. Cola vacía.
 
 ## 3. Historial de Tareas Completadas
 
+### ✅ Tarea 43: [FEATURE] Validación del correo al crear usuarios y borrado de usuarios
+*   **Completada:** 2026-10-16
+*   **PR:** #62 (`feature/admin-user-email-validation-and-delete`). Tarea puntual pedida por el dueño, sin slot de WIP.
+*   **Origen:** una colaboradora no podía ingresar («Este correo no está autorizado…»). Auth mostraba su ingreso del mismo minuto con el correo correcto, y la causa era que el administrador había creado su documento en `/users` con el correo sin el `.com` final: `Validators.email` de Angular acepta `usuario@gmail`, y como el ID del documento es el correo, nunca coincidía con el que devuelve Google. Además el panel no permitía borrar usuarios, así que el documento mal creado solo se podía quitar desde la consola de Firebase.
+*   **Resultado:** `core/utils/email.ts` (`normalizeEmail()`, `isValidEmail()`, con pruebas) exige dominio completo con terminación de 2+ letras. El formulario de *Usuarios* muestra el error bajo el campo, rechaza un correo ya registrado (antes `setDoc` pisaba su rol sin avisar) y guarda el correo con `trim().toLowerCase()`. Cada fila gana un botón de borrar con confirmación (`AlertController`) que llama a `UserService.deleteUser()`; **solo borra el documento de `/users`**, no la cuenta de Firebase Auth, que se comparte con otras aplicaciones y se administra desde la consola. El botón no aparece para el administrador raíz (`ROOT_ADMIN_EMAIL`, constante nueva en `user.model.ts`) ni para la cuenta conectada, para no dejar a un administrador sin acceso. Sin cambios en `firestore.rules`: el borrado por administrador ya estaba permitido y cubierto en `firestore.rules.spec.ts`. 54 pruebas de la app en verde. Verificado por el usuario en preview.
+*   **Proceso:** el PR se fusionó antes de pedir la documentación (paso 5 del ciclo); esta se registró en un PR `docs/*` aparte.
+
 ### ✅ Tarea 42: [UI] Filtro de categorías de Productos como selección múltiple
 *   **Completada:** 2026-10-02
 *   **PR:** #61 (`feature/admin-product-filter-chips`). Tarea puntual pedida por el dueño, sin slot de WIP.
@@ -305,3 +312,4 @@ Ninguna tarea activa. Cola vacía.
 | 2026-09-25 | Tarea 40 completada (PR #56): limpieza manual de 17 canales de preview y job `cleanup_preview` que borra el canal (y su dominio de Auth) al cerrar cada PR; verificado en producción con el propio PR. Decisión operativa: los pedidos de prueba se vacían desde la consola de Firebase, sin botón en la app. Preparación del primer uso real (esa noche). | WIP = 0. Cola vacía. |
 | 2026-09-26 | Tarea 41 completada (PR #58): *Reportes* agregado a la barra de navegación inferior móvil del administrador (antes `NAV.slice(0, 4)` la dejaba fuera). | WIP = 0. Cola vacía. |
 | 2026-10-02 | Tarea 42 completada (PR #61): filtro de categorías de *Productos* (administrador) pasa de `ion-segment` a `ion-select` múltiple por subcategoría, todas marcadas al inicio. Primero se probaron chips acumulativos; el dueño los descartó en preview por exceso de elementos. | WIP = 0. Cola vacía. |
+| 2026-10-16 | Tarea 43 completada (PR #62): el correo al crear un usuario exige dominio completo y se normaliza; el administrador puede borrar usuarios de `/users` (nunca la cuenta de Auth compartida), salvo al administrador raíz y a sí mismo. Origen: una colaboradora sin acceso por un correo guardado sin `.com`. Aparte, se evaluó integrar Comandante con Siigo (generar el pago en el POS al cobrar): el MCP oficial no sirve (requiere login humano y confirmación manual) y la API REST exige cambiar de plan en Siigo, así que el proyecto quedó **suspendido**; no entra a la cola. | WIP = 0. Cola vacía. |

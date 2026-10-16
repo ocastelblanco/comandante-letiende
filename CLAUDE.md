@@ -346,3 +346,11 @@ La política queda fijada en el repositorio de Artifact Registry (`gcf-artifacts
 
 **Solución:** (1) si una tarea necesita ampliar una regla para que el cliente escriba un campo nuevo, **separar la regla en un PR previo, compatible hacia atrás** (aceptar el campo sin exigirlo), y fusionarlo antes; así el PR de la funcionalidad se puede probar de punta a punta en preview. La Tarea 37 lo hizo así (PR de `onlyMarksDelivered()` + `deliveredAt`). (2) diseñar las consultas para que se resuelvan con índices de campo único: varias igualdades (`status == 'delivered' && paid == false`), o un único rango con `orderBy` sobre el mismo campo (`deliveredAt >= x` + `orderBy('deliveredAt')`), filtrando el resto en el cliente. Si de verdad hace falta un índice compuesto, desplegarlo a mano (`firebase deploy --only firestore:indexes`) antes de fusionar.
 
+
+### ⚠️ `Validators.email` de Angular acepta `usuario@gmail` — y el ID de `/users` es el correo exacto
+
+**Síntoma:** un usuario creado desde el panel del administrador no puede ingresar y ve «Este correo no está autorizado…», aunque su cuenta de Google existe y Firebase Auth registra el intento con el correo correcto.
+
+**Causa raíz:** `AuthService.signInWithGoogle()` busca el documento `users/<correo que devuelve Google>`, así que el ID debe coincidir carácter por carácter. `Validators.email` solo exige `algo@algo`: acepta un correo sin `.com`, con espacios o con mayúsculas, y el documento se crea con un ID que nunca coincidirá (pasó con un correo guardado sin el `.com` final, Tarea 43).
+
+**Solución:** para cualquier correo que vaya a ser ID o clave de `/users`, validar con `isValidEmail()` y guardar con `normalizeEmail()` (`core/utils/email.ts`). Para diagnosticar un acceso rechazado, comparar el ID del documento en Firestore con el correo que aparece en *Authentication → Users*.

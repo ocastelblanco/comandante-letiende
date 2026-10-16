@@ -238,7 +238,7 @@ Tres colecciones planas, sin subcolecciones. Refleja el estado real de la base d
 | `products` | autogenerado | `{ name, description, category, subcategory?, variants, additions, basePrice, isActive, createdAt, updatedAt }` |
 | `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, observations, subtotal, tipPercentage, tipValue, tipAmount, total, baristaId, preparedAt, deliveredAt, createdAt, updatedAt }` |
 
-**El ID de `users` es el email, no el UID de Firebase Auth.** `firestore.rules` resuelve el rol con `get(/databases/$(database)/documents/users/$(request.auth.token.email))`, así que cambiar esa clave rompería toda la autorización.
+**El ID de `users` es el email, no el UID de Firebase Auth.** El panel de administración lo guarda con `normalizeEmail()` (sin espacios, en minúsculas) y solo tras `isValidEmail()` (dominio completo), porque `AuthService` busca el documento por el correo exacto que devuelve Google; borrar un usuario desde el panel elimina únicamente este documento, nunca la cuenta de Firebase Auth, que se comparte con otras aplicaciones (Tarea 43). `firestore.rules` resuelve el rol con `get(/databases/$(database)/documents/users/$(request.auth.token.email))`, así que cambiar esa clave rompería toda la autorización.
 
 Índices compuestos declarados en `firestore.indexes.json` (solo para `orders`, que es la única colección consultada con filtro + orden). **El CI no despliega índices** (solo `firestore:rules,functions`): una consulta nueva debe poder resolverse con índices de campo único (igualdades múltiples, o un solo rango + `orderBy` sobre ese mismo campo), como las de la Tarea 37.
 
