@@ -144,6 +144,14 @@ Este documento mantiene el registro histórico del estado de desarrollo del proy
 *   **Razón:** Se estimó el costo real de una suite completa en **20-25 sesiones supervisadas**, más un impuesto permanente de mantenimiento sobre cada cambio de interfaz. Para una aplicación de ~3.800 líneas mantenida por una sola persona es desproporcionado. El costo no está en escribir las pruebas, sino en tres factores: refactorizar el código para que sea testeable (`waiter.component.ts` y `products.component.ts` suman 1.473 líneas que mezclan plantilla, lógica, Firestore y *overlays*), montar el arnés de Ionic en jsdom (que ya mordió una vez, ver Tarea 21), y mantener pruebas que afirman marcado. En esta aplicación el daño real solo puede venir de tres sitios: aritmética de propina equivocada, una importación que corrompa el catálogo, y un hueco en las reglas. Ninguno necesita pruebas de componentes.
 *   **Consecuencias Conocidas:** Los componentes quedan sin red de seguridad automatizada; su verificación sigue siendo manual contra el emulador, documentada en cada tarea. Se asume ese riesgo a conciencia. Si en algún momento se parten `waiter` y `products` en piezas más pequeñas, la capa 4 deja de ser cara y conviene reevaluar esta decisión — pero ese refactor debe justificarse por mantenibilidad, no por cobertura. **Hallazgo que motivó la Tarea 32:** el CI nunca ejecutaba `npm test`, así que hasta ahora cualquier prueba del repositorio era decorativa y un PR con la suite en rojo podía fusionarse y desplegarse.
 
+
+### ADR-009: Orden de la Carta Derivado de la Posición de Fila en la Hoja `datos`
+*   **Fecha:** 2026-10-19
+*   **Estado:** Implementado (pendiente de despliegue y de re-importar la hoja).
+*   **Decisión:** `Product.order` (opcional) guarda la posición de la fila en la hoja `datos` (fila 2 => 1). El importador lo escribe en cada import (nuevos y existentes; la hoja es la fuente de verdad, ADR-007) y `/menu.json` expone `items[].order` y ordena `items` por él (ascendente, `null` al final, desempate por nombre) en memoria.
+*   **Razón:** letiende.co debe ordenar la carta como la hoja; `publicMenu` leía `products` sin orden. No se añadió columna `order` a la plantilla porque se deriva de la fila; no se usó `orderBy` de Firestore porque excluiría documentos sin el campo.
+*   **Consecuencias Conocidas:** Hasta re-importar la hoja `datos`, `order` es `null` en todos los productos. Los productos creados a mano quedan al final. Reordenar filas en la hoja exige un nuevo import. `firestore.rules` no cambia (no restringe el conjunto de campos).
+
 ---
 
 ## 4. Dependencias Principales Instaladas

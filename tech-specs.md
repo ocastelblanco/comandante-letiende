@@ -164,6 +164,7 @@ export interface Product {
   variants: string[];                        // opciones excluyentes, NO alteran el precio; [] si no aplica
   additions: ProductAddition[];              // extras opcionales que SÍ suman al precio; [] si no aplica
   basePrice: number;                         // PVP sin propina — la propina ya no vive en el producto
+  order?: number | null;                     // posición de la fila en la hoja `datos` (1 = primera); la fija el import
   isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -235,7 +236,7 @@ Tres colecciones planas, sin subcolecciones. Refleja el estado real de la base d
 | Colección | ID del documento | Estructura |
 | :--- | :--- | :--- |
 | `users` | el **email** del usuario | `{ email, displayName, role: 'admin'\|'waiter'\|'barista'\|'inactive', createdAt }` |
-| `products` | autogenerado | `{ name, description, category, subcategory?, variants, additions, basePrice, isActive, createdAt, updatedAt }` |
+| `products` | autogenerado | `{ name, description, category, subcategory?, variants, additions, basePrice, order?, isActive, createdAt, updatedAt }` |
 | `orders` | autogenerado | `{ tableNumber, items: OrderItem[], status, paid, paymentMethod, paidAt, waiterId, waiterName, observations, subtotal, tipPercentage, tipValue, tipAmount, total, baristaId, preparedAt, deliveredAt, createdAt, updatedAt }` |
 
 **El ID de `users` es el email, no el UID de Firebase Auth.** El panel de administración lo guarda con `normalizeEmail()` (sin espacios, en minúsculas) y solo tras `isValidEmail()` (dominio completo), porque `AuthService` busca el documento por el correo exacto que devuelve Google; borrar un usuario desde el panel elimina únicamente este documento, nunca la cuenta de Firebase Auth, que se comparte con otras aplicaciones (Tarea 43). `firestore.rules` resuelve el rol con `get(/databases/$(database)/documents/users/$(request.auth.token.email))`, así que cambiar esa clave rompería toda la autorización.
@@ -274,6 +275,8 @@ Columnas de la hoja `datos` y de la plantilla descargable (`descargar plantilla`
 | `basePrice` | número | PVP sin propina. |
 | `additionPrices` | lista de números | **Paralela a `additions`**: misma cantidad de elementos. |
 | `active` | booleano | Se mapea al campo `isActive` del producto. |
+
+**Orden:** no es una columna. El importador asigna `order` = posición de la fila en la hoja (fila 2 => 1, usando el número de fila real, estable ante filas vacías) y lo sobrescribe en cada import, nuevos y existentes. Los productos creados a mano o previos al primer import con orden no lo tienen (`null`).
 
 El parseo y la validación de estas columnas viven en `src/app/features/admin/products/import-parsers.ts` (funciones puras, con pruebas en `import-parsers.spec.ts`): rechazan la importación completa del archivo si `additionPrices` no tiene la misma cantidad de elementos que `additions`, si algún precio no es finito o es negativo, si hay variantes o adiciones duplicadas en una fila, o si `active` no es interpretable como booleano — nada se escribe hasta que todas las filas son válidas.
 
@@ -456,7 +459,8 @@ En vez de exponer una colección de Firestore de lectura pública abierta (riesg
       "variants": [],
       "category": "bebidas",
       "subcategory": "de_cafe",
-      "basePrice": 9900
+      "basePrice": 9900,
+      "order": 3
     }
   ]
 }
@@ -473,6 +477,7 @@ En vez de exponer una colección de Firestore de lectura pública abierta (riesg
 | `items[].category` | `string` | Categoría raíz (`bebidas`, `cocteles`, `licores`, `cervezas`, `comida`, `reposteria`, `ofertas`). |
 | `items[].subcategory` | `string \| null` | Subcategoría, o `null` si la categoría no aplica subcategorías. |
 | `items[].basePrice` | `number` | Precio del producto, **sin propina** (desde la Tarea 29 la propina vive en el pedido, no en el producto). |
+| `items[].order` | `number \| null` | Posición del producto en la hoja `datos` (1 = primera fila). `null` si aún no se importó con orden. `items` ya viene ordenado por este campo ascendente, con los `null` al final y desempate por `name` (`functions/src/menu-order.ts`). |
 
 **Campos deliberadamente excluidos:** `id`, `isActive`, `createdAt`, `updatedAt` por ítem, o cualquier otro campo interno de `/products`.
 

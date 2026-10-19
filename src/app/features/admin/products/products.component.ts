@@ -58,6 +58,8 @@ interface ImportRow {
   additions: ProductAddition[];
   basePrice: number;
   isActive: boolean;
+  // Posición de la fila en la hoja `datos` (fila 2 => 1).
+  order: number;
   isNew: boolean;
   existingId: string | null;
 }
@@ -603,6 +605,10 @@ export class ProductsComponent {
     let rowNumber = 1; // fila 1 = encabezado; los datos empiezan en la fila 2
     for (const r of raw) {
       rowNumber++;
+      // `sheet_to_json` omite filas vacías: `__rowNum__` (0-based) es la fila real
+      // de la hoja, así el orden es estable ante filas en blanco.
+      const sheetRow = (r as { __rowNum__?: number }).__rowNum__;
+      const order = typeof sheetRow === 'number' ? sheetRow : rowNumber - 1;
       const name = String(r['name'] ?? '').trim();
       if (!name) continue;
 
@@ -674,6 +680,7 @@ export class ProductsComponent {
         additions,
         basePrice,
         isActive,
+        order,
         isNew: !existing,
         existingId: existing?.id ?? null,
       });
@@ -791,6 +798,8 @@ export class ProductsComponent {
             // marcado `active: FALSE` en la hoja debe archivarse en el
             // siguiente import, no solo al crearlo.
             isActive: row.isActive,
+            // La hoja también manda sobre el orden de la carta (ADR-007/009).
+            order: row.order,
           },
         })),
       );

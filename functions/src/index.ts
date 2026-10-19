@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { sortMenuItems } from './menu-order';
 import { onRequest, type Request, type Response } from 'firebase-functions/v2/https';
 
 initializeApp();
@@ -30,6 +31,8 @@ interface PublicMenuItem {
   category: string;
   subcategory: string | null;
   basePrice: number;
+  /** Posición en la hoja `datos` (1 = primera fila); `null` si aún no se importó con orden. */
+  order: number | null;
 }
 
 interface PublicMenuResponse {
@@ -57,7 +60,7 @@ export const publicMenu = onRequest(
       const db = getFirestore();
       const snapshot = await db.collection('products').where('isActive', '==', true).get();
 
-      const items: PublicMenuItem[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      const unsorted: PublicMenuItem[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
         const data = doc.data();
         return {
           name: data['name'] as string,
@@ -67,8 +70,10 @@ export const publicMenu = onRequest(
           category: data['category'] as string,
           subcategory: (data['subcategory'] as string | null | undefined) ?? null,
           basePrice: data['basePrice'] as number,
+          order: (data['order'] as number | null | undefined) ?? null,
         };
       });
+      const items = sortMenuItems(unsorted);
 
       const body: PublicMenuResponse = {
         updatedAt: new Date().toISOString(),

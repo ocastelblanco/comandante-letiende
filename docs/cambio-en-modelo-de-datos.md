@@ -32,7 +32,8 @@ Este documento será exportado por el `administrador` como XLSX y se cargará en
         ],
         "category": "cervezas",
         "subcategory": "artesanales",
-        "basePrice": 15200
+        "basePrice": 15200,
+        "order": 1
       },
       {
         "name": "Capuchino",
@@ -44,7 +45,8 @@ Este documento será exportado por el `administrador` como XLSX y se cargará en
         "variants": [],
         "category": "bebidas",
         "subcategory": "de_cafe",
-        "basePrice": 9900
+        "basePrice": 9900,
+        "order": 2
       },
       {
         "name": "Margarita",
@@ -53,7 +55,8 @@ Este documento será exportado por el `administrador` como XLSX y se cargará en
         "variants": [],
         "category": "cocteles",
         "subcategory": "clasicos",
-        "basePrice": 29900
+        "basePrice": 29900,
+        "order": 3
       }
     ]
 }
